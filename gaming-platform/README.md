@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+# GameChallenger
+
+GameChallenger er en plattform hvor du kan utfordre andre spillere, lage matcher og vinne ekte premier i dine favorittspill.
+
 ## Getting Started
 
 First, run the development server:
