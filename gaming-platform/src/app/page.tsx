@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -10,8 +11,12 @@ export default function Home() {
             GameChallenger
           </div>
           <div className="flex flex-col min-[400px]:flex-row min-[400px]:space-x-2 sm:space-x-4 space-y-2 min-[400px]:space-y-0 items-center">
-            <button className="px-3 sm:px-4 py-2 text-pink-500 hover:text-pink-400 text-base sm:text-lg">Login</button>
-            <button className="px-3 sm:px-4 py-2 bg-purple-600 rounded-lg text-white hover:bg-purple-700 text-base sm:text-lg">Sign Up</button>
+            <Link href="/login" passHref legacyBehavior>
+              <button className="px-3 sm:px-4 py-2 text-pink-500 hover:text-pink-400 text-base sm:text-lg">Login</button>
+            </Link>
+            <Link href="/signup" passHref legacyBehavior>
+              <button className="px-3 sm:px-4 py-2 bg-purple-600 rounded-lg text-white hover:bg-purple-700 text-base sm:text-lg">Sign Up</button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -26,9 +31,11 @@ export default function Home() {
             Join GameChallenger where skill meets reward. Create matches, challenge players, and win real prizes in your favorite games.
           </p>
           <div className="flex flex-col min-[400px]:flex-row min-[400px]:space-x-4 space-y-4 min-[400px]:space-y-0 items-center justify-center">
-            <button className="px-8 py-4 bg-purple-600 rounded-lg text-lg font-semibold text-white hover:bg-purple-700 transition-colors duration-200">
-              Get Started
-            </button>
+            <Link href="/signup" passHref legacyBehavior>
+              <button className="px-8 py-4 bg-purple-600 rounded-lg text-lg font-semibold text-white hover:bg-purple-700 transition-colors duration-200">
+                Get Started
+              </button>
+            </Link>
             <button className="px-8 py-4 border border-pink-500 rounded-lg text-lg font-semibold hover:bg-pink-500/10">
               Learn More
             </button>
@@ -115,9 +122,11 @@ export default function Home() {
         <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-12 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Start Your Gaming Journey?</h2>
           <p className="text-xl mb-8">Join thousands of players already competing on our platform</p>
-          <button className="px-8 py-4 bg-white text-purple-600 rounded-lg text-lg font-semibold hover:bg-gray-100">
-            Sign Up Now
-          </button>
+          <Link href="/signup" passHref legacyBehavior>
+            <button className="px-8 py-4 bg-white text-purple-600 rounded-lg text-lg font-semibold hover:bg-gray-100">
+              Sign Up Now
+            </button>
+          </Link>
         </div>
       </section>
 
