@@ -11,10 +11,10 @@ export default function Home() {
             GameChallenger
           </div>
           <div className="flex flex-col min-[400px]:flex-row min-[400px]:space-x-2 sm:space-x-4 space-y-2 min-[400px]:space-y-0 items-center">
-            <Link href="/login" passHref legacyBehavior>
+            <Link href="/login">
               <button className="px-3 sm:px-4 py-2 text-pink-500 hover:text-pink-400 text-base sm:text-lg">Login</button>
             </Link>
-            <Link href="/signup" passHref legacyBehavior>
+            <Link href="/signup">
               <button className="px-3 sm:px-4 py-2 bg-purple-600 rounded-lg text-white hover:bg-purple-700 text-base sm:text-lg">Sign Up</button>
             </Link>
           </div>
