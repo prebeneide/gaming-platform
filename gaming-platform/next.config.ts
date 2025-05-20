@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     domains: [
-      // Supabase Storage bucket domain fjernet
+      'res.cloudinary.com',
     ],
   },
   /* config options here */

@@ -1,12 +1,13 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
 export default function EditProfilePage() {
   const [profileImage, setProfileImage] = useState("/default-avatar.svg");
-  const [username, setUsername] = useState("euphoria");
-  const [displayName, setDisplayName] = useState("Euphoria");
-  const [email, setEmail] = useState("prebenfjeldsbo@gmail.com");
+  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
   const [discord, setDiscord] = useState("");
   const [twitter, setTwitter] = useState("");
@@ -24,6 +25,34 @@ export default function EditProfilePage() {
     { game: "", username: "" }
   ]);
 
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const res = await fetch("/api/profile");
+        const data = await res.json();
+        if (res.ok && data.user) {
+          setProfileImage(data.user.image || "/default-avatar.svg");
+          setUsername(data.user.username || "");
+          setDisplayName(data.user.displayName || "");
+          setEmail(data.user.email || "");
+          setBio(data.user.bio || "");
+          setDiscord(data.user.discord || "");
+          setTwitter(data.user.twitter || "");
+          setTwitch(data.user.twitch || "");
+          setSteam(data.user.steam || "");
+          setPsn(data.user.psn || "");
+          setXbox(data.user.xbox || "");
+          if (data.user.customGames) {
+            setCustomGames(data.user.customGames.length > 0 ? data.user.customGames : [{ game: "", username: "" }]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch user data:", err);
+      }
+    }
+    fetchUserData();
+  }, []);
+
   const addGameRow = () => {
     if (customGames.length < 5) {
       setCustomGames([...customGames, { game: "", username: "" }]);
@@ -34,18 +63,109 @@ export default function EditProfilePage() {
     setCustomGames(customGames.filter((_, idx) => idx !== index));
   };
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setTimeout(() => {
+    setSuccess(false);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileImage,
+          displayName,
+          bio,
+          discord,
+          twitter,
+          twitch,
+          steam,
+          psn,
+          xbox,
+          customGames,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(true);
+        // Oppdater state hvis ønskelig, f.eks. setProfileImage(data.user.image)
+      } else {
+        alert(data.error || "Update failed");
+      }
+    } catch (err) {
+      alert("Update failed");
+    } finally {
       setSaving(false);
-      setSuccess(true);
       setTimeout(() => setSuccess(false), 2000);
-    }, 1200);
+    }
+  }
+
+  async function autoSaveProfileImage(newImage: string) {
+    setProfileImage(newImage);
+    setSaving(true);
+    setSuccess(false);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileImage: newImage,
+          displayName,
+          bio,
+          discord,
+          twitter,
+          twitch,
+          steam,
+          psn,
+          xbox,
+          customGames,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess(true);
+      } else {
+        alert(data.error || "Update failed");
+      }
+    } catch (err) {
+      alert("Update failed");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSuccess(false), 2000);
+    }
+  }
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok) {
+          await autoSaveProfileImage(data.url);
+        } else {
+          alert(data.error || "Upload failed");
+        }
+      } catch (err) {
+        alert("Upload failed");
+      }
+    }
   }
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
+      <div className="w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto mb-4 flex justify-start">
+        <Link href="/dashboard">
+          <button className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold py-2 px-6 rounded-lg transition">
+            ← Back to Dashboard
+          </button>
+        </Link>
+      </div>
       <div className={
         "bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col gap-8 border border-gray-800 w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto"
       }>
@@ -61,15 +181,16 @@ export default function EditProfilePage() {
           </div>
           <label className="mt-2 cursor-pointer text-pink-400 hover:underline">
             Change profile picture
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
           </label>
-          <button className="text-xs text-gray-400 hover:underline mt-1" onClick={() => setProfileImage("/default-avatar.svg")}>Use default avatar</button>
+          <button className="text-xs text-gray-400 hover:underline mt-1" onClick={() => autoSaveProfileImage("/default-avatar.svg")}>Use default avatar</button>
         </section>
         {/* Brukerinformasjon */}
         <form onSubmit={handleSave} className="flex flex-col gap-6">
           <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Username</label>
-              <input value={username} onChange={e => setUsername(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500" />
+              <input value={username} disabled className="w-full rounded-lg bg-gray-800 text-gray-400 px-3 py-2 cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm mb-1">Display Name</label>
@@ -88,12 +209,30 @@ export default function EditProfilePage() {
           <section>
             <h2 className="text-lg font-semibold mb-2 text-pink-400">Social Links</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input placeholder="Discord" value={discord} onChange={e => setDiscord(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-              <input placeholder="Twitter" value={twitter} onChange={e => setTwitter(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-              <input placeholder="Twitch" value={twitch} onChange={e => setTwitch(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-              <input placeholder="Steam" value={steam} onChange={e => setSteam(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-              <input placeholder="PlayStation Network" value={psn} onChange={e => setPsn(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-              <input placeholder="Xbox" value={xbox} onChange={e => setXbox(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
+              <div className="w-full">
+                <label className="block text-sm mb-1">Discord</label>
+                <input placeholder="Discord" value={discord} onChange={e => setDiscord(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2" />
+              </div>
+              <div className="w-full">
+                <label className="block text-sm mb-1">Twitter</label>
+                <input placeholder="Twitter" value={twitter} onChange={e => setTwitter(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2" />
+              </div>
+              <div className="w-full">
+                <label className="block text-sm mb-1">Twitch</label>
+                <input placeholder="Twitch" value={twitch} onChange={e => setTwitch(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2" />
+              </div>
+              <div className="w-full">
+                <label className="block text-sm mb-1">Steam</label>
+                <input placeholder="Steam" value={steam} onChange={e => setSteam(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2" />
+              </div>
+              <div className="w-full">
+                <label className="block text-sm mb-1">PlayStation Network</label>
+                <input placeholder="PlayStation Network" value={psn} onChange={e => setPsn(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2" />
+              </div>
+              <div className="w-full">
+                <label className="block text-sm mb-1">Xbox</label>
+                <input placeholder="Xbox" value={xbox} onChange={e => setXbox(e.target.value)} className="w-full rounded-lg bg-gray-800 text-white px-3 py-2" />
+              </div>
             </div>
           </section>
           {/* Custom Games */}
@@ -111,7 +250,7 @@ export default function EditProfilePage() {
             </div>
             <div className="flex flex-col gap-3">
               {customGames.map((row, idx) => (
-                <div key={idx} className="flex flex-col sm:flex-row gap-2 items-center w-full">
+                <div key={idx} className="flex flex-col sm:flex-row gap-4 items-center w-full">
                   <input
                     type="text"
                     placeholder="Custom Game"
@@ -121,7 +260,7 @@ export default function EditProfilePage() {
                       updated[idx].game = e.target.value;
                       setCustomGames(updated);
                     }}
-                    className="flex-1 min-w-0 rounded-lg bg-gray-800 text-white px-3 py-2"
+                    className="flex-1 min-w-0 w-full rounded-lg bg-gray-800 text-white px-3 py-2"
                   />
                   <input
                     type="text"
@@ -132,7 +271,7 @@ export default function EditProfilePage() {
                       updated[idx].username = e.target.value;
                       setCustomGames(updated);
                     }}
-                    className="flex-1 min-w-0 rounded-lg bg-gray-800 text-white px-3 py-2"
+                    className="flex-1 min-w-0 w-full rounded-lg bg-gray-800 text-white px-3 py-2"
                   />
                   {idx > 0 && (
                     <button
@@ -147,34 +286,6 @@ export default function EditProfilePage() {
                 </div>
               ))}
             </div>
-          </section>
-          {/* Endre passord */}
-          <section>
-            <h2 className="text-lg font-semibold mb-2 text-pink-400">Change Password</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-              <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-            </div>
-          </section>
-          {/* Varslingsinnstillinger */}
-          <section>
-            <h2 className="text-lg font-semibold mb-2 text-pink-400">Notifications</h2>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} />
-                Receive newsletter
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={challengeNotif} onChange={e => setChallengeNotif(e.target.checked)} />
-                Notify me about new challenges
-              </label>
-            </div>
-          </section>
-          {/* Slett konto */}
-          <section className="mt-4 border-t border-gray-800 pt-4">
-            <h2 className="text-lg font-semibold mb-2 text-red-400">Delete Account</h2>
-            <p className="text-sm text-gray-400 mb-2">This action is irreversible. All your data will be lost.</p>
-            <button type="button" className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg transition">Delete Account</button>
           </section>
           {/* Lagre-knapp */}
           <div className="flex justify-end mt-4">
