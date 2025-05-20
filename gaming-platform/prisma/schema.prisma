@@ -19,6 +19,41 @@ model User {
   username  String   @unique
   password  String
   image     String?
+  displayName String?
+  bio         String?
+  discord     String?
+  twitter     String?
+  twitch      String?
+  steam       String?
+  psn         String?
+  xbox        String?
+  customGames Json?
+  followers   Follower[] @relation("UserFollowers")
+  following   Follower[] @relation("UserFollowing")
+  friendRequestsSent FriendRequest[] @relation("FriendRequestFrom")
+  friendRequestsReceived FriendRequest[] @relation("FriendRequestTo")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Follower {
+  id          String @id @default(uuid())
+  follower    User   @relation("UserFollowing", fields: [followerId], references: [id])
+  followerId  String
+  following   User   @relation("UserFollowers", fields: [followingId], references: [id])
+  followingId String
+
+  @@unique([followerId, followingId])
+}
+
+model FriendRequest {
+  id         String   @id @default(uuid())
+  from       User     @relation("FriendRequestFrom", fields: [fromId], references: [id])
+  fromId     String
+  to         User     @relation("FriendRequestTo", fields: [toId], references: [id])
+  toId       String
+  status     String   // "pending", "accepted", "declined"
+  createdAt  DateTime @default(now())
+
+  @@unique([fromId, toId])
 }

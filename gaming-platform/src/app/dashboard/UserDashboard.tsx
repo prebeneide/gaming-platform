@@ -6,7 +6,21 @@ import { useState } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
 import Link from "next/link";
 
-export default function UserDashboard({ user }: { user: { email: string; username: string; id: string; image?: string } }) {
+export default function UserDashboard({ user }: { user: {
+  email?: string | null;
+  username?: string | null;
+  id?: string | null;
+  image?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+  discord?: string | null;
+  twitter?: string | null;
+  twitch?: string | null;
+  steam?: string | null;
+  psn?: string | null;
+  xbox?: string | null;
+  customGames?: any;
+} }) {
   const router = useRouter();
   const [lightMode, setLightMode] = useState(false);
 
@@ -341,7 +355,7 @@ export default function UserDashboard({ user }: { user: { email: string; usernam
       <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
         <button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition">Start New Match</button>
         <button className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-6 rounded-lg transition">View All Matches</button>
-        <Link href="/profile/edit" passHref legacyBehavior>
+        <Link href="/profile/edit">
           <button className="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold py-2 px-6 rounded-lg transition">Edit Profile</button>
         </Link>
       </div>
