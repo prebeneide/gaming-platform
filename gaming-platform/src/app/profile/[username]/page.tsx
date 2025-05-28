@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import FollowButton from "./FollowButton";
 import FriendButton from "./FriendButton";
+import UserStats from "../../dashboard/UserStats";
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
   const user = await prisma.user.findUnique({
@@ -90,34 +91,13 @@ export default async function PublicProfilePage({ params }: { params: { username
           <div className="text-gray-400">@{user.username}</div>
         </div>
         {user.bio && <div className="text-center text-lg text-gray-300">{user.bio}</div>}
-        <div>
-          <h2 className="text-lg font-semibold mb-2 text-pink-400">Social Links</h2>
-          <ul className="flex flex-col gap-1">
-            {user.discord && <li><b>Discord:</b> {user.discord}</li>}
-            {user.twitter && <li><b>Twitter:</b> {user.twitter}</li>}
-            {user.twitch && <li><b>Twitch:</b> {user.twitch}</li>}
-            {user.steam && <li><b>Steam:</b> {user.steam}</li>}
-            {user.psn && <li><b>PlayStation Network:</b> {user.psn}</li>}
-            {user.xbox && <li><b>Xbox:</b> {user.xbox}</li>}
-          </ul>
-        </div>
-        {user.customGames && Array.isArray(user.customGames) && user.customGames.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold mb-2 text-pink-400">Custom Games</h2>
-            <ul className="flex flex-col gap-1">
-              {user.customGames.map((g: any, idx: number) => (
-                <li key={idx}><b>{g.game}:</b> {g.username}</li>
-              ))}
-            </ul>
-          </div>
-        )}
         <div className="flex justify-center gap-8 text-lg text-pink-300 font-semibold">
           <div><span className="text-white">{followersCount}</span> Followers</div>
           <div><span className="text-white">{followingCount}</span> Following</div>
           <div><span className="text-white">{friendsCount}</span> Friends</div>
         </div>
         {!isOwnProfile && sessionUser && (
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center mt-2">
             <FollowButton
               isFollowing={isFollowing}
               username={params.username}
@@ -130,7 +110,38 @@ export default async function PublicProfilePage({ params }: { params: { username
             />
           </div>
         )}
-        {/* Her kan jeg legge til stats, matcher, venneliste osv. */}
+        {/* Brukerstatistikk (samme som dashboard) */}
+        <UserStats
+          stats={{ matchesPlayed: 14, wins: 7, losses: 5, draws: 2, rank: "Gold III", registeredAt: "2024-05-01" }}
+          winPercent={50}
+          winLossRatio={1.4}
+          last10={["W", "L", "D", "L", "W", "W", "W", "L", "D", "D"]}
+        />
+        {/* Social Links nederst, vises kun hvis minst én link finnes */}
+        {(user.discord || user.twitter || user.twitch || user.steam || user.psn || user.xbox) && (
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-2 text-pink-400">Social Links</h2>
+            <ul className="flex flex-col gap-1">
+              {user.discord && <li><b>Discord:</b> {user.discord}</li>}
+              {user.twitter && <li><b>Twitter:</b> {user.twitter}</li>}
+              {user.twitch && <li><b>Twitch:</b> {user.twitch}</li>}
+              {user.steam && <li><b>Steam:</b> {user.steam}</li>}
+              {user.psn && <li><b>PlayStation Network:</b> {user.psn}</li>}
+              {user.xbox && <li><b>Xbox:</b> {user.xbox}</li>}
+            </ul>
+          </div>
+        )}
+        {/* Custom Games nederst, vises kun hvis det finnes custom games */}
+        {user.customGames && Array.isArray(user.customGames) && user.customGames.length > 0 && user.customGames.some((g: any) => g.game || g.username) && (
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold mb-2 text-pink-400">Custom Games</h2>
+            <ul className="flex flex-col gap-1">
+              {user.customGames.map((g: any, idx: number) => (
+                (g.game || g.username) ? <li key={idx}><b>{g.game}:</b> {g.username}</li> : null
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </main>
   );
