@@ -136,7 +136,7 @@ export default function UserDashboard({ user }: { user: {
 
   return (
     <div className={
-      `${lightMode ? "bg-gray-100 text-gray-800 border-gray-300" : "bg-gray-900 text-white border-gray-800"} p-8 rounded-xl shadow-xl w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto flex flex-col gap-8 border`
+      `${lightMode ? "bg-gray-100 text-gray-800 border-gray-300" : "bg-neutral-950 text-white"} p-8 rounded-xl shadow-xl w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto flex flex-col gap-8`
     }>
       <button
         className={`absolute right-8 top-8 w-12 h-12 flex items-center justify-center rounded-full shadow transition border-2 z-10
@@ -152,7 +152,7 @@ export default function UserDashboard({ user }: { user: {
       <div className="flex flex-col items-center justify-center mb-2">
         <div className="flex items-center gap-4">
           <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full w-16 h-16 flex items-center justify-center">
-            <div className="bg-gray-900 rounded-full w-15 h-15 flex items-center justify-center">
+            <div className="bg-neutral-950 rounded-full w-15 h-15 flex items-center justify-center">
               <Image
                 src={user.image || "/default-avatar.svg"}
                 alt="Profile picture"
@@ -192,11 +192,11 @@ export default function UserDashboard({ user }: { user: {
                     : friend.status === "recent"
                     ? "bg-yellow-50 border-yellow-100"
                     : "bg-gray-100 border-gray-200"
-                  : "bg-gray-800 border-gray-700"}
+                  : "bg-neutral-900 border-neutral-950"}
               `}
             >
               <div className="relative mb-1">
-                <Image src={friend.image} alt={friend.name + " avatar"} width={48} height={48} className="rounded-full border border-pink-400 bg-gray-800" />
+                <Image src={friend.image} alt={friend.name + " avatar"} width={48} height={48} className="rounded-full border border-pink-400 bg-neutral-950 border-neutral-950" />
                 <span className={`absolute -bottom-1 -right-1 block w-4 h-4 rounded-full border-2 border-white ${
                   friend.status === "online"
                     ? "bg-green-400"
@@ -251,7 +251,7 @@ export default function UserDashboard({ user }: { user: {
                   alt={match.opponent + " avatar"}
                   width={28}
                   height={28}
-                  className="rounded-full border border-pink-400 bg-gray-800"
+                  className="rounded-full border border-pink-400 bg-neutral-950 border-neutral-950"
                 />
               </span>
               <span className="hidden lg:block text-center">{match.game}</span>
@@ -276,7 +276,7 @@ export default function UserDashboard({ user }: { user: {
                   alt={match.opponent + " avatar"}
                   width={32}
                   height={32}
-                  className="rounded-full border border-pink-400 bg-gray-800"
+                  className="rounded-full border border-pink-400 bg-neutral-950 border-neutral-950"
                 />
                 <div className="flex flex-col">
                   <span className="font-semibold">vs {match.opponent}</span>
@@ -306,7 +306,7 @@ export default function UserDashboard({ user }: { user: {
         <button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition">Start New Match</button>
         <button className="bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-6 rounded-lg transition">View All Matches</button>
         <Link href="/profile/edit">
-          <button className="bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold py-2 px-6 rounded-lg transition">Edit Profile</button>
+          <button className="bg-neutral-900 hover:bg-neutral-800 text-white font-semibold py-2 px-6 rounded-lg transition">Edit Profile</button>
         </Link>
       </div>
       <div className="text-center mt-4">

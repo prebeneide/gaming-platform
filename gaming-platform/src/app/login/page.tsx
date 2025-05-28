@@ -39,7 +39,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-gray-900 p-8 rounded-xl shadow-xl w-full max-w-md flex flex-col gap-6 border border-gray-800"
+        className="bg-neutral-950 p-8 rounded-xl shadow-xl w-full max-w-md flex flex-col gap-6"
       >
         <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
           Log in to your account
@@ -48,7 +48,7 @@ export default function LoginPage() {
         <input
           type="text"
           placeholder="Email or Username"
-          className="px-4 py-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="px-4 py-3 rounded-lg bg-neutral-900 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
           value={identifier}
           onChange={e => setIdentifier(e.target.value)}
           required
@@ -56,7 +56,7 @@ export default function LoginPage() {
         <input
           type="password"
           placeholder="Password"
-          className="px-4 py-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+          className="px-4 py-3 rounded-lg bg-neutral-900 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
           value={password}
           onChange={e => setPassword(e.target.value)}
           required

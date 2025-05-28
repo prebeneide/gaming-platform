@@ -10,7 +10,7 @@ export default function SettingsPage() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
       <div className={
-        "bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col gap-8 border border-gray-800 w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto"
+        "bg-neutral-950 rounded-2xl shadow-xl p-8 flex flex-col gap-8 w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto"
       }>
         <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
           Settings
@@ -19,8 +19,8 @@ export default function SettingsPage() {
         <section>
           <h2 className="text-lg font-semibold mb-2 text-pink-400">Change Password</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
-            <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="rounded-lg bg-gray-800 text-white px-3 py-2" />
+            <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
+            <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
           </div>
         </section>
         {/* Notifications */}

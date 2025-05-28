@@ -71,7 +71,7 @@ export default async function FriendsPage() {
               {incomingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="bg-gray-900 rounded-lg p-4 flex items-center justify-between border border-gray-800"
+                  className="bg-neutral-950 rounded-lg p-4 flex items-center justify-between border border-gray-800"
                 >
                   <div className="flex items-center gap-4">
                     <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
@@ -110,7 +110,7 @@ export default async function FriendsPage() {
               {outgoingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="bg-gray-900 rounded-lg p-4 flex items-center justify-between border border-gray-800"
+                  className="bg-neutral-950 rounded-lg p-4 flex items-center justify-between border border-gray-800"
                 >
                   <div className="flex items-center gap-4">
                     <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
