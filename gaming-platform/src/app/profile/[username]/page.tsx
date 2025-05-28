@@ -80,10 +80,10 @@ export default async function PublicProfilePage({ params }: { params: { username
   } catch {}
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
-      <div className="bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col gap-8 border border-gray-800 w-full max-w-lg mx-auto">
+      <div className="bg-neutral-950 rounded-2xl shadow-xl p-8 flex flex-col gap-8 w-full max-w-lg mx-auto">
         <div className="flex flex-col items-center gap-2">
           <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full w-24 h-24 flex items-center justify-center">
-            <div className="bg-gray-900 rounded-full w-22 h-22 flex items-center justify-center">
+            <div className="bg-neutral-950 rounded-full w-22 h-22 flex items-center justify-center">
               <Image src={user.image || "/default-avatar.svg"} alt="Profile" width={88} height={88} className="rounded-full object-cover w-22 h-22" />
             </div>
           </div>

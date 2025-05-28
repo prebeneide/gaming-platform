@@ -38,12 +38,12 @@ export default function SearchBar() {
         value={query}
         onChange={handleChange}
         placeholder="Search for users..."
-        className="w-full h-full px-5 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-lg shadow my-0"
+        className="w-full h-full px-5 rounded-xl bg-neutral-900 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-lg shadow my-0"
         onFocus={() => query.length >= 2 && setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
       {showDropdown && (
-        <div className="absolute z-20 w-full bg-gray-900 border border-gray-700 rounded-xl mt-2 shadow-xl max-h-96 overflow-y-auto animate-fade-in">
+        <div className="absolute z-20 w-full bg-neutral-900 rounded-xl mt-2 shadow-xl max-h-96 overflow-y-auto animate-fade-in">
           {loading ? (
             <div className="p-4 text-center text-gray-400">Searching...</div>
           ) : results.length === 0 ? (
@@ -52,7 +52,7 @@ export default function SearchBar() {
             results.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center gap-4 px-4 py-3 hover:bg-gray-800 transition cursor-pointer border-b border-gray-800 last:border-b-0"
+                className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-950 transition cursor-pointer last:border-b-0"
               >
                 <Image
                   src={user.image || "/default-avatar.svg"}
