@@ -151,7 +151,7 @@ export default function UserDashboard({ user }: { user: {
       </button>
       <div className="flex flex-col items-center justify-center mb-2">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full w-16 h-16 flex items-center justify-center">
+          <div className="profile-gradient-ring p-[2px] rounded-full w-16 h-16 flex items-center justify-center">
             <div className="bg-neutral-950 rounded-full w-15 h-15 flex items-center justify-center">
               <Image
                 src={user.image || "/default-avatar.svg"}
@@ -164,7 +164,7 @@ export default function UserDashboard({ user }: { user: {
               />
             </div>
           </div>
-          <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+          <span className="text-3xl font-bold signup-gradient-text">
             {user.username || user.email}!
           </span>
         </div>
@@ -317,6 +317,24 @@ export default function UserDashboard({ user }: { user: {
           Log out
         </button>
       </div>
+      <style jsx>{`
+        .signup-gradient-text {
+          background: linear-gradient(90deg, #00c6fb, #8b5cf6, #f6369a);
+          background-clip: text;
+          -webkit-background-clip: text;
+          color: transparent;
+          -webkit-text-fill-color: transparent;
+        }
+        .profile-gradient-ring {
+          background: conic-gradient(
+            from 200deg,
+            #00c6fb 0deg,
+            #8b5cf6 120deg,
+            #f6369a 240deg,
+            #00c6fb 360deg
+          );
+        }
+      `}</style>
     </div>
   );
 } 
