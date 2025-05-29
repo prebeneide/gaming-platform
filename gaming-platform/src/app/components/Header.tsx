@@ -1,111 +1,205 @@
 import Link from "next/link";
 import SearchBar from "../dashboard/SearchBar";
 
-export default function Header() {
+interface HeaderProps {
+  isAuthPage?: boolean;
+}
+
+export default function Header({ isAuthPage = false }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 w-full bg-black/80 backdrop-blur border-b border-gray-800 shadow-sm flex items-center relative px-0 header-main">
-      <div className="w-full flex items-center h-full px-0 header-inner">
-        {/* Logo helt til venstre eller midtstilt på mobil */}
-        <div className="flex items-center h-full px-4 min-w-0 flex-shrink-0 logo-wrapper">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
-          >
-            <span>GameChallenger</span>
-          </Link>
+    <header className={`sticky top-0 z-30 w-full bg-black/80 backdrop-blur shadow-sm flex px-0 header-main border-b-0${isAuthPage ? ' no-gradient-border' : ''}`} style={{position: 'sticky', top: 0, zIndex: 30, width: '100%'}}>
+      <div className="flex w-full items-center header-flex-wrap">
+        {/* Logo, søkefelt og knapper på samme rad (grid på store skjermer) */}
+        <div className="header-row-1 w-full">
+          <div className="flex items-center px-4 flex-shrink-0 logo-wrapper header-logo">
+            <Link
+              href={isAuthPage ? "/" : "/dashboard"}
+              className="flex items-center gap-2"
+            >
+              <span className="logo-animated-gradient text-xl font-bold bg-clip-text text-transparent select-none">
+                GameChallenger
+              </span>
+            </Link>
+          </div>
+          {/* Søkefelt for store skjermer */}
+          {!isAuthPage && (
+            <div className="header-searchbar-desktop">
+              <div className="w-full max-w-xl mx-auto">
+                <SearchBar />
+              </div>
+            </div>
+          )}
+          {!isAuthPage && (
+            <div className="flex items-center gap-2 pr-4 flex-shrink-0 header-buttons">
+              <Link href="/login" className="text-pink-500 hover:text-pink-600 font-semibold px-3 py-2 rounded transition">
+                Login
+              </Link>
+              <Link href="/signup">
+                <button className="px-4 py-2 signup-gradient-btn rounded-lg text-white font-semibold transition">
+                  Sign Up
+                </button>
+              </Link>
+            </div>
+          )}
         </div>
-        {/* Spacer for å skyve søkefeltet til høyre på små skjermer */}
-        <div className="flex-1 hidden sm:block" />
-        {/* Søkefeltet */}
-        <div className="searchbar-wrapper">
-          <SearchBar />
-        </div>
+        {/* Søkefelt på egen rad for små skjermer */}
+        {!isAuthPage && (
+          <div className="header-row-2 w-full">
+            <div className="header-searchbar-mobile w-full max-w-xl mx-auto px-2">
+              <SearchBar />
+            </div>
+          </div>
+        )}
       </div>
       <style jsx>{`
-        @media (min-width: 651px) {
-          .header-main {
-            height: 80px !important;
-            min-height: 80px !important;
-            max-height: 80px !important;
+        .header-main::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb);
+          background-size: 1000% 100%;
+          animation: borderGradientMove 32s linear infinite alternate;
+          border-radius: 2px;
+        }
+        @keyframes borderGradientMove {
+          0% {
+            background-position: 0% 50%;
+          }
+          100% {
+            background-position: 200% 50%;
           }
         }
-        @media (max-width: 950px) {
-          .header-inner {
-            flex-direction: row !important;
-            align-items: center !important;
-          }
-          .searchbar-wrapper {
-            position: static !important;
-            transform: none !important;
-            width: 100%;
-            max-width: 420px;
-            min-width: 140px;
-            margin-left: auto;
-            margin-right: 1rem;
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
-            display: flex;
+        .no-gradient-border::after {
+          display: none;
+        }
+        .logo-animated-gradient {
+          background: linear-gradient(90deg, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb);
+          background-size: 1000% 100%;
+          animation: borderGradientMove 32s linear infinite alternate;
+          background-clip: text;
+          -webkit-background-clip: text;
+          color: transparent;
+          -webkit-text-fill-color: transparent;
+        }
+        .header-flex-wrap {
+          flex-direction: column;
+        }
+        .header-row-1 {
+          width: 100%;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .header-row-2 {
+          width: 100%;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+        }
+        .header-searchbar-desktop {
+          display: flex;
+        }
+        .header-searchbar-mobile {
+          display: none;
+        }
+        @media (min-width: 751px) {
+          .header-flex-wrap {
+            flex-direction: row;
             align-items: center;
-            justify-content: flex-end;
           }
-          .flex-1 {
-            display: block !important;
+          .header-row-1 {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 0;
           }
-        }
-        @media (min-width: 951px) {
-          .searchbar-wrapper {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+          .header-searchbar-desktop {
+            justify-self: center;
             width: 100%;
             max-width: 420px;
-            min-width: 140px;
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
-            margin-left: 0;
-            margin-right: 0;
+            margin-left: auto;
+            margin-right: auto;
           }
-          .flex-1 {
-            display: none !important;
+          .header-buttons {
+            justify-self: end;
+          }
+          .header-row-2 {
+            display: none;
+          }
+          .header-main {
+            height: 80px;
+            min-height: 80px;
+            max-height: 80px;
           }
         }
-        @media (max-width: 650px) {
+        @media (max-width: 750px) {
           .header-main {
+            flex-direction: column;
+            align-items: stretch;
             height: auto !important;
             min-height: 0 !important;
             max-height: none !important;
           }
-          .header-inner {
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            height: auto !important;
+          .header-flex-wrap {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+          }
+          .header-row-1 {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.2rem 0 1.2rem 0;
+          }
+          .header-row-2 {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 1.2rem 0 1.2rem 0;
+          }
+          .header-searchbar-desktop {
+            display: none;
+          }
+          .header-searchbar-mobile {
+            display: flex;
+            width: 100%;
+            max-width: 100%;
+            margin: 0 0.5rem;
+          }
+        }
+        @media (max-width: 380px) {
+          .logo-animated-gradient {
+            font-size: 1rem !important;
             padding: 0 !important;
           }
-          .logo-wrapper {
-            justify-content: center !important;
-            width: 100%;
-            padding: 0.5rem 0 0.5rem 0 !important;
-            display: flex !important;
-            margin-bottom: 0.5rem !important;
-            margin-top: 1rem !important;
+          .header-logo {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
           }
-          .searchbar-wrapper {
-            width: 100% !important;
-            max-width: 420px !important;
-            min-width: 140px !important;
-            margin: 0 auto 1rem auto !important;
-            padding: 0 1rem !important;
-            position: static !important;
-            transform: none !important;
-            display: flex !important;
-            justify-content: center !important;
-            align-items: center !important;
+          .header-buttons a,
+          .header-buttons button {
+            font-size: 0.85rem !important;
+            padding: 0.3rem 0.7rem !important;
           }
-          .flex-1 {
-            display: none !important;
-          }
+        }
+        .signup-gradient-btn {
+          background: linear-gradient(90deg, #00c6fb, #8b5cf6, #f6369a);
+          transition: filter 0.2s, box-shadow 0.2s;
+        }
+        .signup-gradient-btn:hover, .signup-gradient-btn:focus {
+          filter: brightness(1.15) saturate(1.2);
+          box-shadow: 0 2px 16px 0 #8b5cf6cc;
         }
       `}</style>
     </header>
