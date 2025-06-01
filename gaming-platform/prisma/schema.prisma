@@ -32,6 +32,8 @@ model User {
   following   Follower[] @relation("UserFollowing")
   friendRequestsSent FriendRequest[] @relation("FriendRequestFrom")
   friendRequestsReceived FriendRequest[] @relation("FriendRequestTo")
+  sentMessages Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -56,4 +58,15 @@ model FriendRequest {
   createdAt  DateTime @default(now())
 
   @@unique([fromId, toId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  content    String
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }

@@ -33,7 +33,7 @@ export default function FollowButton({
 
   return (
     <button
-      className={`mt-2 px-6 py-2 rounded-lg font-semibold transition ${following ? "bg-gray-700 text-white hover:bg-gray-600" : "bg-pink-500 text-white hover:bg-pink-600"}`}
+      className={`h-12 px-6 rounded-lg font-semibold text-base flex items-center justify-center transition ${following ? "bg-gray-700 text-white hover:bg-gray-600" : "bg-pink-500 text-white hover:bg-pink-600"}`}
       onClick={handleClick}
       disabled={loading}
     >
