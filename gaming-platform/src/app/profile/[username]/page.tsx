@@ -108,6 +108,12 @@ export default async function PublicProfilePage({ params }: { params: { username
               isOwnProfile={isOwnProfile}
               isFriend={isFriend}
             />
+            <a
+              href={`/chat/${params.username}`}
+              className="h-12 px-6 rounded-lg font-semibold text-base flex items-center justify-center signup-gradient-btn text-white shadow hover:opacity-90 transition"
+            >
+              Message
+            </a>
           </div>
         )}
         {/* Brukerstatistikk (samme som dashboard) */}

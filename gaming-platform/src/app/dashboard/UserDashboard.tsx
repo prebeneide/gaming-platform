@@ -130,8 +130,10 @@ export default function UserDashboard({ user }: { user: {
   ];
 
   const handleSignOut = async () => {
-    await signOut({ redirect: false });
+    // Start redirect først
     router.push("/login");
+    // Deretter sign out
+    await signOut({ redirect: false });
   };
 
   return (

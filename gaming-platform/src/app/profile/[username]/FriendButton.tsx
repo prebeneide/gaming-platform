@@ -33,7 +33,7 @@ export default function FriendButton({
 
   return (
     <button
-      className={`mt-2 px-6 py-2 rounded-lg font-semibold transition ${
+      className={`h-12 px-6 rounded-lg font-semibold text-base flex items-center justify-center transition ${
         sent
           ? "bg-gray-700 text-white cursor-not-allowed"
           : "bg-pink-500 text-white hover:bg-pink-600"

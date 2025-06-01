@@ -1,19 +1,32 @@
 import Link from "next/link";
 import SearchBar from "../dashboard/SearchBar";
+import { FiUser, FiCreditCard, FiMenu } from "react-icons/fi";
+import { useState, useEffect } from "react";
 
 interface HeaderProps {
-  isAuthPage?: boolean;
+  isLoggedIn?: boolean;
+  onOpenMenu?: () => void;
 }
 
-export default function Header({ isAuthPage = false }: HeaderProps) {
+export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) {
+  const [iconSize, setIconSize] = useState(24);
+
+  useEffect(() => {
+    function handleResize() {
+      setIconSize(window.innerWidth <= 380 ? 16 : 24);
+    }
+    handleResize(); // Set initial size
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
-    <header className={`sticky top-0 z-30 w-full bg-black/80 backdrop-blur shadow-sm flex px-0 header-main border-b-0${isAuthPage ? ' no-gradient-border' : ''}`} style={{position: 'sticky', top: 0, zIndex: 30, width: '100%'}}>
+    <header className="sticky top-0 z-30 w-full bg-black/80 backdrop-blur shadow-sm flex px-0 header-main border-b-0" style={{position: 'sticky', top: 0, zIndex: 30, width: '100%'}}>
       <div className="flex w-full items-center header-flex-wrap">
-        {/* Logo, søkefelt og knapper på samme rad (grid på store skjermer) */}
         <div className="header-row-1 w-full">
           <div className="flex items-center px-4 flex-shrink-0 logo-wrapper header-logo">
             <Link
-              href={isAuthPage ? "/" : "/dashboard"}
+              href={isLoggedIn ? "/dashboard" : "/"}
               className="flex items-center gap-2"
             >
               <span className="logo-animated-gradient text-xl font-bold bg-clip-text text-transparent select-none">
@@ -21,15 +34,26 @@ export default function Header({ isAuthPage = false }: HeaderProps) {
               </span>
             </Link>
           </div>
-          {/* Søkefelt for store skjermer */}
-          {!isAuthPage && (
+          {isLoggedIn && (
             <div className="header-searchbar-desktop">
               <div className="w-full max-w-xl mx-auto">
                 <SearchBar />
               </div>
             </div>
           )}
-          {!isAuthPage && (
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4 pr-4 flex-shrink-0 header-buttons">
+              <Link href="/profile" aria-label="Profile" className="text-white hover:text-[#00c6fb] transition-colors">
+                <FiUser size={iconSize} />
+              </Link>
+              <Link href="/wallet" aria-label="Wallet" className="text-white hover:text-[#8b5cf6] transition-colors">
+                <FiCreditCard size={iconSize} />
+              </Link>
+              <button aria-label="Menu" className="text-white hover:text-[#f6369a] transition-colors bg-transparent border-0 p-0 m-0" onClick={onOpenMenu}>
+                <FiMenu size={iconSize} />
+              </button>
+            </div>
+          ) : (
             <div className="flex items-center gap-2 pr-4 flex-shrink-0 header-buttons">
               <Link href="/login" className="text-pink-500 hover:text-pink-600 font-semibold px-3 py-2 rounded transition">
                 Login
@@ -42,8 +66,7 @@ export default function Header({ isAuthPage = false }: HeaderProps) {
             </div>
           )}
         </div>
-        {/* Søkefelt på egen rad for små skjermer */}
-        {!isAuthPage && (
+        {isLoggedIn && (
           <div className="header-row-2 w-full">
             <div className="header-searchbar-mobile w-full max-w-xl mx-auto px-2">
               <SearchBar />
@@ -71,9 +94,6 @@ export default function Header({ isAuthPage = false }: HeaderProps) {
           100% {
             background-position: 200% 50%;
           }
-        }
-        .no-gradient-border::after {
-          display: none;
         }
         .logo-animated-gradient {
           background: linear-gradient(90deg, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb);
@@ -189,7 +209,6 @@ export default function Header({ isAuthPage = false }: HeaderProps) {
           }
           .header-buttons a,
           .header-buttons button {
-            font-size: 0.85rem !important;
             padding: 0.3rem 0.7rem !important;
           }
         }
