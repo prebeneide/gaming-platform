@@ -93,17 +93,17 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error("Registration error:", error);
-    
+    const errMsg = (error instanceof Error) ? error.message : String(error);
     // Håndter rate limit feil
-    if (error.message.includes("rate limit")) {
+    if (errMsg.includes("rate limit")) {
       return NextResponse.json(
         { error: "Too many registration attempts. Please try again later." },
         { status: 429 }
       );
     }
-
+    // Returner mer detaljert feilmelding for debugging
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: errMsg, details: JSON.stringify(error) },
       { status: 500 }
     );
   }
