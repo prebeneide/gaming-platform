@@ -45,10 +45,10 @@ export default function SideMenu({ open, onClose }: SideMenuProps) {
               <a
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-gradient-to-r hover:from-[#18181b] hover:to-pink-500/20 transition-colors group"
+                className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-neutral-800 transition-colors group"
               >
-                <span className="text-xl text-pink-400 group-hover:text-pink-500 transition-colors">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="w-6 h-6 flex items-center justify-center text-pink-400 group-hover:text-pink-500 transition-colors">{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
               </a>
             ))}
           </div>
@@ -58,10 +58,10 @@ export default function SideMenu({ open, onClose }: SideMenuProps) {
               <a
                 key={item.href}
                 href={item.href}
-                className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-gradient-to-r hover:from-[#18181b] hover:to-pink-500/20 transition-colors group"
+                className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-neutral-800 transition-colors group"
               >
-                <span className="text-xl text-pink-400 group-hover:text-pink-500 transition-colors">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="w-6 h-6 flex items-center justify-center text-pink-400 group-hover:text-pink-500 transition-colors">{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
               </a>
             ))}
           </div>

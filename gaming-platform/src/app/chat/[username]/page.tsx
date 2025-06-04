@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
+import io from "socket.io-client";
 
 type User = {
   id: string;
@@ -20,6 +21,8 @@ type Message = {
   createdAt: string;
 };
 
+let socketGlobal: ReturnType<typeof io> | null = null;
+
 export default function ChatPage() {
   const { data: session } = useSession();
   const params = useParams();
@@ -28,6 +31,10 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [otherUser, setOtherUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     async function fetchUser() {
@@ -58,6 +65,70 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
+  useEffect(() => {
+    if (!session?.user?.id || !otherUser?.id) return;
+
+    if (!socketRef.current) {
+      socketRef.current = io("http://localhost:4000");
+      console.log("[Chat] Socket.IO initialized");
+    }
+    const socket = socketRef.current;
+
+    console.log("[Chat] My user id:", session.user.id);
+    console.log("[Chat] Other user id:", otherUser.id);
+
+    const onConnect = () => {
+      console.log("Socket.IO connected:", socket && socket.id);
+    };
+    const onDisconnect = () => {
+      console.log("Socket.IO disconnected");
+    };
+    const onChatMessage = (msg: Message) => {
+      console.log("[Chat] Received message:", msg);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    };
+    const onTyping = (data: { from: string; to: string }) => {
+      console.log("[Chat] Received typing event:", data);
+      if (
+        data.from === otherUser.id &&
+        data.to === session.user.id
+      ) {
+        setIsTyping(true);
+        if (typingTimeout) clearTimeout(typingTimeout);
+        const timeout = setTimeout(() => setIsTyping(false), 10000);
+        setTypingTimeout(timeout);
+      }
+    };
+    const onStopTyping = (data: { from: string; to: string }) => {
+      console.log("[Chat] Received stop typing event:", data);
+      if (data.from === otherUser.id && data.to === session.user.id) {
+        setIsTyping(false);
+      }
+    };
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("chat message", onChatMessage);
+    socket.on("typing", onTyping);
+    socket.on("stop typing", onStopTyping);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("chat message", onChatMessage);
+      socket.off("typing", onTyping);
+      socket.off("stop typing", onStopTyping);
+      if (typingTimeout) clearTimeout(typingTimeout);
+    };
+  }, [otherUser?.id, session?.user?.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   async function fetchMessages(otherUserId: string) {
     try {
       const res = await fetch(`/api/messages?userId=${otherUserId}`);
@@ -73,27 +144,87 @@ export default function ChatPage() {
     }
   }
 
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInput(e.target.value);
+    if (socketRef.current && session?.user?.id && otherUser?.id) {
+      socketRef.current.emit("typing", { from: session.user.id, to: otherUser.id });
+      if (typingTimeout) clearTimeout(typingTimeout);
+      const timeout = setTimeout(() => {
+        socketRef.current?.emit("stop typing", { from: session.user.id, to: otherUser.id });
+      }, 1000);
+      setTypingTimeout(timeout);
+    }
+  }
+
+  function handleInputBlur() {
+    if (socketRef.current && session?.user?.id && otherUser?.id) {
+      socketRef.current.emit("stop typing", { from: session.user.id, to: otherUser.id });
+    }
+    if (typingTimeout) clearTimeout(typingTimeout);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!input.trim() || !otherUser) return;
 
-    try {
-      const res = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ receiverId: otherUser.id, content: input }),
-      });
-      if (!res.ok) {
-        setError(`Failed to send message: ${res.status}`);
-        return;
-      }
-      const newMessage = await res.json();
-      setMessages([...messages, newMessage]);
-      setInput("");
-    } catch (err) {
-      setError("Failed to send message");
+    // Lag melding-objekt
+    const msg = {
+      content: input,
+      senderId: session?.user?.id || "",
+      receiverId: otherUser.id,
+      createdAt: new Date().toISOString(),
+      id: Math.random().toString(36).slice(2), // temp id
+    };
+
+    console.log("[Chat] Sending message:", msg);
+    // 1. Vis meldingen umiddelbart
+    setMessages((prev) => [...prev, msg]);
+
+    // 2. Send via Socket.IO
+    socketRef.current?.emit("chat message", msg);
+    setInput("");
+
+    // 3. Lagre til DB via API (men ikke vent på svar)
+    fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ receiverId: otherUser.id, content: msg.content }),
+    }).catch((err) => {
+      setError("Failed to save message");
       console.error("Send message error:", err);
+    });
+  }
+
+  // Hjelpefunksjon for å formatere tid/dato på meldinger
+  function formatMessageTime(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(now.getDate() - 1);
+
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (isToday) return time;
+    if (isYesterday) return `I går ${time}`;
+    // Hvis ikke i år, vis også år (f.eks. 12.06.22 20:38)
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    const nowYear = now.getFullYear();
+    if (year !== nowYear) {
+      const shortYear = year.toString().slice(-2);
+      return `${day}.${month}.${shortYear} ${time}`;
     }
+    // Ellers: vis dato + tid (f.eks. 12.06 20:38)
+    return `${day}.${month} ${time}`;
   }
 
   if (error) return <div className="text-red-500 p-8">Error: {error}</div>;
@@ -116,11 +247,11 @@ export default function ChatPage() {
         </div>
       </div>
       {/* Messages */}
-      <div className="flex-1 flex flex-col gap-2 px-4 py-6 overflow-y-auto" style={{ background: "#101014" }}>
+      <div className="flex-1 min-h-0 flex flex-col gap-2 px-4 py-6 overflow-y-auto" style={{ background: "#101014" }}>
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.senderId === session?.user?.id ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[70%] px-4 py-2 rounded-2xl text-base font-medium shadow
+              className={`max-w-[70%] px-4 py-2 rounded-2xl text-base font-medium shadow break-words
                 ${msg.senderId === session?.user?.id
                   ? "bg-gradient-to-r from-[#00c6fb] via-[#8b5cf6] to-[#f6369a] text-white"
                   : "bg-neutral-900 text-gray-200 border border-neutral-800"}
@@ -128,27 +259,42 @@ export default function ChatPage() {
             >
               {msg.content}
               <span className="block text-xs text-right text-gray-300 mt-1 opacity-60">
-                {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {formatMessageTime(msg.createdAt)}
               </span>
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3 border-t border-neutral-900 bg-neutral-950 sticky bottom-0 z-20">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Message..."
-          className="flex-1 rounded-full bg-neutral-900 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400"
-        />
-        <button
-          type="submit"
-          className="signup-gradient-btn rounded-full px-5 py-2 font-semibold text-white shadow transition"
-        >
-          Send
-        </button>
+      {/* Input og typing-indikator sammen nederst */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-1 px-4 py-3 border-t border-neutral-900 bg-neutral-950 sticky bottom-0 z-40">
+        {isTyping && (
+          <div className="w-full flex justify-start pb-2 rounded-t-xl">
+            <div className="flex items-center gap-2 ml-6">
+              <span className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></span>
+              <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:.15s]"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:.3s]"></span>
+              <span className="text-sm text-gray-400 ml-2">{otherUser.displayName || otherUser.username} is typing…</span>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-2 w-full">
+          <input
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
+            placeholder="Message..."
+            className="flex-1 rounded-full bg-neutral-900 text-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-gray-400"
+          />
+          <button
+            type="submit"
+            disabled={input.trim().length === 0}
+            className={`signup-gradient-btn rounded-full px-5 py-2 font-semibold text-white shadow transition ${input.trim().length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Send
+          </button>
+        </div>
       </form>
     </div>
   );
