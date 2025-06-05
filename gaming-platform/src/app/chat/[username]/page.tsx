@@ -48,9 +48,15 @@ export default function ChatPage() {
         const data = await res.json();
         console.log("search-users result:", data);
         if (data.length > 0) {
+          if (data[0].id === session?.user?.id) {
+            setError("You cannot send a message to yourself.");
+            setOtherUser(null);
+            return;
+          }
           setOtherUser(data[0]);
           setError(null);
           fetchMessages(data[0].id);
+          markMessagesAsRead(data[0].id);
         } else {
           setOtherUser(null);
           setError("User not found");
@@ -108,12 +114,24 @@ export default function ChatPage() {
         setIsTyping(false);
       }
     };
+    const onMessagesRead = (data: { senderId: string; receiverId: string }) => {
+      console.log("[Chat] Messages marked as read:", data);
+      // Oppdater meldinger i UI
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.senderId === data.senderId && msg.receiverId === data.receiverId
+            ? { ...msg, isRead: true }
+            : msg
+        )
+      );
+    };
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("chat message", onChatMessage);
     socket.on("typing", onTyping);
     socket.on("stop typing", onStopTyping);
+    socket.on("messages read", onMessagesRead);
 
     return () => {
       socket.off("connect", onConnect);
@@ -121,6 +139,7 @@ export default function ChatPage() {
       socket.off("chat message", onChatMessage);
       socket.off("typing", onTyping);
       socket.off("stop typing", onStopTyping);
+      socket.off("messages read", onMessagesRead);
       if (typingTimeout) clearTimeout(typingTimeout);
     };
   }, [otherUser?.id, session?.user?.id]);
@@ -177,22 +196,9 @@ export default function ChatPage() {
     };
 
     console.log("[Chat] Sending message:", msg);
-    // 1. Vis meldingen umiddelbart
-    setMessages((prev) => [...prev, msg]);
-
     // 2. Send via Socket.IO
     socketRef.current?.emit("chat message", msg);
     setInput("");
-
-    // 3. Lagre til DB via API (men ikke vent på svar)
-    fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receiverId: otherUser.id, content: msg.content }),
-    }).catch((err) => {
-      setError("Failed to save message");
-      console.error("Send message error:", err);
-    });
   }
 
   // Hjelpefunksjon for å formatere tid/dato på meldinger
@@ -225,6 +231,27 @@ export default function ChatPage() {
     }
     // Ellers: vis dato + tid (f.eks. 12.06 20:38)
     return `${day}.${month} ${time}`;
+  }
+
+  // Funksjon for å markere meldinger som lest
+  async function markMessagesAsRead(senderId: string) {
+    try {
+      // Send Socket.IO event
+      if (socketRef.current && session?.user?.id) {
+        socketRef.current.emit("mark messages as read", {
+          senderId,
+          receiverId: session.user.id
+        });
+      }
+      // Backup: Send HTTP request
+      await fetch("/api/messages/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ senderId }),
+      });
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
   }
 
   if (error) return <div className="text-red-500 p-8">Error: {error}</div>;
