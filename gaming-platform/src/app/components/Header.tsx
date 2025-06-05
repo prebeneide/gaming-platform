@@ -1,15 +1,26 @@
 import Link from "next/link";
 import SearchBar from "../dashboard/SearchBar";
-import { FiUser, FiCreditCard, FiMenu } from "react-icons/fi";
+import { FiUser, FiCreditCard, FiMenu, FiMessageSquare } from "react-icons/fi";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import io from "socket.io-client";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
   onOpenMenu?: () => void;
 }
 
+interface MessagesReadData {
+  senderId: string;
+  receiverId: string;
+  count: number;
+  timestamp: string;
+}
+
 export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) {
   const [iconSize, setIconSize] = useState(24);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { data: session } = useSession();
 
   useEffect(() => {
     function handleResize() {
@@ -19,6 +30,43 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Hent antall uleste meldinger
+  useEffect(() => {
+    if (!session?.user) return;
+
+    async function fetchUnreadCount() {
+      try {
+        const res = await fetch("/api/messages/unread");
+        if (!res.ok) throw new Error("Failed to fetch unread count");
+        const data = await res.json();
+        setUnreadCount(data.unreadCount);
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+      }
+    }
+
+    fetchUnreadCount();
+
+    // Koble til Socket.IO for sanntidsoppdateringer
+    const socket = io("http://localhost:4000");
+
+    socket.on("chat message", () => {
+      fetchUnreadCount(); // Oppdater når ny melding kommer
+    });
+
+    socket.on("messages read", (data: MessagesReadData) => {
+      console.log("[Header] Messages marked as read:", data);
+      // Hvis vi er mottakeren av meldingene som ble lest
+      if (data.receiverId === session.user.id) {
+        fetchUnreadCount(); // Oppdater antall uleste meldinger
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [session]);
 
   return (
     <header className="sticky top-0 z-30 w-full bg-black/80 backdrop-blur shadow-sm flex px-0 header-main border-b-0" style={{position: 'sticky', top: 0, zIndex: 30, width: '100%'}}>
@@ -43,6 +91,14 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           )}
           {isLoggedIn ? (
             <div className="flex items-center gap-4 pr-4 flex-shrink-0 header-buttons">
+              <Link href="/messages" aria-label="Messages" className="text-white hover:text-[#00c6fb] transition-colors relative">
+                <FiMessageSquare size={iconSize} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
               <Link href="/profile" aria-label="Profile" className="text-white hover:text-[#00c6fb] transition-colors">
                 <FiUser size={iconSize} />
               </Link>
