@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const games = [
   {
@@ -17,7 +18,7 @@ const games = [
   {
     id: 3,
     name: 'Rocket League',
-    image: '/Images/Rocket League/d37e92eaeab39c4e1cb20495cb903bb7.jpg',
+    image: '/Images/RocketLeague/d37e92eaeab39c4e1cb20495cb903bb7.jpg',
   },
   {
     id: 4,
@@ -53,6 +54,13 @@ const games = [
 
 export default function CreateMatchPage() {
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
+  const router = useRouter();
+
+  const handleNext = () => {
+    if (selectedGame) {
+      router.push(`/matches/new/details?gameId=${selectedGame}`);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
@@ -96,6 +104,7 @@ export default function CreateMatchPage() {
         </div>
         <div className="flex justify-center mt-4">
           <button
+            onClick={handleNext}
             className={`font-semibold py-2 px-6 rounded-lg transition text-white
               ${selectedGame ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 cursor-not-allowed opacity-50'}`}
             disabled={!selectedGame}

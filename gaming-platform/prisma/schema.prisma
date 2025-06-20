@@ -14,13 +14,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  image     String?
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  password    String
   displayName String?
   bio         String?
+  image       String?
   discord     String?
   twitter     String?
   twitch      String?
@@ -28,34 +28,62 @@ model User {
   psn         String?
   xbox        String?
   customGames Json?
-  followers   Follower[] @relation("UserFollowers")
-  following   Follower[] @relation("UserFollowing")
-  friendRequestsSent FriendRequest[] @relation("FriendRequestFrom")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  followers           Follower[] @relation("UserFollowers")
+  following           Follower[] @relation("UserFollowing")
+  friendRequestsSent  FriendRequest[] @relation("FriendRequestFrom")
   friendRequestsReceived FriendRequest[] @relation("FriendRequestTo")
-  sentMessages Message[] @relation("SentMessages")
-  receivedMessages Message[] @relation("ReceivedMessages")
+  sentMessages        Message[] @relation("SentMessages")
+  receivedMessages    Message[] @relation("ReceivedMessages")
+  wallet              UserWallet?
+  transactions        Transaction[]
+}
+
+model UserWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Float    @default(0)
+  currency  String   @default("USD")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // 'deposit', 'withdrawal', 'match_payment', 'match_winning'
+  amount      Float
+  status      String   // 'pending', 'completed', 'failed'
+  description String
+  externalId  String?  // For MoonPay transaction ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Follower {
-  id          String @id @default(uuid())
-  follower    User   @relation("UserFollowing", fields: [followerId], references: [id])
-  followerId  String
-  following   User   @relation("UserFollowers", fields: [followingId], references: [id])
+  id         String   @id @default(cuid())
+  followerId String
   followingId String
+  follower   User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following  User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   @@unique([followerId, followingId])
 }
 
 model FriendRequest {
-  id         String   @id @default(uuid())
-  from       User     @relation("FriendRequestFrom", fields: [fromId], references: [id])
-  fromId     String
-  to         User     @relation("FriendRequestTo", fields: [toId], references: [id])
-  toId       String
-  status     String   // "pending", "accepted", "declined"
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  from      User     @relation("FriendRequestFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        User     @relation("FriendRequestTo", fields: [toId], references: [id], onDelete: Cascade)
+  status    String   @default("pending") // pending, accepted, rejected
+  createdAt DateTime @default(now())
 
   @@unique([fromId, toId])
 }
