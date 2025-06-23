@@ -1,8 +1,9 @@
 "use client";
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
+import { usePopup } from "@/components/PopupProvider";
 
 const games = [
   {
@@ -281,6 +282,7 @@ const MATCH_VISIBILITY = {
 
 export default function MatchDetailsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const gameId = Number(searchParams.get('gameId'));
   const selectedGame = games.find((g) => g.id === gameId);
   const [selectedMode, setSelectedMode] = useState<string>("");
@@ -300,6 +302,8 @@ export default function MatchDetailsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [rulesAcknowledged, setRulesAcknowledged] = useState(false);
   const [matchType, setMatchType] = useState<'versus' | 'coop' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showPopup } = usePopup();
   // Dummy friend list for autocomplete (replace with real data)
   const friendList = [
     { username: "alice" },
@@ -422,6 +426,49 @@ export default function MatchDetailsPage() {
     }
     return `Follow the official rules for ${game}. Play fair. No cheating, exploiting, or unsportsmanlike conduct.`;
   }
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      // Prepare match data
+      const buyInValue = buyIn === 'custom' ? parseFloat(customBuyIn) : parseFloat(buyIn);
+      const matchData = {
+        name: matchName,
+        gameName: selectedGame?.name,
+        gameMode: selectedMode,
+        competitionType: selectedCompetition,
+        competitionFormat: selectedFormat,
+        matchType: matchType,
+        platform: selectedPlatform,
+        buyIn: buyInValue,
+        visibility: visibility,
+        mediaUrl: mediaPreview, // For now, just use the preview URL
+        mediaType: mediaType,
+        invitedUsers: invitedUsers
+      };
+      // Send to API
+      const response = await fetch('/api/matches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(matchData),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showPopup({ type: 'success', message: 'Match created successfully!' });
+        setTimeout(() => router.push('/matches'), 1200);
+      } else {
+        showPopup({ type: 'error', message: data.error || 'Failed to create match' });
+      }
+    } catch (error) {
+      console.error('Error creating match:', error);
+      showPopup({ type: 'error', message: 'Failed to create match. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white p-4">
@@ -782,7 +829,7 @@ export default function MatchDetailsPage() {
                 video.onloadedmetadata = () => {
                   window.URL.revokeObjectURL(url);
                   if (video.duration > 6) {
-                    alert("Video must be 6 seconds or less.");
+                    showPopup({ type: 'error', message: 'Video must be 6 seconds or less.' });
                     setMediaFile(null);
                     setMediaPreview(null);
                     setMediaType(null);
@@ -795,7 +842,7 @@ export default function MatchDetailsPage() {
                 };
                 video.src = url;
               } else {
-                alert("Unsupported file type.");
+                showPopup({ type: 'error', message: 'Unsupported file type.' });
                 setMediaFile(null);
                 setMediaPreview(null);
                 setMediaType(null);
@@ -842,7 +889,8 @@ export default function MatchDetailsPage() {
             (visibility === MATCH_VISIBILITY.INVITE_ONLY && invitedUsers.length !== numPlayers - 1) ||
             !acknowledged ||
             !rulesAcknowledged ||
-            (shouldShowMatchType(selectedGame.name, selectedFormat) && !matchType)
+            (shouldShowMatchType(selectedGame.name, selectedFormat) && !matchType) ||
+            isSubmitting
               ? 'opacity-50 cursor-not-allowed grayscale' : ''
           }`}
           disabled={
@@ -856,10 +904,12 @@ export default function MatchDetailsPage() {
             (visibility === MATCH_VISIBILITY.INVITE_ONLY && invitedUsers.length !== numPlayers - 1) ||
             !acknowledged ||
             !rulesAcknowledged ||
-            (shouldShowMatchType(selectedGame.name, selectedFormat) && !matchType)
+            (shouldShowMatchType(selectedGame.name, selectedFormat) && !matchType) ||
+            isSubmitting
           }
+          onClick={handleSubmit}
         >
-          Create Match
+          {isSubmitting ? 'Creating Match...' : 'Create Match'}
         </button>
       </div>
     </div>

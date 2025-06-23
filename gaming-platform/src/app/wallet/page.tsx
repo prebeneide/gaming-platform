@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FiPlus, FiMinus, FiDollarSign, FiClock, FiCheck, FiX } from "react-icons/fi";
+import { usePopup } from "@/components/PopupProvider";
 
 interface Transaction {
   id: string;
@@ -20,6 +21,7 @@ interface WalletData {
 
 export default function WalletPage() {
   const { data: session } = useSession();
+  const { showPopup } = usePopup();
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -27,24 +29,24 @@ export default function WalletPage() {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
-  // Mock data for now - replace with actual API calls
-  useEffect(() => {
-    const fetchWalletData = async () => {
-      try {
-        const response = await fetch('/api/wallet');
-        if (response.ok) {
-          const data = await response.json();
-          setWalletData(data);
-        } else {
-          console.error('Failed to fetch wallet data');
-        }
-      } catch (error) {
-        console.error('Error fetching wallet data:', error);
-      } finally {
-        setLoading(false);
+  const fetchWalletData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/wallet');
+      if (response.ok) {
+        const data = await response.json();
+        setWalletData(data);
+      } else {
+        console.error('Failed to fetch wallet data');
       }
-    };
+    } catch (error) {
+      console.error('Error fetching wallet data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchWalletData();
   }, []);
 
@@ -62,23 +64,24 @@ export default function WalletPage() {
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
-        // Refresh wallet data
-        const walletResponse = await fetch('/api/wallet');
-        if (walletResponse.ok) {
-          const walletData = await walletResponse.json();
-          setWalletData(walletData);
-        }
+        setWalletData(prevData => {
+          if (!prevData) return null;
+          return {
+            ...prevData,
+            transactions: [data.transaction, ...prevData.transactions]
+          };
+        });
         setShowDepositModal(false);
         setDepositAmount("");
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to process deposit');
+        showPopup({ type: 'error', message: data.error || 'Failed to process deposit' });
       }
     } catch (error) {
       console.error('Error processing deposit:', error);
-      alert('Failed to process deposit');
+      showPopup({ type: 'error', message: 'Failed to process deposit' });
     }
   };
 
@@ -92,27 +95,68 @@ export default function WalletPage() {
         body: JSON.stringify({
           type: 'withdrawal',
           amount: parseFloat(withdrawAmount),
-          description: `Withdrawal via MoonPay`
+          description: `Withdrawal`
         }),
       });
+      
+      const data = await response.json();
 
       if (response.ok) {
-        const data = await response.json();
-        // Refresh wallet data
-        const walletResponse = await fetch('/api/wallet');
-        if (walletResponse.ok) {
-          const walletData = await walletResponse.json();
-          setWalletData(walletData);
-        }
+        setWalletData(prevData => {
+          if (!prevData) return null;
+          return {
+            ...prevData,
+            transactions: [data.transaction, ...prevData.transactions]
+          };
+        });
         setShowWithdrawModal(false);
         setWithdrawAmount("");
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to process withdrawal');
+        showPopup({ type: 'error', message: data.error || 'Failed to process withdrawal' });
       }
     } catch (error) {
       console.error('Error processing withdrawal:', error);
-      alert('Failed to process withdrawal');
+      showPopup({ type: 'error', message: 'Failed to process withdrawal' });
+    }
+  };
+
+  const handleConfirmDeposit = async (transactionId: string) => {
+    try {
+      const response = await fetch('/api/wallet/confirm-deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionId }),
+      });
+
+      if (response.ok) {
+        await fetchWalletData(); // Refetch to show updated balance and status
+      } else {
+        const error = await response.json();
+        showPopup({ type: 'error', message: error.error || 'Failed to confirm deposit' });
+      }
+    } catch (error) {
+      console.error('Error confirming deposit:', error);
+      showPopup({ type: 'error', message: 'Failed to confirm deposit' });
+    }
+  };
+
+  const handleConfirmWithdrawal = async (transactionId: string) => {
+    try {
+      const response = await fetch('/api/wallet/confirm-withdrawal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionId }),
+      });
+
+      if (response.ok) {
+        await fetchWalletData(); // Refetch to show updated balance and status
+      } else {
+        const error = await response.json();
+        showPopup({ type: 'error', message: error.error || 'Failed to confirm withdrawal' });
+      }
+    } catch (error) {
+      console.error('Error confirming withdrawal:', error);
+      showPopup({ type: 'error', message: 'Failed to confirm withdrawal' });
     }
   };
 
@@ -169,14 +213,14 @@ export default function WalletPage() {
           <div className="flex gap-4 mt-6 justify-center">
             <button
               onClick={() => setShowDepositModal(true)}
-              className="px-6 py-3 bg-white text-pink-600 font-semibold rounded-lg hover:bg-gray-100 transition"
+              className="px-6 py-3 bg-white text-pink-600 font-semibold rounded-lg hover:bg-gray-100 transition flex items-center"
             >
               <FiPlus />
               <span className="ml-2">Deposit</span>
             </button>
             <button
               onClick={() => setShowWithdrawModal(true)}
-              className="px-6 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-pink-600 transition"
+              className="px-6 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-pink-600 transition flex items-center"
             >
               <FiMinus />
               <span className="ml-2">Withdraw</span>
@@ -204,12 +248,32 @@ export default function WalletPage() {
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <div className={`text-lg font-semibold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {transaction.amount > 0 ? '+' : ''}${transaction.amount.toFixed(2)}
+                  <div className={`text-lg font-semibold ${['deposit', 'match_winning'].includes(transaction.type) ? 'text-green-500' : 'text-red-500'}`}>
+                    {['deposit', 'match_winning'].includes(transaction.type) ? '+' : '-'}${transaction.amount.toFixed(2)}
                   </div>
                   <div className="text-xl">
                     {getStatusIcon(transaction.status)}
                   </div>
+                  {/* Temporary button for testing deposits */}
+                  {transaction.type === 'deposit' && transaction.status === 'pending' && (
+                    <button
+                      onClick={() => handleConfirmDeposit(transaction.id)}
+                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                      title="Simulate successful deposit"
+                    >
+                      Confirm
+                    </button>
+                  )}
+                   {/* Temporary button for testing withdrawals */}
+                  {transaction.type === 'withdrawal' && transaction.status === 'pending' && (
+                    <button
+                      onClick={() => handleConfirmWithdrawal(transaction.id)}
+                      className="px-2 py-1 text-xs bg-orange-600 text-white rounded-md hover:bg-orange-700 transition"
+                      title="Simulate successful withdrawal"
+                    >
+                      Confirm
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

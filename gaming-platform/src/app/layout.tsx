@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import AppShell from "./components/AppShell";
+import { PopupProvider } from "@/components/PopupProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`} style={{ backgroundColor: '#000' }}>
-        <AppShell>{children}</AppShell>
+        <PopupProvider>
+          <AppShell>{children}</AppShell>
+        </PopupProvider>
       </body>
     </html>
   );

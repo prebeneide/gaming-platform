@@ -104,38 +104,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create transaction
+    // Create a pending transaction for both deposits and withdrawals
     const transaction = await prisma.transaction.create({
       data: {
         userId: user.id,
         type,
-        amount: type === 'withdrawal' ? -amount : amount,
+        amount,
         status: 'pending',
         description
       }
     });
 
-    // Update wallet balance (for now, we'll update immediately - in production, this would wait for MoonPay confirmation)
-    const balanceChange = type === 'withdrawal' ? -amount : amount;
-    const updatedWallet = await prisma.userWallet.update({
-      where: { userId: user.id },
-      data: {
-        balance: {
-          increment: balanceChange
-        }
-      }
-    });
-
-    // Update transaction status to completed
-    await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { status: 'completed' }
-    });
-
+    // Return the pending transaction.
+    // The balance will be updated via a separate webhook/confirmation call.
     return NextResponse.json({
       success: true,
-      transaction,
-      newBalance: updatedWallet.balance
+      transaction
     });
 
   } catch (error) {

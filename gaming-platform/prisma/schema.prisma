@@ -40,6 +40,8 @@ model User {
   receivedMessages    Message[] @relation("ReceivedMessages")
   wallet              UserWallet?
   transactions        Transaction[]
+  createdMatches      Match[] @relation("CreatedMatches")
+  matchParticipations MatchParticipant[] @relation("MatchParticipations")
 }
 
 model UserWallet {
@@ -97,4 +99,51 @@ model Message {
   senderId  String
   receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
   receiverId String
+}
+
+model Match {
+  id                String   @id @default(cuid())
+  name              String
+  gameName          String   // FC25, Fortnite, etc.
+  gameMode          String   // Ultimate Team, Battle Royale, etc.
+  competitionType   String   // Win, Most Kills, etc.
+  competitionFormat String   // 1v1, 1v1v1, etc.
+  matchType         String?  // versus, coop (nullable for games that don't need it)
+  platform          String   // PC, PS5, Xbox, etc.
+  buyIn             Float    // Entry fee amount
+  totalPot          Float    // Total pot (buyIn * numPlayers)
+  potentialWinnings Float    // Pot minus platform fee
+  visibility        String   // public, friends, invite_only
+  status            String   @default("open") // open, in_progress, completed, cancelled
+  maxPlayers        Int      // Number of players needed
+  currentPlayers    Int      @default(1) // Number of players joined
+  mediaUrl          String?  // URL to uploaded image/video
+  mediaType         String?  // image, video
+  
+  // Creator and participants
+  creatorId         String
+  creator           User     @relation("CreatedMatches", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants      MatchParticipant[]
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  scheduledAt       DateTime? // When the match is scheduled to start
+  startedAt         DateTime? // When the match actually started
+  completedAt       DateTime? // When the match was completed
+}
+
+model MatchParticipant {
+  id        String   @id @default(cuid())
+  matchId   String
+  userId    String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user      User     @relation("MatchParticipations", fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("joined") // joined, ready, playing, completed
+  buyInPaid Boolean  @default(false) // Whether they've paid their buy-in
+  buyInTransactionId String? // Reference to the transaction that paid the buy-in
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([matchId, userId])
 }
