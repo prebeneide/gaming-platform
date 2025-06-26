@@ -7,21 +7,27 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+const allowedTypes = [
+  "image/png", "image/jpeg", "image/jpg", "image/gif",
+  "video/mp4", "video/quicktime", "video/webm", "video/mov"
+];
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File;
   if (!file) {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
   }
-
+  if (!allowedTypes.includes(file.type)) {
+    return NextResponse.json({ error: "File type not supported. Allowed: PNG, JPG, JPEG, GIF, MP4, MOV, WEBM." }, { status: 400 });
+  }
   // Les filen som buffer
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
-
   // Last opp til Cloudinary
   try {
     const uploadResult = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload_stream({ resource_type: "image" }, (error, result) => {
+      cloudinary.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
         if (error) return reject(error);
         resolve(result);
       }).end(buffer);

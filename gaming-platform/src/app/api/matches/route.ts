@@ -155,4 +155,46 @@ export async function POST(request: NextRequest) {
     console.error("Create match error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+// GET /api/matches - List all open matches with full info
+export async function GET() {
+  try {
+    const matches = await prisma.match.findMany({
+      where: { status: 'open' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        gameName: true,
+        gameMode: true,
+        competitionType: true,
+        competitionFormat: true,
+        matchType: true,
+        platform: true,
+        buyIn: true,
+        totalPot: true,
+        potentialWinnings: true,
+        visibility: true,
+        status: true,
+        maxPlayers: true,
+        currentPlayers: true,
+        mediaUrl: true,
+        mediaType: true,
+        createdAt: true,
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            image: true,
+          }
+        }
+      },
+    });
+    return NextResponse.json({ matches });
+  } catch (error) {
+    console.error("Get matches error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 } 

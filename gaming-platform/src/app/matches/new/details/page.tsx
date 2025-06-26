@@ -280,6 +280,12 @@ const MATCH_VISIBILITY = {
   INVITE_ONLY: "invite_only",
 } as const;
 
+// Helper: Returnerer Cloudinary-video-URL med f_auto,vc_auto for best mulig støtte
+function getCloudinaryVideoUrl(url: string) {
+  if (!url.includes('/upload/')) return url;
+  return url.replace('/upload/', '/upload/f_auto,vc_auto/');
+}
+
 export default function MatchDetailsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -299,6 +305,8 @@ export default function MatchDetailsPage() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [rulesAcknowledged, setRulesAcknowledged] = useState(false);
   const [matchType, setMatchType] = useState<'versus' | 'coop' | null>(null);
@@ -443,7 +451,7 @@ export default function MatchDetailsPage() {
         platform: selectedPlatform,
         buyIn: buyInValue,
         visibility: visibility,
-        mediaUrl: mediaPreview, // For now, just use the preview URL
+        mediaUrl: mediaUrl,
         mediaType: mediaType,
         invitedUsers: invitedUsers
       };
@@ -780,76 +788,110 @@ export default function MatchDetailsPage() {
         {/* Media upload section */}
         <div className="w-full max-w-xs flex flex-col items-center gap-2">
           <label className="block text-lg font-semibold mb-1">Match Image or Video</label>
-          {mediaPreview ? (
-            <div className="relative w-full flex flex-col items-center">
-              {mediaType === "image" ? (
-                <img src={mediaPreview} alt="Preview" className="rounded-lg max-h-48 object-contain border border-gray-700" />
-              ) : (
-                <video src={mediaPreview} controls className="rounded-lg max-h-48 object-contain border border-gray-700" />
-              )}
-              <div className="flex gap-2 mt-2">
-                <button type="button" className="px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition" onClick={() => fileInputRef.current?.click()}>
-                  Change
-                </button>
-                <button type="button" className="px-3 py-1 rounded bg-gray-700 text-white text-xs font-semibold hover:bg-gray-800 transition" onClick={() => { setMediaFile(null); setMediaPreview(null); setMediaType(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
-                  Remove
-                </button>
-              </div>
-            </div>
-          ) : (
+          {/* Vis kun preview når opplasting er ferdig og Cloudinary-URL finnes */}
+          {mediaType === "image" && mediaPreview && !uploading && mediaUrl && (
+            <img src={mediaUrl} alt="Preview" className="rounded-lg max-h-48 object-contain border border-gray-700" />
+          )}
+          {mediaType === "video" && !uploading && mediaUrl && (
+            <video src={getCloudinaryVideoUrl(mediaUrl)} controls className="rounded-lg max-h-48 object-contain border border-gray-700" />
+          )}
+          {uploading && (
+            <div className="text-pink-400 text-xs mt-2">Uploading...</div>
+          )}
+          {!mediaUrl && !uploading && (
             <div className="w-full flex flex-col items-center gap-2">
               <button
                 type="button"
                 className="w-full px-4 py-2 rounded-lg border-2 border-dashed border-pink-400 text-pink-400 bg-neutral-800 hover:bg-neutral-700 transition text-sm"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Upload image or short video (max 6 sec)
+                Upload image, GIF or short video (max 7 sec)
               </button>
-              <span className="text-xs text-gray-400">Accepted: JPG, PNG, GIF, MP4, MOV, WebM</span>
+              <span className="text-xs text-gray-400">Accepted: PNG, JPG, JPEG, GIF, MP4, MOV, WEBM</span>
             </div>
           )}
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/png,image/jpeg,image/jpg,image/gif,video/mp4,video/quicktime,video/webm,video/mov"
             className="hidden"
-            onChange={e => {
+            onChange={async e => {
               const file = e.target.files?.[0];
               if (!file) return;
-              // Check file type
               if (file.type.startsWith("image/")) {
                 setMediaType("image");
                 setMediaFile(file);
                 setMediaPreview(URL.createObjectURL(file));
+                setUploading(true);
+                try {
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  const res = await fetch("/api/upload", { method: "POST", body: formData });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Image upload failed");
+                  setMediaUrl(data.url);
+                } catch (err: any) {
+                  showPopup({ type: "error", message: err.message || "Image upload failed" });
+                  setMediaUrl(null);
+                } finally {
+                  setUploading(false);
+                }
               } else if (file.type.startsWith("video/")) {
-                // Check video duration (after loading)
+                // Sjekk videolengde før opplasting
+                setUploading(true);
                 const url = URL.createObjectURL(file);
                 const video = document.createElement("video");
                 video.preload = "metadata";
-                video.onloadedmetadata = () => {
+                video.onloadedmetadata = async () => {
                   window.URL.revokeObjectURL(url);
-                  if (video.duration > 6) {
-                    showPopup({ type: 'error', message: 'Video must be 6 seconds or less.' });
+                  if (video.duration > 7) {
+                    showPopup({ type: 'error', message: 'Video must be 7 seconds or less.' });
                     setMediaFile(null);
                     setMediaPreview(null);
                     setMediaType(null);
+                    setMediaUrl(null);
+                    setUploading(false);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   } else {
                     setMediaType("video");
                     setMediaFile(file);
-                    setMediaPreview(url);
+                    setMediaPreview(null); // Ikke bruk lokal preview for video
+                    try {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      const res = await fetch("/api/upload", { method: "POST", body: formData });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || "Video upload failed");
+                      setMediaUrl(data.url);
+                    } catch (err: any) {
+                      showPopup({ type: "error", message: err.message || "Video upload failed" });
+                      setMediaUrl(null);
+                    } finally {
+                      setUploading(false);
+                    }
                   }
                 };
                 video.src = url;
               } else {
-                showPopup({ type: 'error', message: 'Unsupported file type.' });
+                showPopup({ type: 'error', message: 'File type not supported. Allowed: PNG, JPG, JPEG, GIF, MP4, MOV, WEBM.' });
                 setMediaFile(null);
                 setMediaPreview(null);
                 setMediaType(null);
+                setMediaUrl(null);
                 if (fileInputRef.current) fileInputRef.current.value = "";
               }
             }}
           />
+          {(mediaUrl || uploading) && (
+            <div className="flex gap-2 mt-2">
+              <button type="button" className="px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition" onClick={() => fileInputRef.current?.click()}>
+                Change
+              </button>
+              <button type="button" className="px-3 py-1 rounded bg-gray-700 text-white text-xs font-semibold hover:bg-gray-800 transition" onClick={() => { setMediaFile(null); setMediaPreview(null); setMediaType(null); setMediaUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+                Remove
+              </button>
+            </div>
+          )}
         </div>
         {/* Match Name field - moved to bottom */}
         <div className="w-full max-w-xs">
