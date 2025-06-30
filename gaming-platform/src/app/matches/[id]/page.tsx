@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
+import { usePopup } from "@/components/PopupProvider";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -14,6 +16,18 @@ const gameImages: Record<string, string> = {
   "Battlefield 2042": "/Images/Battlefield2042/Battlefield_2042_cover_art.jpg",
   "COD: Black Ops 6": "/Images/COD-BlackOps6/BO6_KA_SECONDARY_240724_16x9_Trio_B.jpg",
 };
+
+interface Participant {
+  id: string;
+  status: string;
+  buyInPaid?: boolean;
+  user: {
+    id: string;
+    username: string;
+    displayName?: string;
+    image?: string;
+  };
+}
 
 interface Match {
   id: string;
@@ -40,6 +54,7 @@ interface Match {
     displayName?: string;
     image?: string;
   };
+  participants: Participant[];
 }
 
 // Helper to ensure Cloudinary videos use f_auto,vc_auto for max compatibility
@@ -52,6 +67,10 @@ export default function MatchDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
+  const { showPopup } = usePopup();
 
   useEffect(() => {
     async function fetchMatch() {
@@ -73,6 +92,41 @@ export default function MatchDetailsPage() {
   if (!match) return <div className="min-h-screen flex items-center justify-center bg-black text-red-500">Match not found.</div>;
 
   const gameImg = gameImages[match.gameName] || "/Images/default-game.jpg";
+
+  // Helper: Sjekk om bruker kan joine
+  const canJoin = match &&
+    match.status === "open" &&
+    match.currentPlayers < match.maxPlayers &&
+    userId &&
+    !match.participants.some(p => p.user.id === userId);
+
+  // Handler for join
+  async function handleJoin() {
+    if (!canJoin) return;
+    setJoining(true);
+    try {
+      const res = await fetch(`/api/matches/${id}/join`, { method: "POST" });
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        console.error("Join Match: Non-JSON response:", text);
+        showPopup({ type: 'error', message: "Unexpected server response. Please try again or contact support." });
+        return;
+      }
+      if (!res.ok) {
+        showPopup({ type: 'error', message: data?.error || "Failed to join match" });
+        return;
+      }
+      setMatch(data.match);
+      showPopup({ type: 'success', message: 'You have successfully joined the match!' });
+    } catch (err: any) {
+      showPopup({ type: 'error', message: err.message || "Failed to join match" });
+    } finally {
+      setJoining(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
@@ -135,6 +189,40 @@ export default function MatchDetailsPage() {
               <div className="text-xs text-gray-400">Players</div>
             </div>
           </div>
+        </div>
+        {/* Participants section */}
+        <div className="px-5 pb-5">
+          <div className="font-semibold text-lg mb-2">Participants</div>
+          <div className="flex flex-wrap gap-4 mb-4">
+            {match.participants && match.participants.length > 0 ? (
+              match.participants.map((p) => (
+                <div key={p.user.id} className="flex items-center gap-2 bg-neutral-900 rounded-lg px-3 py-2 border border-neutral-800">
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden border border-pink-400">
+                    <Image
+                      src={p.user.image || "/Images/default-avatar.png"}
+                      alt={p.user.displayName || p.user.username}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="text-white font-medium text-sm">{p.user.displayName || p.user.username}</div>
+                  <div className={`ml-2 text-xs px-2 py-0.5 rounded-full font-semibold ${p.status === 'joined' ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-300'}`}>{p.status}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-400 text-sm">No participants yet.</div>
+            )}
+          </div>
+          {/* Join Match button */}
+          {canJoin && (
+            <button
+              onClick={handleJoin}
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={joining}
+            >
+              {joining ? "Joining..." : `Join Match ($${match.buyIn.toFixed(2)})`}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -38,6 +38,18 @@ export async function GET(
             image: true,
           },
         },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                image: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!match) {

@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 // Types for popup
-export type PopupType = 'error' | 'success';
+export type PopupType = 'error' | 'success' | 'info';
 export interface PopupState {
   type: PopupType;
   message: string;
@@ -32,7 +32,7 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
       {children}
       {popup && (
         <div className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 px-8 py-6 rounded-xl shadow-2xl text-lg font-semibold transition-all
-          ${popup.type === 'error' ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}
+          ${popup.type === 'error' ? 'bg-red-600 text-white' : popup.type === 'success' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}
         >
           {popup.message}
           <button
