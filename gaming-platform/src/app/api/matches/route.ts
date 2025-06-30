@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const matches = await prisma.match.findMany({
-      where: { status: 'open' },
+      where: { status: { in: ['open', 'countdown'] } },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

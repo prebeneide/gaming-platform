@@ -83,7 +83,14 @@ function MatchCard({ match }: { match: Match }) {
       <div className="p-5 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="text-xl font-bold text-white">{match.name}</div>
-          <div className="px-3 py-1 rounded-full text-xs font-bold bg-green-700 text-white uppercase">{match.status}</div>
+          <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+            match.status === 'open' ? 'bg-green-700 text-white' :
+            match.status === 'countdown' ? 'bg-orange-600 text-white' :
+            match.status === 'ready' ? 'bg-yellow-600 text-white' :
+            match.status === 'in_progress' ? 'bg-blue-600 text-white' :
+            match.status === 'cancelled' ? 'bg-gray-600 text-white' :
+            'bg-gray-700 text-white'
+          }`}>{match.status}</div>
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-gray-300">
           <span className="bg-neutral-800 rounded px-2 py-1">{match.gameMode}</span>

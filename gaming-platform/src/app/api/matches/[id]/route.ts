@@ -30,6 +30,7 @@ export async function GET(
         mediaUrl: true,
         mediaType: true,
         createdAt: true,
+        scheduledAt: true,
         creator: {
           select: {
             id: true,

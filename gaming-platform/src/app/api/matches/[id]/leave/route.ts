@@ -16,6 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
     // Fetch match
     const match = await prisma.match.findUnique({
       where: { id: params.id },
@@ -24,50 +25,52 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
-    if (match.status !== "open") {
-      return NextResponse.json({ error: "Match is not open for joining." }, { status: 400 });
+
+    // Check if user is a participant
+    const participant = match.participants.find(p => p.userId === user.id);
+    if (!participant) {
+      return NextResponse.json({ error: "You are not a participant in this match" }, { status: 400 });
     }
-    if (match.currentPlayers >= match.maxPlayers) {
-      return NextResponse.json({ error: "Match is full." }, { status: 400 });
+
+    // Check if match has already started
+    if (match.status === "in_progress" || match.status === "completed" || match.status === "cancelled") {
+      return NextResponse.json({ error: "Cannot leave a match that has already started, completed, or been cancelled" }, { status: 400 });
     }
-    if (match.participants.some(p => p.userId === user.id)) {
-      return NextResponse.json({ error: "You have already joined this match." }, { status: 400 });
+
+    // Check if user is the creator (creator cannot leave, must close match instead)
+    if (match.creatorId === user.id) {
+      return NextResponse.json({ error: "Creator cannot leave match. Use close match instead." }, { status: 400 });
     }
-    // Wallet
-    const wallet = await prisma.userWallet.findUnique({ where: { userId: user.id } });
-    if (!wallet) {
-      return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
-    }
-    if (wallet.balance < match.buyIn) {
-      return NextResponse.json({ error: "Insufficient wallet balance for buy-in." }, { status: 402 });
-    }
-    // Transaction: decrement wallet, add participant, increment currentPlayers, create transaction
+
+    // Transaction: refund wallet, remove participant, decrement currentPlayers, create refund transaction
     const updated = await prisma.$transaction(async (tx) => {
+      // Refund the buy-in
       const updatedWallet = await tx.userWallet.update({
         where: { userId: user.id },
-        data: { balance: { decrement: match.buyIn } },
+        data: { balance: { increment: match.buyIn } },
       });
-      const joinTx = await tx.transaction.create({
+
+      // Create refund transaction
+      await tx.transaction.create({
         data: {
           userId: user.id,
-          type: 'match_payment',
+          type: 'match_refund',
           amount: match.buyIn,
           status: 'completed',
-          description: `Buy-in for match`,
+          description: `Refund for leaving match`,
         },
       });
+
+      // Remove participant and update match
       const updatedMatch = await tx.match.update({
         where: { id: match.id },
         data: {
-          currentPlayers: { increment: 1 },
-          status: match.currentPlayers + 1 >= match.maxPlayers ? 'countdown' : 'open',
-          scheduledAt: match.currentPlayers + 1 >= match.maxPlayers ? new Date() : null,
+          currentPlayers: { decrement: 1 },
+          // If match was 'ready' and now has fewer players, change back to 'open'
+          status: match.status === 'ready' && match.currentPlayers - 1 < match.maxPlayers ? 'open' : match.status,
           participants: {
-            create: {
-              userId: user.id,
-              status: 'joined',
-              buyInPaid: true,
-              buyInTransactionId: joinTx.id,
+            delete: {
+              id: participant.id,
             },
           },
         },
@@ -113,11 +116,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           },
         },
       });
+
       return { updatedMatch, updatedWallet };
     });
-    return NextResponse.json({ match: updated.updatedMatch, newBalance: updated.updatedWallet.balance });
+
+    return NextResponse.json({ 
+      match: updated.updatedMatch, 
+      newBalance: updated.updatedWallet.balance,
+      message: "Successfully left the match"
+    });
   } catch (error) {
-    console.error("Join match error:", error);
+    console.error("Leave match error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 } 
