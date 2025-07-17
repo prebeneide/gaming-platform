@@ -4,6 +4,38 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 GameChallenger er en plattform hvor du kan utfordre andre spillere, lage matcher og vinne ekte premier i dine favorittspill.
 
+## Features
+
+- **Match Creation**: Opprett matcher med buy-in og premier
+- **Real-time Updates**: Sanntidsoppdateringer av match-status og countdown
+- **Result Reporting**: Rapporter resultater med bildebevis
+- **Wallet System**: Sikker wallet-integrasjon for transaksjoner
+- **Ready System**: Alle spillere må bekrefte at de er klare før match start
+
+## Environment Setup
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```bash
+# Cloudinary Configuration (for image uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/gaming_platform"
+
+# NextAuth
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+```
+
+### Cloudinary Setup
+
+1. Sign up at [Cloudinary](https://cloudinary.com/)
+2. Get your credentials from the Dashboard
+3. Add them to your `.env.local` file
+
 ## Getting Started
 
 First, run the development server:

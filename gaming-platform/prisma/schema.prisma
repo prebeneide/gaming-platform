@@ -125,6 +125,9 @@ model Match {
   creator           User     @relation("CreatedMatches", fields: [creatorId], references: [id], onDelete: Cascade)
   participants      MatchParticipant[]
   
+  // Resultat
+  result            MatchResult?
+  
   // Timestamps
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -145,5 +148,36 @@ model MatchParticipant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Resultat-relaterte felter
+  hasReportedResult Boolean @default(false) // Om brukeren har rapportert resultat
+  reportedWinnerId  String? // Hvem brukeren rapporterte som vinner
+  reportedResult    String? // win, draw, problem
+  proofImageUrl     String? // URL til opplastet bevis-bilde
+  proofUploadedAt   DateTime? // Når beviset ble opplastet
+
   @@unique([matchId, userId])
+}
+
+model MatchResult {
+  id          String   @id @default(cuid())
+  matchId     String   @unique // En resultat per match
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
+  // Resultat-detaljer
+  winnerId    String? // ID til vinneren (null for draw)
+  resultType  String   // win, draw, problem
+  status      String   @default("pending") // pending, agreed, disputed, completed
+  
+  // Konsensus
+  agreedBy    String[] // Array av user IDs som er enige
+  disputedBy  String[] // Array av user IDs som er uenige
+  
+  // Utbetaling
+  payoutAmount Float? // Beløp som ble utbetalt
+  payoutTransactionId String? // Reference til utbetalings-transaksjonen
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime? // Når resultatet ble endelig avgjort
 }

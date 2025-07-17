@@ -89,14 +89,16 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white pt-4">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-neutral-950 border-b border-neutral-800">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <h1 className="text-2xl font-bold mb-4">Meldinger</h1>
           {/* Søkefelt */}
           <div className="relative">
-            <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <FiSearch />
+            </div>
             <input
               type="text"
               placeholder="Søk etter samtaler..."

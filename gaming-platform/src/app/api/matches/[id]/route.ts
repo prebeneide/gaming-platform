@@ -4,10 +4,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // GET /api/matches/[id] - Get a single match by id
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, context: any) {
+  const params = await context.params;
   try {
     const match = await prisma.match.findUnique({
       where: { id: params.id },
@@ -49,6 +47,19 @@ export async function GET(
                 image: true,
               },
             },
+          },
+        },
+        result: {
+          select: {
+            id: true,
+            winnerId: true,
+            resultType: true,
+            status: true,
+            agreedBy: true,
+            disputedBy: true,
+            payoutAmount: true,
+            createdAt: true,
+            completedAt: true,
           },
         },
       },

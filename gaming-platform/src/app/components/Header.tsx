@@ -1,9 +1,12 @@
 import Link from "next/link";
 import SearchBar from "../dashboard/SearchBar";
-import { FiUser, FiCreditCard, FiMenu, FiMessageSquare } from "react-icons/fi";
+import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiArrowLeft } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import io from "socket.io-client";
+import { FaTrophy } from "react-icons/fa";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -21,6 +24,10 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
   const [iconSize, setIconSize] = useState(24);
   const [unreadCount, setUnreadCount] = useState(0);
   const { data: session } = useSession();
+  const [activeMatch, setActiveMatch] = useState<{ id: string; name: string } | null>(null);
+  const pathname = usePathname();
+  const isChatPage = pathname.startsWith("/chat/");
+  const [otherUser, setOtherUser] = useState<{ username: string; displayName?: string; image?: string } | null>(null);
 
   useEffect(() => {
     function handleResize() {
@@ -30,6 +37,27 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Hent aktiv match for snarvei
+  useEffect(() => {
+    if (!session?.user) return;
+    async function fetchActiveMatch() {
+      try {
+        const res = await fetch("/api/matches/active");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.activeMatch) {
+            setActiveMatch({ id: data.activeMatch.id, name: data.activeMatch.name });
+          } else {
+            setActiveMatch(null);
+          }
+        }
+      } catch (e) {
+        setActiveMatch(null);
+      }
+    }
+    fetchActiveMatch();
+  }, [session]);
 
   // Hent antall uleste meldinger
   useEffect(() => {
@@ -68,6 +96,23 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
     };
   }, [session]);
 
+  // Hent brukerinfo for chat-sider
+  useEffect(() => {
+    if (!isChatPage) return;
+    
+    const username = pathname.split('/')[2]; // /chat/[username] -> username
+    if (username) {
+      fetch(`/api/search-users?query=${username}`)
+        .then(res => res.json())
+        .then(users => {
+          if (users.length > 0) {
+            setOtherUser(users[0]);
+          }
+        })
+        .catch(err => console.error('Error fetching user:', err));
+    }
+  }, [pathname, isChatPage]);
+
   return (
     <header className="sticky top-0 z-30 w-full bg-black/80 backdrop-blur shadow-sm flex px-0 header-main border-b-0" style={{position: 'sticky', top: 0, zIndex: 30, width: '100%'}}>
       <div className="flex w-full items-center header-flex-wrap">
@@ -89,8 +134,22 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
               </div>
             </div>
           )}
+          {/* Header buttons (right side) */}
           {isLoggedIn ? (
-            <div className="flex items-center gap-4 pr-4 flex-shrink-0 header-buttons">
+            <div className="hidden sm:flex items-center gap-4 pr-4 flex-shrink-0 header-buttons">
+              {activeMatch && (
+                <Link
+                  href={`/matches/${activeMatch.id}`}
+                  className="flex items-center gap-1 px-2 py-1 rounded hover:bg-yellow-200/60 transition relative group"
+                  style={{ minWidth: 0 }}
+                  title={`Go to your active match: ${activeMatch.name}`}
+                >
+                  <FaTrophy color="rgb(219, 39, 119)" size={iconSize - 2} />
+                  <span className="hidden md:inline truncate max-w-[90px] text-xs font-semibold text-yellow-300 group-hover:text-pink-600 transition">{activeMatch.name}</span>
+                  {/* Tooltip for mobile */}
+                  <span className="md:hidden absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-black text-yellow-200 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg border border-yellow-400">{activeMatch.name}</span>
+                </Link>
+              )}
               <Link href="/messages" aria-label="Messages" className="text-white hover:text-[#00c6fb] transition-colors relative">
                 <FiMessageSquare size={iconSize} />
                 {unreadCount > 0 && (
@@ -110,7 +169,7 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 pr-4 flex-shrink-0 header-buttons">
+            <div className="hidden sm:flex items-center gap-2 pr-4 flex-shrink-0 header-buttons">
               <Link href="/login" className="text-pink-500 hover:text-pink-600 font-semibold px-3 py-2 rounded transition">
                 Login
               </Link>
@@ -129,6 +188,28 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
             </div>
           </div>
         )}
+        {isChatPage && otherUser && (
+          <div className="header-row-3 w-full">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-900 bg-neutral-950 w-full">
+              <div className="flex items-center gap-4">
+                <Image
+                  src={otherUser.image || "/default-avatar.svg"}
+                  alt="Avatar"
+                  width={48}
+                  height={48}
+                  className="rounded-full aspect-square object-cover w-12 h-12"
+                />
+                <div className="flex flex-col">
+                  <span className="font-bold text-lg">{otherUser.displayName || otherUser.username}</span>
+                  <span className="text-xs text-gray-400">@{otherUser.username}</span>
+                </div>
+              </div>
+              <Link href="/messages" className="text-white hover:text-[#00c6fb] transition-colors">
+                <FiArrowLeft size={24} />
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
       <style jsx>{`
         .header-main::after {
@@ -137,6 +218,18 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           left: 0;
           right: 0;
           bottom: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb);
+          background-size: 1000% 100%;
+          animation: borderGradientMove 32s linear infinite alternate;
+          border-radius: 2px;
+        }
+        .header-row-3::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
           height: 2px;
           background: linear-gradient(90deg, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb, #8b5cf6, #ec4899, #8b5cf6, #00c6fb);
           background-size: 1000% 100%;
@@ -177,6 +270,14 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           align-items: center;
           justify-content: center;
         }
+        .header-row-3 {
+          width: 100%;
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: flex-start;
+          position: relative;
+        }
         .header-searchbar-desktop {
           display: flex;
         }
@@ -185,8 +286,8 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
         }
         @media (min-width: 751px) {
           .header-flex-wrap {
-            flex-direction: row;
-            align-items: center;
+            flex-direction: column;
+            align-items: stretch;
           }
           .header-row-1 {
             display: grid;
@@ -195,6 +296,7 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
             justify-content: center;
             width: 100%;
             gap: 0;
+            padding: 1rem 0;
           }
           .header-searchbar-desktop {
             justify-self: center;
@@ -209,10 +311,18 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           .header-row-2 {
             display: none;
           }
+          .header-row-3 {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0;
+          }
           .header-main {
-            height: 80px;
+            height: auto;
             min-height: 80px;
-            max-height: 80px;
+            max-height: none;
           }
         }
         @media (max-width: 750px) {
@@ -243,6 +353,14 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
             align-items: center;
             justify-content: center;
             padding: 1.2rem 0 1.2rem 0;
+          }
+          .header-row-3 {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0;
           }
           .header-searchbar-desktop {
             display: none;

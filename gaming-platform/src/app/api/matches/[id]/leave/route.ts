@@ -5,7 +5,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: { id: string } }) {
+  const { params } = context;
   try {
     // Auth
     const session = await getServerSession(authOptions);
@@ -66,8 +67,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         where: { id: match.id },
         data: {
           currentPlayers: { decrement: 1 },
-          // If match was 'ready' and now has fewer players, change back to 'open'
-          status: match.status === 'ready' && match.currentPlayers - 1 < match.maxPlayers ? 'open' : match.status,
+          // Hvis match var 'countdown' og nå har færre enn maxPlayers, sett tilbake til 'open' og nullstill scheduledAt
+          status: match.status === 'countdown' && match.currentPlayers - 1 < match.maxPlayers ? 'open' : match.status,
+          scheduledAt: match.status === 'countdown' && match.currentPlayers - 1 < match.maxPlayers ? null : match.scheduledAt,
           participants: {
             delete: {
               id: participant.id,

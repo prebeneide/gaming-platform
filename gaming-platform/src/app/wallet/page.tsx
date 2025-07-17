@@ -197,30 +197,30 @@ export default function WalletPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
+    <div className="min-h-screen bg-black text-white p-2 sm:p-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-8">Wallet</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-center mb-4 sm:mb-8">Wallet</h1>
         
         {/* Balance Card */}
-        <div className="bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl p-6 mb-8">
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl p-3 sm:p-6 mb-4 sm:mb-8">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-2">Current Balance</h2>
-            <div className="text-5xl font-bold">${walletData?.balance.toFixed(2)}</div>
-            <div className="text-sm opacity-80 mt-2">{walletData?.currency}</div>
+            <h2 className="text-lg sm:text-2xl font-semibold mb-1 sm:mb-2">Current Balance</h2>
+            <div className="text-3xl sm:text-5xl font-bold">${walletData?.balance.toFixed(2)}</div>
+            <div className="text-xs sm:text-sm opacity-80 mt-1 sm:mt-2">{walletData?.currency}</div>
           </div>
           
           {/* Action Buttons */}
-          <div className="flex gap-4 mt-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-4 sm:mt-6 justify-center">
             <button
               onClick={() => setShowDepositModal(true)}
-              className="px-6 py-3 bg-white text-pink-600 font-semibold rounded-lg hover:bg-gray-100 transition flex items-center"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-white text-pink-600 font-semibold rounded-lg hover:bg-gray-100 transition flex items-center justify-center"
             >
               <FiPlus />
               <span className="ml-2">Deposit</span>
             </button>
             <button
               onClick={() => setShowWithdrawModal(true)}
-              className="px-6 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-pink-600 transition flex items-center"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-transparent border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-pink-600 transition flex items-center justify-center"
             >
               <FiMinus />
               <span className="ml-2">Withdraw</span>
@@ -229,51 +229,33 @@ export default function WalletPage() {
         </div>
 
         {/* Transaction History */}
-        <div className="bg-neutral-900 rounded-xl p-6">
-          <h3 className="text-2xl font-semibold mb-6">Transaction History</h3>
+        <div className="bg-neutral-900 rounded-xl p-3 sm:p-6">
+          <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Transaction History</h3>
           
-          <div className="space-y-4">
+          <div className="space-y-2 sm:space-y-4">
             {walletData?.transactions.map((transaction) => (
-              <div key={transaction.id} className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl">
-                    {getTransactionIcon(transaction.type)}
+              <div key={transaction.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-neutral-800 rounded-lg gap-2 sm:gap-0 overflow-x-auto">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  {/* Ikon til venstre */}
+                  <div className="text-xl sm:text-2xl">
+                    {['deposit', 'match_payout', 'match_winning'].includes(transaction.type) && (
+                      <span className="text-amber-400"><FiDollarSign /></span>
+                    )}
+                    {['match_refund', 'match_draw_refund'].includes(transaction.type) && (
+                      <span className="text-green-400"><FiDollarSign /></span>
+                    )}
+                    {['withdrawal', 'match_payment'].includes(transaction.type) && (
+                      <span className="text-red-500"><FiDollarSign /></span>
+                    )}
                   </div>
-                  <div>
-                    <div className="font-semibold">{transaction.description}</div>
-                    <div className="text-sm text-gray-400">
-                      {new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString()}
-                    </div>
+                  <div className="flex flex-col text-xs sm:text-base">
+                    <span className="font-semibold">{transaction.description}</span>
+                    <span className="text-gray-400">{new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className={`text-lg font-semibold ${['deposit', 'match_winning'].includes(transaction.type) ? 'text-green-500' : 'text-red-500'}`}>
-                    {['deposit', 'match_winning'].includes(transaction.type) ? '+' : '-'}${transaction.amount.toFixed(2)}
-                  </div>
-                  <div className="text-xl">
-                    {getStatusIcon(transaction.status)}
-                  </div>
-                  {/* Temporary button for testing deposits */}
-                  {transaction.type === 'deposit' && transaction.status === 'pending' && (
-                    <button
-                      onClick={() => handleConfirmDeposit(transaction.id)}
-                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                      title="Simulate successful deposit"
-                    >
-                      Confirm
-                    </button>
-                  )}
-                   {/* Temporary button for testing withdrawals */}
-                  {transaction.type === 'withdrawal' && transaction.status === 'pending' && (
-                    <button
-                      onClick={() => handleConfirmWithdrawal(transaction.id)}
-                      className="px-2 py-1 text-xs bg-orange-600 text-white rounded-md hover:bg-orange-700 transition"
-                      title="Simulate successful withdrawal"
-                    >
-                      Confirm
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+                  <span className={`font-bold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'} text-sm sm:text-base`}>{transaction.amount > 0 ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}</span>
+                  {getStatusIcon(transaction.status)}
                 </div>
               </div>
             ))}

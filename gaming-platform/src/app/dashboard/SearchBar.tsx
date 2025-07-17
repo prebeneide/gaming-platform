@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FiSearch } from "react-icons/fi";
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
@@ -33,12 +34,15 @@ export default function SearchBar() {
 
   return (
     <div className="relative w-full max-w-xl mx-auto">
+      <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+        <FiSearch />
+      </div>
       <input
         type="text"
         value={query}
         onChange={handleChange}
         placeholder="Search for users..."
-        className="w-full h-full px-5 rounded-xl bg-neutral-900 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-lg shadow my-0"
+        className="w-full bg-neutral-900 text-white pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
         onFocus={() => query.length >= 2 && setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />

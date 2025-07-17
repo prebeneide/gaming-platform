@@ -19,9 +19,11 @@ export default function Home() {
               Get Started
             </button>
             </Link>
+            <Link href="/dashboard">
             <button className="px-8 py-4 border border-pink-500 rounded-lg text-lg font-semibold hover:bg-pink-500/10">
               Learn More
             </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -118,9 +120,9 @@ export default function Home() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0 text-center md:text-left">
           <div className="text-gray-400">© 2024 GameChallenger. All rights reserved.</div>
           <div className="space-x-6 flex justify-center md:justify-start">
-            <a href="#" className="text-gray-400 hover:text-pink-500">Terms</a>
-            <a href="#" className="text-gray-400 hover:text-pink-500">Privacy</a>
-            <a href="#" className="text-gray-400 hover:text-pink-500">Contact</a>
+            <Link href="/terms" className="text-gray-400 hover:text-pink-500">Terms</Link>
+            <Link href="/privacy" className="text-gray-400 hover:text-pink-500">Privacy</Link>
+            <Link href="/contact" className="text-gray-400 hover:text-pink-500">Contact</Link>
           </div>
         </div>
       </footer>

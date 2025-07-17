@@ -1,7 +1,7 @@
 "use client";
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const games = [
@@ -54,10 +54,29 @@ const games = [
 
 export default function CreateMatchPage() {
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
+  const [activeMatch, setActiveMatch] = useState<{ id: string; name: string } | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  useEffect(() => {
+    // Sjekk om brukeren er deltaker i en aktiv match
+    async function checkActiveMatch() {
+      try {
+        const res = await fetch('/api/matches/active');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.activeMatch) {
+            setActiveMatch({ id: data.activeMatch.id, name: data.activeMatch.name });
+          }
+        }
+      } catch (e) {}
+      setLoading(false);
+    }
+    checkActiveMatch();
+  }, []);
+
   const handleNext = () => {
-    if (selectedGame) {
+    if (selectedGame && !activeMatch) {
       router.push(`/matches/new/details?gameId=${selectedGame}`);
     }
   };
@@ -71,6 +90,14 @@ export default function CreateMatchPage() {
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent drop-shadow">
           Pick a game
         </h2>
+        {activeMatch && (
+          <div className="mb-4 p-4 bg-yellow-900/60 border border-yellow-600 rounded-lg text-yellow-300 text-center">
+            <b>You are already a participant in an active match:</b><br />
+            <span className="font-semibold">{activeMatch.name}</span><br />
+            <a href={`/matches/${activeMatch.id}`} className="underline text-yellow-200">Go to match</a><br />
+            <span className="block mt-2">You must leave this match before creating a new one.</span>
+          </div>
+        )}
         <div className="flex flex-row gap-8 overflow-x-auto pb-2 px-6 hide-scrollbar scroll-smooth snap-x snap-mandatory">
           <div className="min-w-[12px] md:min-w-[32px] snap-start" aria-hidden="true" />
           {games.map((game) => (
@@ -106,8 +133,8 @@ export default function CreateMatchPage() {
           <button
             onClick={handleNext}
             className={`font-semibold py-2 px-6 rounded-lg transition text-white
-              ${selectedGame ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 cursor-not-allowed opacity-50'}`}
-            disabled={!selectedGame}
+              ${selectedGame && !activeMatch ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-700 cursor-not-allowed opacity-50'}`}
+            disabled={!selectedGame || !!activeMatch || loading}
           >
             Next
           </button>

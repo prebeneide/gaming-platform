@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
+import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../api/auth/[...nextauth]/route";
 import { cookies } from "next/headers";
@@ -108,12 +109,12 @@ export default async function PublicProfilePage({ params }: { params: { username
               isOwnProfile={isOwnProfile}
               isFriend={isFriend}
             />
-            <a
+            <Link
               href={`/chat/${params.username}`}
               className="h-12 px-6 rounded-lg font-semibold text-base flex items-center justify-center signup-gradient-btn text-white shadow hover:opacity-90 transition"
             >
               Message
-            </a>
+            </Link>
           </div>
         )}
         {/* Brukerstatistikk (samme som dashboard) */}

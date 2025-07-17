@@ -1,5 +1,7 @@
 import React from "react";
+import Link from "next/link";
 import { FiUser, FiCreditCard, FiSettings, FiLogOut, FiHome } from "react-icons/fi";
+import { signOut } from "next-auth/react";
 
 interface SideMenuProps {
   open: boolean;
@@ -11,12 +13,13 @@ const menuItems = [
   { href: "/profile", label: "Profile", icon: <FiUser /> },
   { href: "/wallet", label: "Wallet", icon: <FiCreditCard /> },
 ];
-const secondaryItems = [
-  { href: "/settings", label: "Settings", icon: <FiSettings /> },
-  { href: "/logout", label: "Log out", icon: <FiLogOut /> },
-];
 
 export default function SideMenu({ open, onClose }: SideMenuProps) {
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/" });
+    onClose();
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -42,28 +45,38 @@ export default function SideMenu({ open, onClose }: SideMenuProps) {
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="flex flex-col divide-y divide-neutral-900">
             {menuItems.map(item => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
+                onClick={onClose}
                 className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-neutral-800 transition-colors group"
               >
                 <span className="w-6 h-6 flex items-center justify-center text-pink-400 group-hover:text-pink-500 transition-colors">{item.icon}</span>
                 <span className="flex-1">{item.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
           <div className="h-px bg-neutral-800 mx-4 my-2" />
           <div className="flex flex-col divide-y divide-neutral-900">
-            {secondaryItems.map(item => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-neutral-800 transition-colors group"
-              >
-                <span className="w-6 h-6 flex items-center justify-center text-pink-400 group-hover:text-pink-500 transition-colors">{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
-              </a>
-            ))}
+            <Link
+              href="/settings"
+              onClick={onClose}
+              className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-neutral-800 transition-colors group"
+            >
+              <span className="w-6 h-6 flex items-center justify-center text-pink-400 group-hover:text-pink-500 transition-colors">
+                <FiSettings />
+              </span>
+              <span className="flex-1">Settings</span>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-4 px-6 py-4 text-white text-base font-semibold hover:bg-neutral-800 transition-colors group w-full text-left"
+            >
+              <span className="w-6 h-6 flex items-center justify-center text-pink-400 group-hover:text-pink-500 transition-colors">
+                <FiLogOut />
+              </span>
+              <span className="flex-1">Log out</span>
+            </button>
           </div>
         </div>
       </aside>

@@ -5,7 +5,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, context: { params: { id: string } }) {
+  const { params } = context;
   try {
     // Auth
     const session = await getServerSession(authOptions);
@@ -15,6 +16,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    // Sjekk om brukeren allerede er deltaker i en annen aktiv match
+    const activeParticipant = await prisma.matchParticipant.findFirst({
+      where: {
+        userId: user.id,
+        match: {
+          status: { in: ["open", "countdown", "in_progress"] },
+        },
+      },
+      include: { match: true },
+    });
+    if (activeParticipant) {
+      return NextResponse.json({
+        error: `You are already a participant in another active match ("${activeParticipant.match.name}"). Leave that match before joining a new one.`,
+        activeMatchId: activeParticipant.match.id,
+      }, { status: 409 });
     }
     // Fetch match
     const match = await prisma.match.findUnique({

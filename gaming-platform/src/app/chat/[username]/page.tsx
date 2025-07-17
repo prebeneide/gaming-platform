@@ -259,22 +259,8 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
-      {/* Header */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-neutral-900 bg-neutral-950 sticky top-0 z-20">
-        <Image
-          src={otherUser.image || "/default-avatar.svg"}
-          alt="Avatar"
-          width={48}
-          height={48}
-          className="rounded-full aspect-square object-cover w-12 h-12"
-        />
-        <div className="flex flex-col">
-          <span className="font-bold text-lg">{otherUser.displayName || otherUser.username}</span>
-          <span className="text-xs text-gray-400">@{otherUser.username}</span>
-        </div>
-      </div>
-      {/* Messages */}
-      <div className="flex-1 min-h-0 flex flex-col gap-2 px-4 py-6 overflow-y-auto" style={{ background: "#101014" }}>
+      {/* Meldingsliste */}
+      <div className="flex-1 min-h-0 flex flex-col gap-2 px-4 py-6 pb-32 overflow-y-auto" style={{ background: "#101014" }}>
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.senderId === session?.user?.id ? "justify-end" : "justify-start"}`}>
             <div
@@ -294,7 +280,7 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
       {/* Input og typing-indikator sammen nederst */}
-      <form onSubmit={handleSubmit} className="flex flex-col gap-1 px-4 py-3 border-t border-neutral-900 bg-neutral-950 sticky bottom-0 z-40">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-1 px-4 py-3 border-t border-neutral-900 bg-neutral-950 fixed bottom-0 left-0 right-0 z-40">
         {isTyping && (
           <div className="w-full flex justify-start pb-2 rounded-t-xl">
             <div className="flex items-center gap-2 ml-6">

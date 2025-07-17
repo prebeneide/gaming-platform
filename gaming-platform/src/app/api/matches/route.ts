@@ -29,6 +29,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
     }
 
+    // Sjekk om brukeren allerede er deltaker i en annen aktiv match
+    const activeParticipant = await prisma.matchParticipant.findFirst({
+      where: {
+        userId: user.id,
+        match: {
+          status: { in: ["open", "countdown", "in_progress"] },
+        },
+      },
+      include: { match: true },
+    });
+    if (activeParticipant) {
+      return NextResponse.json({
+        error: `You are already a participant in another active match (\"${activeParticipant.match.name}\"). Leave that match before creating a new one.`,
+        activeMatchId: activeParticipant.match.id,
+      }, { status: 409 });
+    }
+
     // 3. Parse request body
     const body = await request.json();
     const {
@@ -161,7 +178,6 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const matches = await prisma.match.findMany({
-      where: { status: { in: ['open', 'countdown'] } },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -189,7 +205,32 @@ export async function GET() {
             displayName: true,
             image: true,
           }
-        }
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                image: true,
+              },
+            },
+          },
+        },
+        result: {
+          select: {
+            id: true,
+            winnerId: true,
+            resultType: true,
+            status: true,
+            agreedBy: true,
+            disputedBy: true,
+            payoutAmount: true,
+            createdAt: true,
+            completedAt: true,
+          },
+        },
       },
     });
     return NextResponse.json({ matches });
