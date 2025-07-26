@@ -6,8 +6,8 @@ import { useSession } from "next-auth/react";
 import SideMenu from "./SideMenu";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FiUser, FiCreditCard, FiMenu, FiMessageSquare } from "react-icons/fi";
-import { FaTrophy } from "react-icons/fa";
+import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiActivity, FiCompass } from "react-icons/fi";
+import { FaTrophy, FaGamepad } from "react-icons/fa";
 import io from "socket.io-client";
 import Image from "next/image";
 
@@ -104,14 +104,17 @@ function BottomNavigation({ onOpenMenu }: { onOpenMenu: () => void }) {
           </span>
         )}
       </Link>
+      <Link href="/matches" aria-label="Match Feed" className="flex flex-col items-center text-white hover:text-[#00c6fb] transition-colors">
+        <FiCompass size={24} />
+      </Link>
+      <Link href="/matches/new" aria-label="Create Match" className="flex flex-col items-center text-white hover:text-[#f6369a] transition-colors">
+        <FaGamepad size={24} />
+      </Link>
       {activeMatch && (
         <Link href={`/matches/${activeMatch.id}`} aria-label="Active Match" className="flex flex-col items-center text-yellow-300 hover:text-pink-600 transition-colors">
-          <FaTrophy size={22} />
+          <FiActivity size={22} />
         </Link>
       )}
-      <Link href="/profile" aria-label="Profile" className="flex flex-col items-center text-white hover:text-[#00c6fb] transition-colors">
-        <FiUser size={24} />
-      </Link>
       <Link href="/wallet" aria-label="Wallet" className="flex flex-col items-center text-white hover:text-[#8b5cf6] transition-colors">
         <FiCreditCard size={24} />
       </Link>

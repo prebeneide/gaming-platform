@@ -1,10 +1,10 @@
 import Link from "next/link";
 import SearchBar from "../dashboard/SearchBar";
-import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiArrowLeft } from "react-icons/fi";
+import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiArrowLeft, FiBell, FiList, FiGrid, FiCompass, FiActivity, FiTarget } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import io from "socket.io-client";
-import { FaTrophy } from "react-icons/fa";
+import { FaTrophy, FaGamepad } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 
@@ -23,6 +23,7 @@ interface MessagesReadData {
 export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) {
   const [iconSize, setIconSize] = useState(24);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
   const { data: session } = useSession();
   const [activeMatch, setActiveMatch] = useState<{ id: string; name: string } | null>(null);
   const pathname = usePathname();
@@ -136,7 +137,7 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           )}
           {/* Header buttons (right side) */}
           {isLoggedIn ? (
-            <div className="hidden sm:flex items-center gap-4 pr-4 flex-shrink-0 header-buttons">
+            <div className="flex items-center gap-4 pr-4 flex-shrink-0 header-buttons">
               {activeMatch && (
                 <Link
                   href={`/matches/${activeMatch.id}`}
@@ -144,13 +145,13 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
                   style={{ minWidth: 0 }}
                   title={`Go to your active match: ${activeMatch.name}`}
                 >
-                  <FaTrophy color="rgb(219, 39, 119)" size={iconSize - 2} />
+                  <FiActivity color="rgb(219, 39, 119)" size={iconSize - 2} />
                   <span className="hidden md:inline truncate max-w-[90px] text-xs font-semibold text-yellow-300 group-hover:text-pink-600 transition">{activeMatch.name}</span>
                   {/* Tooltip for mobile */}
                   <span className="md:hidden absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-black text-yellow-200 text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg border border-yellow-400">{activeMatch.name}</span>
                 </Link>
               )}
-              <Link href="/messages" aria-label="Messages" className="text-white hover:text-[#00c6fb] transition-colors relative">
+              <Link href="/messages" aria-label="Messages" className="text-white hover:text-[#00c6fb] transition-colors relative hidden sm:block">
                 <FiMessageSquare size={iconSize} />
                 {unreadCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -158,10 +159,26 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
                   </span>
                 )}
               </Link>
-              <Link href="/wallet" aria-label="Wallet" className="text-white hover:text-[#8b5cf6] transition-colors">
+              <Link href="/notifications" aria-label="Notifications" className="text-white hover:text-[#f6369a] transition-colors relative">
+                <FiBell size={iconSize} />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
+              </Link>
+              {/* Match Feed */}
+              <Link href="/matches" aria-label="Match Feed" className="text-white hover:text-[#00c6fb] transition-colors hidden sm:block" title="Match Feed">
+                <FiCompass size={iconSize} />
+              </Link>
+              {/* Create Match */}
+              <Link href="/matches/new" aria-label="Create Match" className="text-white hover:text-[#f6369a] transition-colors hidden sm:block" title="Create Match">
+                <FaGamepad size={iconSize} />
+              </Link>
+              <Link href="/wallet" aria-label="Wallet" className="text-white hover:text-[#8b5cf6] transition-colors hidden sm:block">
                 <FiCreditCard size={iconSize} />
               </Link>
-              <Link href="/profile" aria-label="Profile" className="flex items-center gap-2 text-white hover:text-[#00c6fb] transition-colors">
+              <Link href="/dashboard" aria-label="Profile" className="flex items-center gap-2 text-white hover:text-[#00c6fb] transition-colors">
                 {session?.user?.image ? (
                   <>
                     <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-pink-500">
@@ -400,6 +417,11 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           .header-buttons a,
           .header-buttons button {
             padding: 0.3rem 0.7rem !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .header-buttons {
+            gap: 0.5rem !important;
           }
         }
         .signup-gradient-btn {
