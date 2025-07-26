@@ -158,11 +158,27 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
                   </span>
                 )}
               </Link>
-              <Link href="/profile" aria-label="Profile" className="text-white hover:text-[#00c6fb] transition-colors">
-                <FiUser size={iconSize} />
-              </Link>
               <Link href="/wallet" aria-label="Wallet" className="text-white hover:text-[#8b5cf6] transition-colors">
                 <FiCreditCard size={iconSize} />
+              </Link>
+              <Link href="/profile" aria-label="Profile" className="flex items-center gap-2 text-white hover:text-[#00c6fb] transition-colors">
+                {session?.user?.image ? (
+                  <>
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-pink-500">
+                      <Image
+                        src={session.user.image}
+                        alt={(session.user as any)?.displayName || session.user.username || "Profile"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <span className="hidden md:block text-sm font-medium">
+                      {(session.user as any)?.displayName || session.user.username}
+                    </span>
+                  </>
+                ) : (
+                  <FiUser size={iconSize} />
+                )}
               </Link>
               <button aria-label="Menu" className="text-white hover:text-[#f6369a] transition-colors bg-transparent border-0 p-0 m-0" onClick={onOpenMenu}>
                 <FiMenu size={iconSize} />
