@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import io from "socket.io-client";
+import BackButton from "@/components/BackButton";
 
 type User = {
   id: string;
@@ -259,6 +260,24 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
+      {/* Header with back button */}
+      <div className="flex items-center gap-4 p-4 border-b border-neutral-800 bg-neutral-950">
+        <BackButton />
+        <div className="flex items-center gap-3">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-pink-500">
+            <Image
+              src={otherUser.image || "/default-avatar.svg"}
+              alt={otherUser.displayName || otherUser.username}
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div>
+            <div className="font-bold text-white">{otherUser.displayName || otherUser.username}</div>
+            <div className="text-sm text-gray-400">@{otherUser.username}</div>
+          </div>
+        </div>
+      </div>
       {/* Meldingsliste */}
       <div className="flex-1 min-h-0 flex flex-col gap-2 px-4 py-6 pb-32 overflow-y-auto" style={{ background: "#101014" }}>
         {messages.map((msg) => (

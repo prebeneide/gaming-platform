@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import BackButton from "@/components/BackButton";
 
 export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
@@ -12,6 +13,10 @@ export default function SettingsPage() {
       <div className={
         "bg-neutral-950 rounded-2xl shadow-xl p-8 flex flex-col gap-8 w-full max-w-none md:w-11/12 lg:w-10/12 xl:w-9/12 mx-auto"
       }>
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton />
+        </div>
         <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
           Settings
         </h1>

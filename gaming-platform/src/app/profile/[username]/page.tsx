@@ -8,6 +8,67 @@ import { revalidatePath } from "next/cache";
 import FollowButton from "./FollowButton";
 import FriendButton from "./FriendButton";
 import UserStats from "../../dashboard/UserStats";
+import UserMatchFeed from "./UserMatchFeed";
+import BackButton from "@/components/BackButton";
+
+// Helper function to calculate user statistics from matches
+function calculateUserStats(matches: any[], userId: string) {
+  let matchesPlayed = 0;
+  let wins = 0;
+  let losses = 0;
+  let draws = 0;
+  const last10Results: string[] = [];
+
+  matches.forEach(match => {
+    // Only count completed matches
+    if (match.result && match.result.status === 'completed') {
+      matchesPlayed++;
+      
+      // Check if user won
+      if (match.result.winnerId === userId) {
+        wins++;
+        last10Results.push('W');
+      } else if (match.result.winnerId) {
+        // Someone else won
+        losses++;
+        last10Results.push('L');
+      } else {
+        // No winner (draw or cancelled)
+        draws++;
+        last10Results.push('D');
+      }
+    }
+  });
+
+  // Calculate percentages and ratios
+  const winPercent = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+  const winLossRatio = losses > 0 ? (wins / losses).toFixed(2) : wins > 0 ? wins.toString() : '0.00';
+  
+  // Get last 10 results (most recent first)
+  const last10 = last10Results.slice(-10).reverse();
+
+  // Calculate rank based on win percentage
+  let rank = "Bronze";
+  if (winPercent >= 80) rank = "Diamond";
+  else if (winPercent >= 70) rank = "Platinum";
+  else if (winPercent >= 60) rank = "Gold";
+  else if (winPercent >= 50) rank = "Silver";
+  else if (winPercent >= 30) rank = "Bronze";
+  else rank = "Iron";
+
+  return {
+    stats: {
+      matchesPlayed,
+      wins,
+      losses,
+      draws,
+      rank
+    },
+    winPercent,
+    winLossRatio,
+    last10
+  };
+}
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
   const user = await prisma.user.findUnique({
@@ -31,6 +92,38 @@ export default async function PublicProfilePage({ params }: { params: { username
   if (!user) {
     return <div className="text-center text-red-400 mt-20">User not found</div>;
   }
+
+  // Fetch user's matches for statistics
+  const userMatches = await prisma.match.findMany({
+    where: {
+      OR: [
+        { creatorId: user.id },
+        {
+          participants: {
+            some: {
+              userId: user.id
+            }
+          }
+        }
+      ]
+    },
+    include: {
+      result: {
+        select: {
+          id: true,
+          winnerId: true,
+          status: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // Calculate user statistics
+  const userStats = calculateUserStats(userMatches, user.id);
+
   // Hent antall følgere og følger
   const followersCount = await prisma.follower.count({ where: { following: { username: params.username } } });
   const followingCount = await prisma.follower.count({ where: { follower: { username: params.username } } });
@@ -81,6 +174,10 @@ export default async function PublicProfilePage({ params }: { params: { username
   } catch {}
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
+      {/* Back Button */}
+      <div className="w-full max-w-lg mx-auto mb-4">
+        <BackButton />
+      </div>
       <div className="bg-neutral-950 rounded-2xl shadow-xl p-8 flex flex-col gap-8 w-full max-w-lg mx-auto">
         <div className="flex flex-col items-center gap-2">
           <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full w-24 h-24 flex items-center justify-center">
@@ -119,10 +216,10 @@ export default async function PublicProfilePage({ params }: { params: { username
         )}
         {/* Brukerstatistikk (samme som dashboard) */}
         <UserStats
-          stats={{ matchesPlayed: 14, wins: 7, losses: 5, draws: 2, rank: "Gold III", registeredAt: "2024-05-01" }}
-          winPercent={50}
-          winLossRatio={1.4}
-          last10={["W", "L", "D", "L", "W", "W", "W", "L", "D", "D"]}
+          stats={userStats.stats}
+          winPercent={userStats.winPercent}
+          winLossRatio={userStats.winLossRatio}
+          last10={userStats.last10}
         />
         {/* Social Links nederst, vises kun hvis minst én link finnes */}
         {(user.discord || user.twitter || user.twitch || user.steam || user.psn || user.xbox) && (
@@ -149,6 +246,11 @@ export default async function PublicProfilePage({ params }: { params: { username
             </ul>
           </div>
         )}
+      </div>
+      
+      {/* User Match Feed */}
+      <div className="mt-8 w-full max-w-6xl">
+        <UserMatchFeed username={params.username} />
       </div>
     </main>
   );

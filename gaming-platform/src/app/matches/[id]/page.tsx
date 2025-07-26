@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { usePopup } from "@/components/PopupProvider";
+import BackButton from "@/components/BackButton";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -285,9 +286,15 @@ export default function MatchDetailsPage() {
       try {
         const res = await fetch(`/api/matches/${id}`);
         const data = await res.json();
-        if (data.match) setMatch(data.match);
+        if (data.match) {
+          console.log('Polling update - Match status:', data.match.status);
+          if (data.match.result) {
+            console.log('Match result:', data.match.result);
+          }
+          setMatch(data.match);
+        }
       } catch (err) {
-        // Ignorer feil
+        console.error('Polling error:', err);
       }
     }, 2000); // 2 sekunder
     return () => clearInterval(interval);
@@ -540,6 +547,10 @@ export default function MatchDetailsPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+      {/* Back Button */}
+      <div className="w-full max-w-xl mx-auto mb-4">
+        <BackButton />
+      </div>
       <div className="w-full max-w-xl mx-auto bg-neutral-950 rounded-2xl shadow-xl border border-neutral-800 overflow-hidden">
         {/* Creator info */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-2">

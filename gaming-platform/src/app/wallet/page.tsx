@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FiPlus, FiMinus, FiDollarSign, FiClock, FiCheck, FiX } from "react-icons/fi";
 import { usePopup } from "@/components/PopupProvider";
+import BackButton from "@/components/BackButton";
 
 interface Transaction {
   id: string;
@@ -199,6 +200,10 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-black text-white p-2 sm:p-4">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <div className="mb-4">
+          <BackButton />
+        </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-center mb-4 sm:mb-8">Wallet</h1>
         
         {/* Balance Card */}
