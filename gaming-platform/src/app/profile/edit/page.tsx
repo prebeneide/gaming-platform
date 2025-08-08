@@ -3,9 +3,11 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { usePopup } from "@/components/PopupProvider";
 
 export default function EditProfilePage() {
   const { data: session, update } = useSession();
+  const { showPopup } = usePopup();
   const [profileImage, setProfileImage] = useState("/default-avatar.svg");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -92,10 +94,10 @@ export default function EditProfilePage() {
         // Oppdater session-dataen for å reflektere endringene umiddelbart
         await update();
       } else {
-        alert(data.error || "Update failed");
+        showPopup({ type: 'error', message: data.error || "Update failed" });
       }
     } catch (err) {
-      alert("Update failed");
+      showPopup({ type: 'error', message: "Update failed" });
     } finally {
       setSaving(false);
       setTimeout(() => setSuccess(false), 2000);
@@ -129,10 +131,10 @@ export default function EditProfilePage() {
         // Oppdater session-dataen for å reflektere endringene umiddelbart
         await update();
       } else {
-        alert(data.error || "Update failed");
+        showPopup({ type: 'error', message: data.error || "Update failed" });
       }
     } catch (err) {
-      alert("Update failed");
+      showPopup({ type: 'error', message: "Update failed" });
     } finally {
       setSaving(false);
       setTimeout(() => setSuccess(false), 2000);
@@ -154,10 +156,10 @@ export default function EditProfilePage() {
         if (res.ok) {
           await autoSaveProfileImage(data.url);
         } else {
-          alert(data.error || "Upload failed");
+          showPopup({ type: 'error', message: data.error || "Upload failed" });
         }
       } catch (err) {
-        alert("Upload failed");
+        showPopup({ type: 'error', message: "Upload failed" });
       }
     }
   }

@@ -87,19 +87,7 @@ export default function NotificationsPage() {
     }
   };
 
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
-        showPopup({ type: 'success', message: 'Notification deleted' });
-      }
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
-  };
+
 
   const createTestNotifications = async () => {
     try {
@@ -175,23 +163,23 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className="mb-6">
           <BackButton />
-          <div className="flex items-center justify-between mt-4">
-            <h1 className="text-3xl font-bold">Notifications</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4">
+            <h1 className="text-2xl sm:text-3xl font-bold">Notifications</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <span className="text-gray-400 text-sm sm:text-base">
                 {unreadCount} unread
               </span>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition whitespace-nowrap"
                 >
                   Mark all as read
                 </button>
               )}
               <button
                 onClick={createTestNotifications}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition whitespace-nowrap"
               >
                 Create Test Notifications
               </button>
@@ -200,10 +188,10 @@ export default function NotificationsPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg transition ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg transition whitespace-nowrap ${
               filter === 'all' 
                 ? 'bg-pink-500 text-white' 
                 : 'bg-neutral-800 text-gray-300 hover:bg-neutral-700'
@@ -213,7 +201,7 @@ export default function NotificationsPage() {
           </button>
           <button
             onClick={() => setFilter('unread')}
-            className={`px-4 py-2 rounded-lg transition ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg transition whitespace-nowrap ${
               filter === 'unread' 
                 ? 'bg-pink-500 text-white' 
                 : 'bg-neutral-800 text-gray-300 hover:bg-neutral-700'
@@ -223,7 +211,7 @@ export default function NotificationsPage() {
           </button>
           <button
             onClick={() => setFilter('read')}
-            className={`px-4 py-2 rounded-lg transition ${
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg transition whitespace-nowrap ${
               filter === 'read' 
                 ? 'bg-pink-500 text-white' 
                 : 'bg-neutral-800 text-gray-300 hover:bg-neutral-700'
@@ -236,16 +224,21 @@ export default function NotificationsPage() {
         {/* Notifications List */}
         <div className="space-y-4">
           {filteredNotifications.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="mx-auto mb-4">
-                <FiBell color="#6b7280" size={64} />
+            <div className="text-center py-8 sm:py-12">
+              <div className="flex justify-center mb-3 sm:mb-4">
+                <span className="sm:hidden">
+                  <FiBell color="#6b7280" size={48} />
+                </span>
+                <span className="hidden sm:block">
+                  <FiBell color="#6b7280" size={64} />
+                </span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-400 mb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-400 mb-1 sm:mb-2">
                 {filter === 'all' ? 'No notifications yet' : 
                  filter === 'unread' ? 'No unread notifications' : 
                  'No read notifications'}
               </h3>
-              <p className="text-gray-500">
+              <p className="text-sm sm:text-base text-gray-500">
                 {filter === 'all' ? 'You\'ll see notifications about matches, friends, and updates here' :
                  filter === 'unread' ? 'All caught up! No new notifications' :
                  'No read notifications to show'}
@@ -255,15 +248,15 @@ export default function NotificationsPage() {
             filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 rounded-lg border ${getNotificationColor(notification.type)} ${
+                className={`p-3 sm:p-4 rounded-lg border ${getNotificationColor(notification.type)} ${
                   !notification.isRead ? 'ring-2 ring-pink-500/20' : ''
                 }`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-2 sm:gap-4">
                   {notification.type === 'friend_request' && notification.data?.requesterImage ? (
                     <Link 
                       href={`/profile/${notification.data?.requesterName}`}
-                      className="relative w-12 h-12 rounded-full overflow-hidden block hover:opacity-90 transition"
+                      className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full overflow-hidden block hover:opacity-90 transition flex-shrink-0"
                     >
                       <Image
                         src={notification.data.requesterImage}
@@ -273,46 +266,61 @@ export default function NotificationsPage() {
                       />
                     </Link>
                   ) : (
-                    <div className="text-2xl mt-1">
+                    <div className="text-lg sm:text-2xl mt-1 flex-shrink-0">
                       {getNotificationIcon(notification.type)}
                     </div>
                   )}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className={`font-semibold ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
-                          {notification.title}
-                        </h3>
-                        <p className="text-gray-400 mt-1">
-                          {notification.type === 'friend_request' ? (
-                            <>
-                              <Link 
-                                href={`/profile/${notification.data?.requesterName}`}
-                                className="text-pink-400 hover:text-pink-300 transition font-medium"
-                              >
-                                {notification.data?.requesterName}
-                              </Link>
-                              {" sent you a friend request"}
-                            </>
-                          ) : (
-                            notification.message
-                          )}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <FiClock size={14} />
-                            {new Date(notification.createdAt).toLocaleDateString()} at{' '}
-                            {new Date(notification.createdAt).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
-                          </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className={`font-semibold text-xs sm:text-base ${!notification.isRead ? 'text-white' : 'text-gray-300'}`}>
+                              {notification.title}
+                            </h3>
+                            <p className="text-gray-400 mt-1 text-xs sm:text-base">
+                              {notification.type === 'friend_request' ? (
+                                <>
+                                  <Link 
+                                    href={`/profile/${notification.data?.requesterName}`}
+                                    className="text-pink-400 hover:text-pink-300 transition font-medium"
+                                  >
+                                    {notification.data?.requesterName}
+                                  </Link>
+                                  {" sent you a friend request"}
+                                </>
+                              ) : (
+                                notification.message
+                              )}
+                            </p>
+                            <div className="flex items-center gap-1 sm:gap-4 mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <span className="block sm:hidden"><FiClock size={12} /></span>
+                                <span className="hidden sm:block"><FiClock size={14} /></span>
+                                {new Date(notification.createdAt).toLocaleDateString()} at{' '}
+                                {new Date(notification.createdAt).toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </span>
+                              {!notification.isRead && (
+                                <span className="text-pink-400 font-medium">New</span>
+                              )}
+                            </div>
+                          </div>
                           {!notification.isRead && (
-                            <span className="text-pink-400 font-medium">New</span>
+                            <button
+                              onClick={() => markAsRead(notification.id)}
+                              className="p-1 sm:p-2 text-green-400 hover:text-green-300 transition ml-1 sm:ml-2"
+                              title="Mark as read"
+                            >
+                              <span className="block sm:hidden"><FiCheck size={12} /></span>
+                              <span className="hidden sm:block"><FiCheck size={16} /></span>
+                            </button>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
                         {notification.type === 'friend_request' && (
                           <>
                             <button
@@ -340,10 +348,11 @@ export default function NotificationsPage() {
                                   showPopup({ type: 'error', message: 'Failed to accept friend request' });
                                 }
                               }}
-                              className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-1"
+                              className="px-1.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center gap-1 whitespace-nowrap"
                               title="Accept friend request"
                             >
-                              <FiCheck size={16} />
+                              <span className="block sm:hidden"><FiCheck size={14} /></span>
+                              <span className="hidden sm:block"><FiCheck size={16} /></span>
                               Accept
                             </button>
                             <button
@@ -371,30 +380,15 @@ export default function NotificationsPage() {
                                   showPopup({ type: 'error', message: 'Failed to reject friend request' });
                                 }
                               }}
-                              className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center gap-1"
+                              className="px-1.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center gap-1 whitespace-nowrap"
                               title="Reject friend request"
                             >
-                              <FiX size={16} />
+                              <span className="block sm:hidden"><FiX size={14} /></span>
+                              <span className="hidden sm:block"><FiX size={16} /></span>
                               Reject
                             </button>
                           </>
                         )}
-                        {!notification.isRead && (
-                          <button
-                            onClick={() => markAsRead(notification.id)}
-                            className="p-2 text-green-400 hover:text-green-300 transition"
-                            title="Mark as read"
-                          >
-                            <FiCheck size={16} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteNotification(notification.id)}
-                          className="p-2 text-red-400 hover:text-red-300 transition"
-                          title="Delete notification"
-                        >
-                          <FiX size={16} />
-                        </button>
                       </div>
                     </div>
                   </div>

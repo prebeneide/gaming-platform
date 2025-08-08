@@ -31,7 +31,7 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
     <PopupContext.Provider value={{ showPopup }}>
       {children}
       {popup && (
-        <div className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 px-8 py-6 rounded-xl shadow-2xl text-lg font-semibold transition-all
+        <div className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 px-4 py-4 sm:px-8 sm:py-6 rounded-lg sm:rounded-xl shadow-2xl text-sm sm:text-lg font-semibold transition-all max-w-[90vw] sm:max-w-md mx-4
           ${popup.type === 'error' ? 'bg-red-600 text-white' : popup.type === 'success' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}
         >
           <div>{popup.message}</div>
@@ -57,7 +57,7 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
                 return (
                   <a
                     href={`/matches/${activeMatchId}`}
-                    className="block mt-4 px-4 py-2 rounded bg-yellow-300 text-black font-bold text-center hover:bg-yellow-400 transition"
+                    className="block mt-3 sm:mt-4 px-3 py-1.5 sm:px-4 sm:py-2 rounded bg-yellow-300 text-black font-bold text-center hover:bg-yellow-400 transition text-xs sm:text-sm"
                     style={{ textDecoration: 'none' }}
                   >
                     Go to match
@@ -67,7 +67,7 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
                 return (
                   <a
                     href={"/matches"}
-                    className="block mt-4 px-4 py-2 rounded bg-yellow-300 text-black font-bold text-center hover:bg-yellow-400 transition"
+                    className="block mt-3 sm:mt-4 px-3 py-1.5 sm:px-4 sm:py-2 rounded bg-yellow-300 text-black font-bold text-center hover:bg-yellow-400 transition text-xs sm:text-sm"
                     style={{ textDecoration: 'none' }}
                   >
                     Go to match: {matchName}
@@ -77,9 +77,9 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
               return null;
             })()
           )}
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center mt-4 sm:mt-8">
             <button
-              className="px-6 py-3 rounded bg-black bg-opacity-30 hover:bg-opacity-50 text-white text-base font-bold focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+              className="px-4 py-2 sm:px-6 sm:py-3 rounded bg-black bg-opacity-30 hover:bg-opacity-50 text-white text-sm sm:text-base font-bold focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
               onClick={() => setPopup(null)}
             >
               OK
