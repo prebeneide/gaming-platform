@@ -2,8 +2,10 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 export default function EditProfilePage() {
+  const { data: session, update } = useSession();
   const [profileImage, setProfileImage] = useState("/default-avatar.svg");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -87,7 +89,8 @@ export default function EditProfilePage() {
       const data = await res.json();
       if (res.ok) {
         setSuccess(true);
-        // Oppdater state hvis ønskelig, f.eks. setProfileImage(data.user.image)
+        // Oppdater session-dataen for å reflektere endringene umiddelbart
+        await update();
       } else {
         alert(data.error || "Update failed");
       }
@@ -123,6 +126,8 @@ export default function EditProfilePage() {
       const data = await res.json();
       if (res.ok) {
         setSuccess(true);
+        // Oppdater session-dataen for å reflektere endringene umiddelbart
+        await update();
       } else {
         alert(data.error || "Update failed");
       }

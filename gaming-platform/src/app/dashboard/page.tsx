@@ -3,6 +3,7 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import UserDashboard from "./UserDashboard";
+import { getUserStats } from "@/lib/userStats";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -31,9 +32,13 @@ export default async function DashboardPage() {
   if (!userDb) {
     redirect("/login");
   }
+
+  // Get user statistics (will be calculated and cached if not exists)
+  const userStats = await getUserStats(userDb.id);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <UserDashboard user={userDb} />
+      <UserDashboard user={userDb} userStats={userStats} />
     </div>
   );
 } 

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { v2 as cloudinary } from 'cloudinary';
+import { updateStatsForMatchParticipants } from "@/lib/userStats";
+import { createMatchResultNotification } from "@/lib/notifications";
 
 const prisma = new PrismaClient();
 
@@ -200,6 +202,10 @@ export async function POST(request: NextRequest, context: { params: { id: string
         });
         console.log('Match set to COMPLETED');
 
+        // Oppdater statistikk for alle deltakere
+        await updateStatsForMatchParticipants(match.id);
+        console.log('User statistics updated for all participants');
+
         // --- UTBETALING TIL VINNER ---
         if (firstResult.resultType === 'win' && firstResult.winnerId) {
           // Finn potten som skal utbetales
@@ -220,6 +226,32 @@ export async function POST(request: NextRequest, context: { params: { id: string
             },
           });
           console.log(`Payout of $${payoutAmount} sent to winner ${firstResult.winnerId}`);
+
+          // Opprett notification for vinneren
+          try {
+            await createMatchResultNotification(
+              firstResult.winnerId,
+              match.name,
+              'win',
+              payoutAmount
+            );
+          } catch (notificationError) {
+            console.error("Error creating win notification:", notificationError);
+          }
+
+          // Opprett notification for taperne
+          const losers = match.participants.filter(p => p.userId !== firstResult.winnerId);
+          for (const loser of losers) {
+            try {
+              await createMatchResultNotification(
+                loser.userId,
+                match.name,
+                'loss'
+              );
+            } catch (notificationError) {
+              console.error("Error creating loss notification:", notificationError);
+            }
+          }
         }
         // --- UAVGJORT: Del potten (valgfritt, her får alle buy-in tilbake) ---
         if (firstResult.resultType === 'draw') {
@@ -238,6 +270,17 @@ export async function POST(request: NextRequest, context: { params: { id: string
                 description: `Refund for draw in match ${match.id}`,
               },
             });
+
+            // Opprett notification for uavgjort
+            try {
+              await createMatchResultNotification(
+                p.userId,
+                match.name,
+                'draw'
+              );
+            } catch (notificationError) {
+              console.error("Error creating draw notification:", notificationError);
+            }
           }
           console.log('Draw: All participants refunded their buy-in');
         }

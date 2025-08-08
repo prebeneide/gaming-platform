@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FiSearch, FiX } from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -285,15 +285,24 @@ export default function MatchFeedPage() {
     if (activeFilters.competitionType && activeFilters.competitionType.length > 0 && !activeFilters.competitionType.includes(match.competitionType)) return false;
     if (activeFilters.coopVersus && activeFilters.coopVersus.length > 0) {
       // Check if match is coop or versus based on matchType field
-      const matchType = match.matchType?.toLowerCase() || '';
+      // Only FC25 and Rocket League with 1v1 format have matchType
+      const gamesWithMatchType = ['FC25', 'Rocket League'];
+      const hasMatchType = gamesWithMatchType.includes(match.gameName) && match.competitionFormat === '1v1';
       
-      const matchesCoopVersus = activeFilters.coopVersus.some(filter => {
-        if (filter === 'coop') return matchType === 'coop';
-        if (filter === 'versus') return matchType === 'versus';
+      if (hasMatchType) {
+        // For games that support matchType, check the actual value
+        const matchType = match.matchType?.toLowerCase() || '';
+        const matchesCoopVersus = activeFilters.coopVersus.some(filter => {
+          if (filter === 'coop') return matchType === 'coop';
+          if (filter === 'versus') return matchType === 'versus';
+          return false;
+        });
+        
+        if (!matchesCoopVersus) return false;
+      } else {
+        // For games that don't support matchType, exclude them when coop/versus filter is active
         return false;
-      });
-      
-      if (!matchesCoopVersus) return false;
+      }
     }
     if (activeFilters.buyIn.length > 0) {
       const buyIn = match.buyIn;
@@ -430,7 +439,7 @@ export default function MatchFeedPage() {
           </div>
           
           <div>
-            <h3 className="text-sm font-semibold text-gray-300 mb-2">Mode:</h3>
+            <h3 className="text-sm font-semibold text-gray-300 mb-2">Mode (FC25 & Rocket League only):</h3>
             <div className="flex flex-wrap gap-2">
               {["coop", "versus"].map(mode => (
                 <button

@@ -6,27 +6,38 @@ import { useState } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
 import Link from "next/link";
 import UserStats from "./UserStats";
+import { UserStatsData } from "@/lib/userStats";
 
-export default function UserDashboard({ user }: { user: {
-  email?: string | null;
-  username?: string | null;
-  id?: string | null;
-  image?: string | null;
-  displayName?: string | null;
-  bio?: string | null;
-  discord?: string | null;
-  twitter?: string | null;
-  twitch?: string | null;
-  steam?: string | null;
-  psn?: string | null;
-  xbox?: string | null;
-  customGames?: any;
-} }) {
+export default function UserDashboard({ user, userStats }: { 
+  user: {
+    email?: string | null;
+    username?: string | null;
+    id?: string | null;
+    image?: string | null;
+    displayName?: string | null;
+    bio?: string | null;
+    discord?: string | null;
+    twitter?: string | null;
+    twitch?: string | null;
+    steam?: string | null;
+    psn?: string | null;
+    xbox?: string | null;
+    customGames?: any;
+  };
+  userStats?: UserStatsData;
+}) {
   const router = useRouter();
   const [lightMode, setLightMode] = useState(false);
 
-  // Mock-statistikk og matcher
-  const stats = {
+  // Use real statistics if available, otherwise fallback to mock data
+  const stats = userStats ? {
+    matchesPlayed: userStats.matchesPlayed,
+    wins: userStats.wins,
+    losses: userStats.losses,
+    draws: userStats.draws,
+    rank: userStats.rank,
+    registeredAt: "2024-05-01", // This could be fetched from user data
+  } : {
     matchesPlayed: 14,
     wins: 7,
     losses: 5,
@@ -75,11 +86,11 @@ export default function UserDashboard({ user }: { user: {
   ];
 
   // Form: de 10 siste kampene (W/L/D)
-  const last10 = ["W", "L", "D", "L", "W", "W", "W", "L", "D", "D"];
+  const last10 = userStats ? userStats.last10Results : ["W", "L", "D", "L", "W", "W", "W", "L", "D", "D"];
 
   // Win% og Win/Loss Ratio
-  const winPercent = stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0;
-  const winLossRatio = stats.losses > 0 ? (stats.wins / stats.losses).toFixed(2) : "∞";
+  const winPercent = userStats ? userStats.winPercent : (stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0);
+  const winLossRatio = userStats ? userStats.winLossRatio : (stats.losses > 0 ? (stats.wins / stats.losses).toFixed(2) : "∞");
 
   // Dynamiske tekstfarger for lys/mørk modus
   const secondaryText = lightMode ? "text-gray-700" : "text-gray-400";

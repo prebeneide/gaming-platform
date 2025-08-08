@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
+import { createMatchInviteNotification } from "@/lib/notifications";
 
 const prisma = new PrismaClient();
 
@@ -161,6 +162,31 @@ export async function POST(request: NextRequest) {
 
       return { match, updatedWallet };
     });
+
+    // Opprett notifications for invited users
+    if (invitedUsers.length > 0) {
+      try {
+        const inviterName = (user as any)?.displayName || user.username;
+        
+        for (const invitedUsername of invitedUsers) {
+          const invitedUser = await prisma.user.findUnique({
+            where: { username: invitedUsername },
+          });
+          
+          if (invitedUser) {
+            await createMatchInviteNotification(
+              invitedUser.id,
+              result.match.name,
+              inviterName,
+              result.match.id
+            );
+          }
+        }
+      } catch (notificationError) {
+        console.error("Error creating match invite notifications:", notificationError);
+        // Ikke krasj hvis notification-feiler
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -6,10 +6,10 @@ import { useSession } from "next-auth/react";
 import SideMenu from "./SideMenu";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiActivity, FiCompass } from "react-icons/fi";
-import { FaTrophy, FaGamepad } from "react-icons/fa";
+import { FiCreditCard, FiMenu, FiMessageSquare, FiActivity, FiCompass } from "react-icons/fi";
+import { FaGamepad } from "react-icons/fa";
 import io from "socket.io-client";
-import Image from "next/image";
+
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (

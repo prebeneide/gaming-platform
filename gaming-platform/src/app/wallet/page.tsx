@@ -130,6 +130,8 @@ export default function WalletPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        showPopup({ type: 'success', message: 'Deposit confirmed successfully!' });
         await fetchWalletData(); // Refetch to show updated balance and status
       } else {
         const error = await response.json();
@@ -150,6 +152,8 @@ export default function WalletPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        showPopup({ type: 'success', message: 'Withdrawal confirmed successfully!' });
         await fetchWalletData(); // Refetch to show updated balance and status
       } else {
         const error = await response.json();
@@ -261,6 +265,27 @@ export default function WalletPage() {
                 <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
                   <span className={`font-bold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'} text-sm sm:text-base`}>{transaction.amount > 0 ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}</span>
                   {getStatusIcon(transaction.status)}
+                  {/* Godta-knapper for pending transactions */}
+                  {transaction.status === 'pending' && (
+                    <div className="flex gap-2">
+                      {transaction.type === 'deposit' && (
+                        <button
+                          onClick={() => handleConfirmDeposit(transaction.id)}
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                        >
+                          Godta
+                        </button>
+                      )}
+                      {transaction.type === 'withdrawal' && (
+                        <button
+                          onClick={() => handleConfirmWithdrawal(transaction.id)}
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                        >
+                          Godta
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

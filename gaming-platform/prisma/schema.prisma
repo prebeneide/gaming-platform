@@ -42,6 +42,46 @@ model User {
   transactions        Transaction[]
   createdMatches      Match[] @relation("CreatedMatches")
   matchParticipations MatchParticipant[] @relation("MatchParticipations")
+  stats               UserStats?
+  notifications       Notification[]
+}
+
+model UserStats {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Statistikk
+  matchesPlayed Int      @default(0)
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  draws         Int      @default(0)
+  winPercent    Float    @default(0)
+  winLossRatio  Float    @default(0)
+  rank          String   @default("Iron")
+  
+  // Form (last 10 results)
+  last10Results String[] // ["W", "L", "D", ...]
+  
+  // Timestamps
+  updatedAt     DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Notification details
+  type      String   // 'match_invite', 'friend_request', 'match_result', 'payment', 'system'
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  data      Json?    // Additional data like matchId, userId, amount, etc.
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserWallet {

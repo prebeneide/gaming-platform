@@ -86,9 +86,33 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.username = token.username;
-        session.user.image = token.image;
+        // Hent oppdatert brukerdata fra databasen for å få siste profilbilde
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              image: true,
+              displayName: true,
+            }
+          });
+          
+          if (user) {
+            session.user.id = user.id;
+            session.user.username = user.username;
+            session.user.image = user.image;
+            // Legg til displayName i session
+            (session.user as any).displayName = user.displayName;
+          }
+        } catch (error) {
+          console.error('Error fetching updated user data:', error);
+          // Fallback til token data hvis database-kall feiler
+          session.user.id = token.id;
+          session.user.username = token.username;
+          session.user.image = token.image as string | null | undefined;
+        }
       }
       return session;
     }

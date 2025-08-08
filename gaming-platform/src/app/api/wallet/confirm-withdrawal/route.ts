@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
+import { createPaymentNotification } from "@/lib/notifications";
 
 const prisma = new PrismaClient();
 
@@ -60,6 +61,18 @@ export async function POST(request: NextRequest) {
         },
       }),
     ]);
+
+    // Opprett notification for withdrawal
+    try {
+      await createPaymentNotification(
+        user.id,
+        'withdrawal',
+        transaction.amount,
+        'completed'
+      );
+    } catch (notificationError) {
+      console.error("Error creating withdrawal notification:", notificationError);
+    }
 
     return NextResponse.json({
       success: true,

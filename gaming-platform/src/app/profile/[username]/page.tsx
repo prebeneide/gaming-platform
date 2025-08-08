@@ -10,65 +10,9 @@ import FriendButton from "./FriendButton";
 import UserStats from "../../dashboard/UserStats";
 import UserMatchFeed from "./UserMatchFeed";
 import BackButton from "@/components/BackButton";
+import { getUserStats } from "@/lib/userStats";
 
-// Helper function to calculate user statistics from matches
-function calculateUserStats(matches: any[], userId: string) {
-  let matchesPlayed = 0;
-  let wins = 0;
-  let losses = 0;
-  let draws = 0;
-  const last10Results: string[] = [];
 
-  matches.forEach(match => {
-    // Only count completed matches
-    if (match.result && match.result.status === 'completed') {
-      matchesPlayed++;
-      
-      // Check if user won
-      if (match.result.winnerId === userId) {
-        wins++;
-        last10Results.push('W');
-      } else if (match.result.winnerId) {
-        // Someone else won
-        losses++;
-        last10Results.push('L');
-      } else {
-        // No winner (draw or cancelled)
-        draws++;
-        last10Results.push('D');
-      }
-    }
-  });
-
-  // Calculate percentages and ratios
-  const winPercent = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
-  const winLossRatio = losses > 0 ? (wins / losses).toFixed(2) : wins > 0 ? wins.toString() : '0.00';
-  
-  // Get last 10 results (most recent first)
-  const last10 = last10Results.slice(-10).reverse();
-
-  // Calculate rank based on win percentage
-  let rank = "Bronze";
-  if (winPercent >= 80) rank = "Diamond";
-  else if (winPercent >= 70) rank = "Platinum";
-  else if (winPercent >= 60) rank = "Gold";
-  else if (winPercent >= 50) rank = "Silver";
-  else if (winPercent >= 30) rank = "Bronze";
-  else rank = "Iron";
-
-  return {
-    stats: {
-      matchesPlayed,
-      wins,
-      losses,
-      draws,
-      rank
-    },
-    winPercent,
-    winLossRatio,
-    last10
-  };
-}
 
 export default async function PublicProfilePage({ params }: { params: { username: string } }) {
   const user = await prisma.user.findUnique({
@@ -93,36 +37,8 @@ export default async function PublicProfilePage({ params }: { params: { username
     return <div className="text-center text-red-400 mt-20">User not found</div>;
   }
 
-  // Fetch user's matches for statistics
-  const userMatches = await prisma.match.findMany({
-    where: {
-      OR: [
-        { creatorId: user.id },
-        {
-          participants: {
-            some: {
-              userId: user.id
-            }
-          }
-        }
-      ]
-    },
-    include: {
-      result: {
-        select: {
-          id: true,
-          winnerId: true,
-          status: true
-        }
-      }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  });
-
-  // Calculate user statistics
-  const userStats = calculateUserStats(userMatches, user.id);
+  // Get user statistics from cache
+  const userStats = await getUserStats(user.id);
 
   // Hent antall følgere og følger
   const followersCount = await prisma.follower.count({ where: { following: { username: params.username } } });
@@ -190,9 +106,18 @@ export default async function PublicProfilePage({ params }: { params: { username
         </div>
         {user.bio && <div className="text-center text-lg text-gray-300">{user.bio}</div>}
         <div className="flex justify-center gap-8 text-lg text-pink-300 font-semibold">
-          <div><span className="text-white">{followersCount}</span> Followers</div>
-          <div><span className="text-white">{followingCount}</span> Following</div>
-          <div><span className="text-white">{friendsCount}</span> Friends</div>
+          <div className="flex flex-col items-center">
+            <span className="text-white text-xl font-bold">{followersCount}</span>
+            <span>Followers</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-white text-xl font-bold">{followingCount}</span>
+            <span>Following</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-white text-xl font-bold">{friendsCount}</span>
+            <span>Friends</span>
+          </div>
         </div>
         {!isOwnProfile && sessionUser && (
           <div className="flex gap-4 justify-center mt-2">
@@ -216,10 +141,16 @@ export default async function PublicProfilePage({ params }: { params: { username
         )}
         {/* Brukerstatistikk (samme som dashboard) */}
         <UserStats
-          stats={userStats.stats}
+          stats={{
+            matchesPlayed: userStats.matchesPlayed,
+            wins: userStats.wins,
+            losses: userStats.losses,
+            draws: userStats.draws,
+            rank: userStats.rank
+          }}
           winPercent={userStats.winPercent}
           winLossRatio={userStats.winLossRatio}
-          last10={userStats.last10}
+          last10={userStats.last10Results}
         />
         {/* Social Links nederst, vises kun hvis minst én link finnes */}
         {(user.discord || user.twitter || user.twitch || user.steam || user.psn || user.xbox) && (

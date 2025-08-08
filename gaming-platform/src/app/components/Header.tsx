@@ -1,10 +1,10 @@
 import Link from "next/link";
 import SearchBar from "../dashboard/SearchBar";
-import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiArrowLeft, FiBell, FiList, FiGrid, FiCompass, FiActivity, FiTarget } from "react-icons/fi";
+import { FiUser, FiCreditCard, FiMenu, FiMessageSquare, FiArrowLeft, FiBell, FiCompass, FiActivity } from "react-icons/fi";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import io from "socket.io-client";
-import { FaTrophy, FaGamepad } from "react-icons/fa";
+import { FaGamepad } from "react-icons/fa";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 
@@ -60,7 +60,7 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
     fetchActiveMatch();
   }, [session]);
 
-  // Hent antall uleste meldinger
+  // Hent antall uleste meldinger og notifications
   useEffect(() => {
     if (!session?.user) return;
 
@@ -75,7 +75,25 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
       }
     }
 
+    async function fetchNotificationCount() {
+      try {
+        const res = await fetch("/api/notifications");
+        if (!res.ok) {
+          console.log("Notifications API not ready yet, setting count to 0");
+          setNotificationCount(0);
+          return;
+        }
+        const data = await res.json();
+        const unreadNotifications = data.notifications?.filter((n: any) => !n.isRead) || [];
+        setNotificationCount(unreadNotifications.length);
+      } catch (error) {
+        console.error("Error fetching notification count:", error);
+        setNotificationCount(0);
+      }
+    }
+
     fetchUnreadCount();
+    fetchNotificationCount();
 
     // Koble til Socket.IO for sanntidsoppdateringer
     const socket = io("http://localhost:4000");
