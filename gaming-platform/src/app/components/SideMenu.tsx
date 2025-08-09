@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FiUser, FiCreditCard, FiSettings, FiLogOut, FiHome } from "react-icons/fi";
+import { FiUser, FiCreditCard, FiSettings, FiLogOut, FiHome, FiUsers } from "react-icons/fi";
 import { signOut, useSession } from "next-auth/react";
 
 interface SideMenuProps {
@@ -12,6 +12,7 @@ interface SideMenuProps {
 const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: <FiHome /> },
   { href: "/profile", label: "Profile", icon: <FiUser /> },
+  { href: "/friends", label: "Friend Requests", icon: <FiUsers /> },
   { href: "/wallet", label: "Wallet", icon: <FiCreditCard /> },
 ];
 

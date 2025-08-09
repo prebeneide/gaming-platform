@@ -29,6 +29,24 @@ export default async function DashboardPage() {
       customGames: true,
     },
   });
+
+  // Hent sosiale statistikk
+  const [followersCount, followingCount, friendsCount] = await Promise.all([
+    prisma.follower.count({
+      where: { followingId: session.user.id }
+    }),
+    prisma.follower.count({
+      where: { followerId: session.user.id }
+    }),
+    prisma.friendRequest.count({
+      where: {
+        OR: [
+          { fromId: session.user.id, status: 'accepted' },
+          { toId: session.user.id, status: 'accepted' }
+        ]
+      }
+    })
+  ]);
   if (!userDb) {
     redirect("/login");
   }
@@ -38,7 +56,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <UserDashboard user={userDb} userStats={userStats} />
+      <UserDashboard 
+        user={userDb} 
+        userStats={userStats} 
+        socialStats={{
+          followers: followersCount,
+          following: followingCount,
+          friends: friendsCount
+        }}
+      />
     </div>
   );
 } 

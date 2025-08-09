@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { FiBell, FiCheck, FiX, FiClock, FiUser, FiMessageSquare, FiDollarSign } from "react-icons/fi";
+import { FiBell, FiCheck, FiX, FiClock, FiUser, FiDollarSign } from "react-icons/fi";
 import { FaTrophy } from "react-icons/fa";
 import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
@@ -253,17 +253,25 @@ export default function NotificationsPage() {
                 }`}
               >
                 <div className="flex items-start gap-2 sm:gap-4">
-                  {notification.type === 'friend_request' && notification.data?.requesterImage ? (
+                  {notification.type === 'friend_request' ? (
                     <Link 
                       href={`/profile/${notification.data?.requesterName}`}
-                      className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full overflow-hidden block hover:opacity-90 transition flex-shrink-0"
+                      className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full overflow-hidden block hover:opacity-90 transition flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-500 p-[1px]"
                     >
-                      <Image
-                        src={notification.data.requesterImage}
-                        alt={`${notification.data.requesterName}'s profile picture`}
-                        fill
-                        className="object-cover"
-                      />
+                      <div className="w-full h-full rounded-full overflow-hidden bg-neutral-950">
+                        {notification.data?.requesterImage ? (
+                          <Image
+                            src={notification.data.requesterImage}
+                            alt={`${notification.data.requesterName}'s profile picture`}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FiUser color="#9ca3af" size={notification.data?.requesterImage ? 16 : 20} />
+                          </div>
+                        )}
+                      </div>
                     </Link>
                   ) : (
                     <div className="text-lg sm:text-2xl mt-1 flex-shrink-0">
@@ -337,7 +345,10 @@ export default function NotificationsPage() {
                                   
                                   if (response.ok) {
                                     showPopup({ type: 'success', message: 'Friend request accepted!' });
-                                    await markAsRead(notification.id);
+                                    // Slett notificationen fra databasen
+                                    await fetch(`/api/notifications/${notification.id}`, {
+                                      method: 'DELETE'
+                                    });
                                     // Oppdater UI
                                     setNotifications(prev => prev.filter(n => n.id !== notification.id));
                                   } else {
@@ -369,7 +380,10 @@ export default function NotificationsPage() {
                                   
                                   if (response.ok) {
                                     showPopup({ type: 'success', message: 'Friend request rejected' });
-                                    await markAsRead(notification.id);
+                                    // Slett notificationen fra databasen
+                                    await fetch(`/api/notifications/${notification.id}`, {
+                                      method: 'DELETE'
+                                    });
                                     // Oppdater UI
                                     setNotifications(prev => prev.filter(n => n.id !== notification.id));
                                   } else {

@@ -7,8 +7,9 @@ import { FaSun, FaMoon } from "react-icons/fa";
 import Link from "next/link";
 import UserStats from "./UserStats";
 import { UserStatsData } from "@/lib/userStats";
+import SocialCounts from "@/components/SocialCounts";
 
-export default function UserDashboard({ user, userStats }: { 
+export default function UserDashboard({ user, userStats, socialStats }: { 
   user: {
     email?: string | null;
     username?: string | null;
@@ -25,6 +26,11 @@ export default function UserDashboard({ user, userStats }: {
     customGames?: any;
   };
   userStats?: UserStatsData;
+  socialStats?: {
+    followers: number;
+    following: number;
+    friends: number;
+  };
 }) {
   const router = useRouter();
   const [lightMode, setLightMode] = useState(false);
@@ -182,6 +188,13 @@ export default function UserDashboard({ user, userStats }: {
           </span>
         </div>
       </div>
+      
+      {/* Sosiale statistikk */}
+      {socialStats && (
+        <div className="mb-4">
+          <SocialCounts username={(user.username as string) || ""} counts={socialStats} condensed />
+        </div>
+      )}
       {/* Brukerinformasjon */}
       <div className={`text-lg ${tertiaryText} text-center flex flex-col gap-1`}>
         <div><b>Email:</b> {user.email}</div>

@@ -3,6 +3,7 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import Link from "next/link";
+import { FiUser } from "react-icons/fi";
 import FriendRequestActions from "./FriendRequestActions";
 import BackButton from "@/components/BackButton";
 
@@ -76,29 +77,39 @@ export default async function FriendsPage() {
               {incomingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="bg-neutral-950 rounded-lg p-4 flex items-center justify-between border border-gray-800"
+                  className="bg-neutral-950 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-gray-800"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                     <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
-                      <Image
-                        src={request.from.image || "/default-avatar.svg"}
-                        alt={request.from.username}
-                        width={48}
-                        height={48}
-                        className="rounded-full"
-                      />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-950">
+                        {request.from.image ? (
+                          <Image
+                            src={request.from.image}
+                            alt={request.from.username}
+                            width={48}
+                            height={48}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FiUser color="#9ca3af" size={18} />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <Link
                         href={`/profile/${request.from.username}`}
-                        className="font-semibold hover:text-pink-400"
+                        className="font-semibold hover:text-pink-400 block truncate"
                       >
                         {request.from.displayName || request.from.username}
                       </Link>
-                      <div className="text-gray-400">@{request.from.username}</div>
+                      <div className="text-gray-400 text-sm truncate">@{request.from.username}</div>
                     </div>
                   </div>
-                  <FriendRequestActions requestId={request.id} />
+                  <div className="w-full sm:w-auto">
+                    <FriendRequestActions requestId={request.id} />
+                  </div>
                 </div>
               ))}
             </div>
@@ -115,29 +126,37 @@ export default async function FriendsPage() {
               {outgoingRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="bg-neutral-950 rounded-lg p-4 flex items-center justify-between border border-gray-800"
+                  className="bg-neutral-950 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-gray-800"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                     <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
-                      <Image
-                        src={request.to.image || "/default-avatar.svg"}
-                        alt={request.to.username}
-                        width={48}
-                        height={48}
-                        className="rounded-full"
-                      />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-950">
+                        {request.to.image ? (
+                          <Image
+                            src={request.to.image}
+                            alt={request.to.username}
+                            width={48}
+                            height={48}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <FiUser color="#9ca3af" size={18} />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <Link
                         href={`/profile/${request.to.username}`}
-                        className="font-semibold hover:text-pink-400"
+                        className="font-semibold hover:text-pink-400 block truncate"
                       >
                         {request.to.displayName || request.to.username}
                       </Link>
-                      <div className="text-gray-400">@{request.to.username}</div>
+                      <div className="text-gray-400 text-sm truncate">@{request.to.username}</div>
                     </div>
                   </div>
-                  <div className="text-gray-400">Pending...</div>
+                  <div className="text-gray-400 w-full sm:w-auto">Pending...</div>
                 </div>
               ))}
             </div>

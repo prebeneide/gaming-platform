@@ -10,14 +10,10 @@ const prisma = new PrismaClient();
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    console.log('Friend request - Session:', session);
     
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    console.log('Friend request - User ID:', session.user.id);
-    console.log('Friend request - Username:', session.user.username);
 
     const { username } = await req.json();
     if (!username) {
@@ -59,39 +55,23 @@ export async function POST(req: Request) {
       },
     });
 
-    // Opprett notification for mottakeren
+    // Opprett notification for mottakeren (ikke kritisk hvis det feiler)
     try {
       const requesterName = (session.user as any)?.displayName || session.user.username;
       const requesterImage = session.user.image;
       
-      console.log(`Creating friend request notification for user ${toUser.id} from ${requesterName}`);
-      console.log('Notification parameters:', {
-        userId: toUser.id,
-        requesterName,
-        requesterId: session.user.id,
-        requestId: friendRequest.id,
-        requesterImage
-      });
-      
-      const notification = await createFriendRequestNotification(
+      await createFriendRequestNotification(
         toUser.id,
         requesterName,
         session.user.id,
         friendRequest.id,
         requesterImage
       );
-      
-      console.log(`Friend request notification created successfully:`, notification);
     } catch (notificationError) {
-      console.error("Error creating friend request notification:", notificationError);
-      console.error("Error details:", {
-        message: (notificationError as any)?.message,
-        stack: (notificationError as any)?.stack
-      });
-      // Ikke krasj hvis notification-feiler
+      console.error("Notification failed, but friend request was created:", notificationError);
     }
 
-    return NextResponse.json(friendRequest);
+    return NextResponse.json({ success: true, friendRequest });
   } catch (error) {
     console.error("Error sending friend request:", error);
     return NextResponse.json(
@@ -141,6 +121,17 @@ export async function PUT(req: Request) {
     const updatedRequest = await prisma.friendRequest.update({
       where: { id: requestId },
       data: { status: action === "accept" ? "accepted" : "rejected" },
+    });
+
+    // Slett notificationen for denne friend request
+    await prisma.notification.deleteMany({
+      where: {
+        type: 'friend_request',
+        data: {
+          path: ['requestId'],
+          equals: requestId
+        }
+      }
     });
 
     return NextResponse.json(updatedRequest);

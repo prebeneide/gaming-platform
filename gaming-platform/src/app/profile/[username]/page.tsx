@@ -8,15 +8,17 @@ import { revalidatePath } from "next/cache";
 import FollowButton from "./FollowButton";
 import FriendButton from "./FriendButton";
 import UserStats from "../../dashboard/UserStats";
+import SocialCounts from "@/components/SocialCounts";
 import UserMatchFeed from "./UserMatchFeed";
 import BackButton from "@/components/BackButton";
 import { getUserStats } from "@/lib/userStats";
 
 
 
-export default async function PublicProfilePage({ params }: { params: { username: string } }) {
+export default async function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const { username } = await params;
   const user = await prisma.user.findUnique({
-    where: { username: params.username },
+    where: { username },
     select: {
       id: true,
       username: true,
@@ -41,15 +43,15 @@ export default async function PublicProfilePage({ params }: { params: { username
   const userStats = await getUserStats(user.id);
 
   // Hent antall følgere og følger
-  const followersCount = await prisma.follower.count({ where: { following: { username: params.username } } });
-  const followingCount = await prisma.follower.count({ where: { follower: { username: params.username } } });
+  const followersCount = await prisma.follower.count({ where: { following: { username } } });
+  const followingCount = await prisma.follower.count({ where: { follower: { username } } });
   // Hent antall venner (aksepterte venneforespørsler der denne brukeren er involvert)
   const friendsCount = await prisma.friendRequest.count({
     where: {
       status: "accepted",
       OR: [
-        { from: { username: params.username } },
-        { to: { username: params.username } },
+        { from: { username } },
+        { to: { username } },
       ],
     },
   });
@@ -61,7 +63,7 @@ export default async function PublicProfilePage({ params }: { params: { username
   try {
     const session = await getServerSession(authOptions);
     sessionUser = session?.user;
-    if (sessionUser && sessionUser.username !== params.username && user?.id) {
+    if (sessionUser && sessionUser.username !== username && user?.id) {
       const follow = await prisma.follower.findUnique({
         where: {
           followerId_followingId: {
@@ -72,7 +74,7 @@ export default async function PublicProfilePage({ params }: { params: { username
       });
       isFollowing = !!follow;
     }
-    if (sessionUser && sessionUser.username === params.username) {
+    if (sessionUser && sessionUser.username === username) {
       isOwnProfile = true;
     }
     if (sessionUser && user?.id) {
@@ -105,34 +107,26 @@ export default async function PublicProfilePage({ params }: { params: { username
           <div className="text-gray-400">@{user.username}</div>
         </div>
         {user.bio && <div className="text-center text-lg text-gray-300">{user.bio}</div>}
-        <div className="flex justify-center gap-8 text-lg text-pink-300 font-semibold">
-          <div className="flex flex-col items-center">
-            <span className="text-white text-xl font-bold">{followersCount}</span>
-            <span>Followers</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-white text-xl font-bold">{followingCount}</span>
-            <span>Following</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-white text-xl font-bold">{friendsCount}</span>
-            <span>Friends</span>
-          </div>
+        <div>
+          {/* Social counts (clickable) */}
+          <SocialCounts username={user.username} counts={{ followers: followersCount, following: followingCount, friends: friendsCount }} />
         </div>
+
+        
         {!isOwnProfile && sessionUser && (
           <div className="flex gap-4 justify-center mt-2">
             <FollowButton
               isFollowing={isFollowing}
-              username={params.username}
+              username={username}
               isOwnProfile={isOwnProfile}
             />
             <FriendButton
-              username={params.username}
+              username={username}
               isOwnProfile={isOwnProfile}
               isFriend={isFriend}
             />
             <Link
-              href={`/chat/${params.username}`}
+              href={`/chat/${username}`}
               className="h-12 px-6 rounded-lg font-semibold text-base flex items-center justify-center signup-gradient-btn text-white shadow hover:opacity-90 transition"
             >
               Message
@@ -181,7 +175,7 @@ export default async function PublicProfilePage({ params }: { params: { username
       
       {/* User Match Feed */}
       <div className="mt-8 w-full max-w-6xl">
-        <UserMatchFeed username={params.username} />
+        <UserMatchFeed username={username} />
       </div>
     </main>
   );

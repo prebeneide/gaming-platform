@@ -10,17 +10,20 @@ export default function FriendRequestActions({ requestId }: { requestId: string 
   const handleAction = async (action: "accept" | "reject") => {
     setLoading(true);
     try {
-      await fetch("/api/friends", {
+      const response = await fetch("/api/friends", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requestId, action }),
         credentials: "include",
       });
-      setStatus(action === "accept" ? "accepted" : "rejected");
-      // Oppdater siden etter 1 sekund
-      setTimeout(() => {
+      
+      if (response.ok) {
+        setStatus(action === "accept" ? "accepted" : "rejected");
+        // Oppdater siden umiddelbart
         router.refresh();
-      }, 1000);
+      } else {
+        console.error("Failed to handle friend request");
+      }
     } catch (error) {
       console.error("Error handling friend request:", error);
     }
@@ -36,18 +39,18 @@ export default function FriendRequestActions({ requestId }: { requestId: string 
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
       <button
         onClick={() => handleAction("accept")}
         disabled={loading}
-        className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition disabled:opacity-50"
+        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition disabled:opacity-50 flex-1 sm:flex-none"
       >
         {loading ? "..." : "Accept"}
       </button>
       <button
         onClick={() => handleAction("reject")}
         disabled={loading}
-        className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50"
+        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50 flex-1 sm:flex-none"
       >
         {loading ? "..." : "Reject"}
       </button>
