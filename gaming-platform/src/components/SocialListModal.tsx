@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FiUser, FiX } from "react-icons/fi";
+import AvatarPresence from "@/components/AvatarPresence";
 
 export type SocialListType = "followers" | "following" | "friends";
 
@@ -82,17 +83,7 @@ export default function SocialListModal({
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-800 transition"
               onClick={onClose}
             >
-              <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-950">
-                  {u.image ? (
-                    <Image src={u.image} alt={u.username} width={40} height={40} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <FiUser color="#9ca3af" size={18} />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <AvatarPresence src={u.image} alt={u.username} size={40} />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold truncate">{u.displayName || u.username}</div>
                 <div className="text-xs text-gray-400 truncate">@{u.username}</div>

@@ -8,6 +8,7 @@ import Link from "next/link";
 import UserStats from "./UserStats";
 import { UserStatsData } from "@/lib/userStats";
 import SocialCounts from "@/components/SocialCounts";
+import AvatarPresence from "@/components/AvatarPresence";
 
 export default function UserDashboard({ user, userStats, socialStats }: { 
   user: {
@@ -170,19 +171,7 @@ export default function UserDashboard({ user, userStats, socialStats }: {
       </button>
       <div className="flex flex-col items-center justify-center mb-2">
         <div className="flex items-center gap-4">
-          <div className="profile-gradient-ring p-[2px] rounded-full w-16 h-16 flex items-center justify-center">
-            <div className="bg-neutral-950 rounded-full w-15 h-15 flex items-center justify-center">
-              <Image
-                src={user.image || "/default-avatar.svg"}
-                alt="Profile picture"
-                width={60}
-                height={60}
-                className="rounded-full object-cover w-15 h-15"
-                priority
-                style={{ objectFit: 'cover' }}
-              />
-            </div>
-          </div>
+          <AvatarPresence src={user.image || undefined} alt="Profile picture" size={60} />
           <span className="text-3xl font-bold signup-gradient-text">
             {user.username || user.email}!
           </span>
@@ -200,10 +189,18 @@ export default function UserDashboard({ user, userStats, socialStats }: {
         <div><b>Email:</b> {user.email}</div>
         <div><b>Username:</b> {user.username}</div>
         <div><b>User ID:</b> {user.id}</div>
-        <div><b>Registered:</b> {stats.registeredAt}</div>
+        <div><b>Registered:</b> {userStats ? "" : "2024-05-01"}</div>
       </div>
       {/* Statistikk */}
-      <UserStats stats={stats} winPercent={winPercent} winLossRatio={winLossRatio} last10={last10} secondaryText={secondaryText} />
+      <UserStats stats={userStats ? {
+        matchesPlayed: userStats.matchesPlayed,
+        wins: userStats.wins,
+        losses: userStats.losses,
+        draws: userStats.draws,
+        rank: userStats.rank,
+      } : {
+        matchesPlayed: 14, wins: 7, losses: 5, draws: 2, rank: "Gold III", registeredAt: "2024-05-01"
+      }} winPercent={userStats ? userStats.winPercent : 0} winLossRatio={userStats ? userStats.winLossRatio : "∞"} last10={userStats ? userStats.last10Results : ["W","L"]} secondaryText={secondaryText} />
       {/* Friends Online */}
       <div className="mt-4">
         <h2 className="text-xl font-semibold text-pink-400 mb-4 text-center">Friends Online</h2>
@@ -222,7 +219,7 @@ export default function UserDashboard({ user, userStats, socialStats }: {
               `}
             >
               <div className="relative mb-1">
-                <Image src={friend.image} alt={friend.name + " avatar"} width={48} height={48} className="rounded-full border border-pink-400 bg-neutral-950 border-neutral-950" />
+                <AvatarPresence src={friend.image} alt={friend.name + " avatar"} size={48} />
                 <span className={`absolute -bottom-1 -right-1 block w-4 h-4 rounded-full border-2 border-white ${
                   friend.status === "online"
                     ? "bg-green-400"
@@ -272,13 +269,7 @@ export default function UserDashboard({ user, userStats, socialStats }: {
               {/* Desktop/tabellvisning */}
               <span className="hidden lg:flex items-center gap-2 text-left col-span-2">
                 vs <b>{match.opponent}</b>
-                <Image
-                  src={match.opponentImage}
-                  alt={match.opponent + " avatar"}
-                  width={28}
-                  height={28}
-                  className="rounded-full border border-pink-400 bg-neutral-950 border-neutral-950"
-                />
+                <AvatarPresence src={match.opponentImage} alt={match.opponent + " avatar"} size={28} />
               </span>
               <span className="hidden lg:block text-center">{match.game}</span>
               <span className={
@@ -297,13 +288,7 @@ export default function UserDashboard({ user, userStats, socialStats }: {
 
               {/* Kortvisning for mindre skjermer */}
               <div className="flex lg:hidden items-center gap-3 flex-wrap">
-                <Image
-                  src={match.opponentImage}
-                  alt={match.opponent + " avatar"}
-                  width={32}
-                  height={32}
-                  className="rounded-full border border-pink-400 bg-neutral-950 border-neutral-950"
-                />
+                <AvatarPresence src={match.opponentImage} alt={match.opponent + " avatar"} size={32} />
                 <div className="flex flex-col">
                   <span className="font-semibold">vs {match.opponent}</span>
                   <span className={`${secondaryText} text-xs`}>{match.game}</span>
