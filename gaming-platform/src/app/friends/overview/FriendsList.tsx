@@ -12,6 +12,19 @@ export interface FriendUser {
   image?: string | null;
   addedAt?: string; // ISO date string
   isOnline?: boolean;
+  lastActiveAt?: string; // ISO
+}
+
+function timeAgo(iso?: string) {
+  if (!iso) return null;
+  const diffMs = Date.now() - new Date(iso).getTime();
+  if (diffMs < 60_000) return "just now";
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 type SortMode = "az" | "recent";
@@ -29,6 +42,8 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
   useEffect(() => {
     setItems(users);
   }, [users]);
+
+  const onlineCount = useMemo(() => items.filter(u => u.isOnline).length, [items]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -91,7 +106,7 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
           {([
             { key: "all", label: "All" },
             { key: "recently", label: "Recently added" },
-            { key: "online", label: "Online" },
+            { key: "online", label: `Online (${onlineCount})` },
           ] as { key: Tab; label: string }[]).map((t) => (
             <button
               key={t.key}
@@ -154,6 +169,9 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
                   <div className="min-w-0">
                     <div className="font-semibold truncate">{u.displayName || u.username}</div>
                     <div className="text-gray-400 text-sm truncate">@{u.username}</div>
+                    {!u.isOnline && (
+                      <div className="text-gray-500 text-xs mt-0.5">Recently active {timeAgo(u.lastActiveAt)}</div>
+                    )}
                   </div>
                 </Link>
                 <div className="flex flex-wrap gap-2 w-full sm:w-auto">

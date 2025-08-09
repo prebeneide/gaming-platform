@@ -24,8 +24,8 @@ export default async function FriendsOverviewPage() {
   const friendships = await prisma.friendRequest.findMany({
     where: { status: "accepted", OR: [{ fromId: session.user.id }, { toId: session.user.id }] },
     select: {
-      from: { select: { id: true, username: true, displayName: true, image: true } },
-      to: { select: { id: true, username: true, displayName: true, image: true } },
+      from: { select: { id: true, username: true, displayName: true, image: true, lastActiveAt: true } },
+      to: { select: { id: true, username: true, displayName: true, image: true, lastActiveAt: true } },
       createdAt: true,
     },
     orderBy: { createdAt: "desc" },
@@ -40,6 +40,7 @@ export default async function FriendsOverviewPage() {
       displayName: other.displayName,
       image: other.image,
       addedAt: fr.createdAt,
+      lastActiveAt: other.lastActiveAt || null,
     };
   });
 
@@ -59,6 +60,7 @@ export default async function FriendsOverviewPage() {
     displayName: f.displayName,
     image: f.image,
     addedAt: f.addedAt.toISOString(),
+    lastActiveAt: f.lastActiveAt ? f.lastActiveAt.toISOString() : undefined,
     isOnline: onlineSet.has(f.id),
   }));
 
