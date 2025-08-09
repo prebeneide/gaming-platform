@@ -13,6 +13,7 @@ const menuItems = [
   { href: "/dashboard", label: "Dashboard", icon: <FiHome /> },
   { href: "/profile", label: "Profile", icon: <FiUser /> },
   { href: "/friends", label: "Friend Requests", icon: <FiUsers /> },
+  { href: "/friends/overview", label: "Friends", icon: <FiUsers /> },
   { href: "/wallet", label: "Wallet", icon: <FiCreditCard /> },
 ];
 
