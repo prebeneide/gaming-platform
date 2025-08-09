@@ -32,16 +32,36 @@ export default async function FriendsOverviewPage() {
     take: 200,
   });
 
-  const friends: FriendUser[] = friendships.map((fr) => {
+  const rawFriends = friendships.map((fr) => {
     const other = fr.from.id === session.user.id ? fr.to : fr.from;
     return {
       id: other.id,
       username: other.username,
       displayName: other.displayName,
       image: other.image,
-      addedAt: fr.createdAt.toISOString(),
-    } as FriendUser;
+      addedAt: fr.createdAt,
+    };
   });
+
+  const friendIds = rawFriends.map((f) => f.id);
+  const since = new Date(Date.now() - 10 * 60 * 1000); // last 10 minutes
+  const recentMessages = friendIds.length
+    ? await prisma.message.findMany({
+        where: { senderId: { in: friendIds }, createdAt: { gte: since } },
+        select: { senderId: true },
+        distinct: ["senderId"],
+      })
+    : [];
+  const onlineSet = new Set(recentMessages.map((m) => m.senderId));
+
+  const friends: FriendUser[] = rawFriends.map((f) => ({
+    id: f.id,
+    username: f.username,
+    displayName: f.displayName,
+    image: f.image,
+    addedAt: f.addedAt.toISOString(),
+    isOnline: onlineSet.has(f.id),
+  }));
 
   return (
     <main className="min-h-screen bg-black text-white py-10 px-4">

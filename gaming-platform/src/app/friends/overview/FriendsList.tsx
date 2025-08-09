@@ -11,11 +11,12 @@ export interface FriendUser {
   displayName?: string | null;
   image?: string | null;
   addedAt?: string; // ISO date string
+  isOnline?: boolean;
 }
 
 type SortMode = "az" | "recent";
 
-type Tab = "all" | "recently";
+type Tab = "all" | "recently" | "online";
 
 export default function FriendsList({ users }: { users: FriendUser[] }) {
   const [query, setQuery] = useState("");
@@ -34,9 +35,10 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
 
     let list = items;
     if (tab === "recently") {
-      // siste 14 dager
       const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
       list = list.filter((u) => (u.addedAt ? new Date(u.addedAt).getTime() >= cutoff : true));
+    } else if (tab === "online") {
+      list = list.filter((u) => u.isOnline);
     }
 
     if (q) {
@@ -89,6 +91,7 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
           {([
             { key: "all", label: "All" },
             { key: "recently", label: "Recently added" },
+            { key: "online", label: "Online" },
           ] as { key: Tab; label: string }[]).map((t) => (
             <button
               key={t.key}
@@ -134,7 +137,7 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
             <li key={u.id} className="bg-neutral-950 rounded-lg p-3 sm:p-4 border border-gray-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <Link href={`/profile/${u.username}`} className="flex items-center gap-3 sm:gap-4 hover:opacity-90 transition">
-                  <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
+                  <div className="relative bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-950">
                       {u.image ? (
                         <Image src={u.image} alt={u.username} width={48} height={48} className="rounded-full object-cover" />
@@ -144,6 +147,9 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
                         </div>
                       )}
                     </div>
+                    {u.isOnline && (
+                      <span className="absolute -right-1 -bottom-1 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-neutral-950" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <div className="font-semibold truncate">{u.displayName || u.username}</div>
