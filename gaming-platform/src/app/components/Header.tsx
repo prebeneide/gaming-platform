@@ -134,14 +134,51 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
 
   useEffect(() => {
     let timer: any;
+    let lastPing = 0;
+    const MIN_INTERVAL = 15_000; // 15s throttle for interaction pings
+
     const ping = async () => {
       try {
         await fetch("/api/heartbeat", { method: "POST" });
+        lastPing = Date.now();
       } catch {}
     };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        ping();
+      }
+    };
+
+    const onInteract = () => {
+      const now = Date.now();
+      if (now - lastPing >= MIN_INTERVAL) ping();
+    };
+
+    const onPageHide = () => {
+      // sendBeacon for reliability when leaving
+      try {
+        const blob = new Blob([], { type: "application/json" });
+        navigator.sendBeacon && navigator.sendBeacon("/api/heartbeat", blob);
+      } catch {}
+    };
+
     ping();
     timer = setInterval(ping, 60_000);
-    return () => clearInterval(timer);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("click", onInteract);
+    window.addEventListener("keydown", onInteract);
+    window.addEventListener("scroll", onInteract, { passive: true });
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("click", onInteract);
+      window.removeEventListener("keydown", onInteract);
+      window.removeEventListener("scroll", onInteract);
+      window.removeEventListener("pagehide", onPageHide);
+    };
   }, []);
 
   return (
