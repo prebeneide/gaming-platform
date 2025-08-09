@@ -132,6 +132,18 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
     }
   }, [pathname, isChatPage]);
 
+  useEffect(() => {
+    let timer: any;
+    const ping = async () => {
+      try {
+        await fetch("/api/heartbeat", { method: "POST" });
+      } catch {}
+    };
+    ping();
+    timer = setInterval(ping, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 w-full bg-black/80 backdrop-blur shadow-sm flex px-0 header-main border-b-0" style={{position: 'sticky', top: 0, zIndex: 30, width: '100%'}}>
       <div className="flex w-full items-center header-flex-wrap">

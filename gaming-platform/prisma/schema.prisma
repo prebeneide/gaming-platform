@@ -30,6 +30,7 @@ model User {
   customGames Json?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  lastActiveAt DateTime?
 
   // Relations
   followers           Follower[] @relation("UserFollowers")

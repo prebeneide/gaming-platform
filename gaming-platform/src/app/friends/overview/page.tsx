@@ -44,15 +44,14 @@ export default async function FriendsOverviewPage() {
   });
 
   const friendIds = rawFriends.map((f) => f.id);
-  const since = new Date(Date.now() - 10 * 60 * 1000); // last 10 minutes
-  const recentMessages = friendIds.length
-    ? await prisma.message.findMany({
-        where: { senderId: { in: friendIds }, createdAt: { gte: since } },
-        select: { senderId: true },
-        distinct: ["senderId"],
+  const since = new Date(Date.now() - 5 * 60 * 1000); // last 5 minutes
+  const recentActive = friendIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: friendIds }, lastActiveAt: { gte: since } },
+        select: { id: true },
       })
     : [];
-  const onlineSet = new Set(recentMessages.map((m) => m.senderId));
+  const onlineSet = new Set(recentActive.map((u) => u.id));
 
   const friends: FriendUser[] = rawFriends.map((f) => ({
     id: f.id,
