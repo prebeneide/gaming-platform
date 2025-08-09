@@ -10,13 +10,20 @@ export interface FriendUser {
   username: string;
   displayName?: string | null;
   image?: string | null;
+  addedAt?: string; // ISO date string
 }
+
+type SortMode = "az" | "recent";
+
+type Tab = "all" | "recently";
 
 export default function FriendsList({ users }: { users: FriendUser[] }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<FriendUser[]>(users);
   const [confirmUser, setConfirmUser] = useState<FriendUser | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [sort, setSort] = useState<SortMode>("recent");
+  const [tab, setTab] = useState<Tab>("all");
 
   useEffect(() => {
     setItems(users);
@@ -24,11 +31,32 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((u) =>
-      (u.displayName || "").toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
-    );
-  }, [query, items]);
+
+    let list = items;
+    if (tab === "recently") {
+      // siste 14 dager
+      const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+      list = list.filter((u) => (u.addedAt ? new Date(u.addedAt).getTime() >= cutoff : true));
+    }
+
+    if (q) {
+      list = list.filter(
+        (u) => (u.displayName || "").toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
+      );
+    }
+
+    if (sort === "az") {
+      list = [...list].sort((a, b) =>
+        (a.displayName || a.username).localeCompare(b.displayName || b.username, undefined, {
+          sensitivity: "base",
+        })
+      );
+    } else {
+      list = [...list].sort((a, b) => (new Date(b.addedAt || 0).getTime() - new Date(a.addedAt || 0).getTime()));
+    }
+
+    return list;
+  }, [query, items, sort, tab]);
 
   const handleRemove = async () => {
     if (!confirmUser) return;
@@ -44,7 +72,6 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
         setItems((prev) => prev.filter((u) => u.username !== confirmUser.username));
         setConfirmUser(null);
       } else {
-        // Optional: show an error toast later
         console.error("Failed to remove friend");
       }
     } catch (e) {
@@ -55,21 +82,52 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><FiSearch size={16} /></span>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search friends..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-neutral-900 border border-neutral-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/60"
-        />
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Tabs */}
+        <div className="flex items-center gap-2">
+          {([
+            { key: "all", label: "All" },
+            { key: "recently", label: "Recently added" },
+          ] as { key: Tab; label: string }[]).map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition whitespace-nowrap ${
+                tab === t.key ? "bg-pink-500 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search + sort */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial sm:w-72">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><FiSearch size={16} /></span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search friends..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-neutral-900 border border-neutral-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500/40 focus:border-pink-500/60"
+            />
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortMode)}
+            className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/40"
+          >
+            <option value="recent">Recently added</option>
+            <option value="az">A–Z</option>
+          </select>
+        </div>
       </div>
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="text-center text-gray-400">No friends match your search</div>
+        <div className="text-center text-gray-400">No friends match your filters</div>
       ) : (
         <ul className="grid gap-3">
           {filtered.map((u) => (

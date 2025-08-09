@@ -32,7 +32,16 @@ export default async function FriendsOverviewPage() {
     take: 200,
   });
 
-  const friends: FriendUser[] = friendships.map((fr) => (fr.from.id === session.user.id ? fr.to : fr.from));
+  const friends: FriendUser[] = friendships.map((fr) => {
+    const other = fr.from.id === session.user.id ? fr.to : fr.from;
+    return {
+      id: other.id,
+      username: other.username,
+      displayName: other.displayName,
+      image: other.image,
+      addedAt: fr.createdAt.toISOString(),
+    } as FriendUser;
+  });
 
   return (
     <main className="min-h-screen bg-black text-white py-10 px-4">
