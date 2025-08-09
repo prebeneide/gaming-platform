@@ -6,6 +6,15 @@ import Link from "next/link";
 import { FiUser } from "react-icons/fi";
 import FriendRequestActions from "./FriendRequestActions";
 import BackButton from "@/components/BackButton";
+import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
+
+function presenceFrom(lastActiveAt?: Date | null): PresenceStatus {
+  if (!lastActiveAt) return "offline";
+  const diff = Date.now() - new Date(lastActiveAt).getTime();
+  if (diff <= 5 * 60 * 1000) return "online"; // 5 min
+  if (diff <= 2 * 60 * 60 * 1000) return "recent"; // 2 timer
+  return "offline";
+}
 
 export default async function FriendsPage() {
   const session = await getServerSession(authOptions);
@@ -35,6 +44,7 @@ export default async function FriendsPage() {
           username: true,
           displayName: true,
           image: true,
+          lastActiveAt: true,
         },
       },
     },
@@ -53,6 +63,7 @@ export default async function FriendsPage() {
           username: true,
           displayName: true,
           image: true,
+          lastActiveAt: true,
         },
       },
     },
@@ -80,23 +91,12 @@ export default async function FriendsPage() {
                   className="bg-neutral-950 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-gray-800"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-950">
-                        {request.from.image ? (
-                          <Image
-                            src={request.from.image}
-                            alt={request.from.username}
-                            width={48}
-                            height={48}
-                            className="rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <FiUser color="#9ca3af" size={18} />
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <AvatarPresence
+                      src={request.from.image}
+                      alt={request.from.username}
+                      size={48}
+                      status={presenceFrom(request.from.lastActiveAt)}
+                    />
                     <div className="min-w-0">
                       <Link
                         href={`/profile/${request.from.username}`}
@@ -129,23 +129,12 @@ export default async function FriendsPage() {
                   className="bg-neutral-950 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-gray-800"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <div className="bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-950">
-                        {request.to.image ? (
-                          <Image
-                            src={request.to.image}
-                            alt={request.to.username}
-                            width={48}
-                            height={48}
-                            className="rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <FiUser color="#9ca3af" size={18} />
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <AvatarPresence
+                      src={request.to.image}
+                      alt={request.to.username}
+                      size={48}
+                      status={presenceFrom(request.to.lastActiveAt)}
+                    />
                     <div className="min-w-0">
                       <Link
                         href={`/profile/${request.to.username}`}

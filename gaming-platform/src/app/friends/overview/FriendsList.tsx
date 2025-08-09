@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { FiSearch, FiUser } from "react-icons/fi";
+import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
 
 export interface FriendUser {
   id: string;
@@ -13,6 +13,15 @@ export interface FriendUser {
   addedAt?: string; // ISO date string
   isOnline?: boolean;
   lastActiveAt?: string; // ISO
+}
+
+function presenceFrom({ isOnline, lastActiveAt }: { isOnline?: boolean; lastActiveAt?: string }): PresenceStatus | undefined {
+  if (isOnline) return "online";
+  if (!lastActiveAt) return "offline";
+  const diff = Date.now() - new Date(lastActiveAt).getTime();
+  // recent = within 2 hours
+  if (diff <= 2 * 60 * 60 * 1000) return "recent";
+  return "offline";
 }
 
 function timeAgo(iso?: string) {
@@ -148,49 +157,39 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
         <div className="text-center text-gray-400">No friends match your filters</div>
       ) : (
         <ul className="grid gap-3">
-          {filtered.map((u) => (
-            <li key={u.id} className="bg-neutral-950 rounded-lg p-3 sm:p-4 border border-gray-800">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <Link href={`/profile/${u.username}`} className="flex items-center gap-3 sm:gap-4 hover:opacity-90 transition">
-                  <div className="relative bg-gradient-to-r from-purple-600 to-pink-500 p-[2px] rounded-full">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-neutral-950">
-                      {u.image ? (
-                        <Image src={u.image} alt={u.username} width={48} height={48} className="rounded-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <FiUser color="#9ca3af" size={18} />
-                        </div>
+          {filtered.map((u) => {
+            const status = presenceFrom({ isOnline: u.isOnline, lastActiveAt: u.lastActiveAt });
+            return (
+              <li key={u.id} className="bg-neutral-950 rounded-lg p-3 sm:p-4 border border-gray-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <Link href={`/profile/${u.username}`} className="flex items-center gap-3 sm:gap-4 hover:opacity-90 transition">
+                    <AvatarPresence src={u.image || undefined} alt={u.username} size={48} status={status} />
+                    <div className="min-w-0">
+                      <div className="font-semibold truncate">{u.displayName || u.username}</div>
+                      <div className="text-gray-400 text-sm truncate">@{u.username}</div>
+                      {status !== "online" && u.lastActiveAt && (
+                        <div className="text-gray-500 text-xs mt-0.5">Recently active {timeAgo(u.lastActiveAt)}</div>
                       )}
                     </div>
-                    {u.isOnline && (
-                      <span className="absolute -right-1 -bottom-1 w-3.5 h-3.5 rounded-full bg-green-500 ring-2 ring-neutral-950" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-semibold truncate">{u.displayName || u.username}</div>
-                    <div className="text-gray-400 text-sm truncate">@{u.username}</div>
-                    {!u.isOnline && (
-                      <div className="text-gray-500 text-xs mt-0.5">Recently active {timeAgo(u.lastActiveAt)}</div>
-                    )}
-                  </div>
-                </Link>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                  <Link
-                    href={`/chat/${u.username}`}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold transition flex-1 sm:flex-none text-center"
-                  >
-                    Message
                   </Link>
-                  <button
-                    onClick={() => setConfirmUser(u)}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold transition flex-1 sm:flex-none"
-                  >
-                    Remove
-                  </button>
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <Link
+                      href={`/chat/${u.username}`}
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold transition flex-1 sm:flex-none text-center"
+                    >
+                      Message
+                    </Link>
+                    <button
+                      onClick={() => setConfirmUser(u)}
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold transition flex-1 sm:flex-none"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 

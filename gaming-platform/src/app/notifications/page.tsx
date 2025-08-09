@@ -7,6 +7,7 @@ import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
 import Link from "next/link";
 import Image from "next/image";
+import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
 
 interface Notification {
   id: string;
@@ -254,24 +255,13 @@ export default function NotificationsPage() {
               >
                 <div className="flex items-start gap-2 sm:gap-4">
                   {notification.type === 'friend_request' ? (
-                    <Link 
-                      href={`/profile/${notification.data?.requesterName}`}
-                      className="relative w-8 h-8 sm:w-12 sm:h-12 rounded-full overflow-hidden block hover:opacity-90 transition flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-500 p-[1px]"
-                    >
-                      <div className="w-full h-full rounded-full overflow-hidden bg-neutral-950">
-                        {notification.data?.requesterImage ? (
-                          <Image
-                            src={notification.data.requesterImage}
-                            alt={`${notification.data.requesterName}'s profile picture`}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <FiUser color="#9ca3af" size={notification.data?.requesterImage ? 16 : 20} />
-                          </div>
-                        )}
-                      </div>
+                    <Link href={`/profile/${notification.data?.requesterName}`} className="block flex-shrink-0 hover:opacity-90 transition">
+                      <AvatarPresence
+                        src={notification.data?.requesterImage}
+                        alt={`${notification.data?.requesterName || 'user'}`}
+                        size={48}
+                        // We don't have lastActiveAt here yet; default to recent/offline not shown
+                      />
                     </Link>
                   ) : (
                     <div className="text-lg sm:text-2xl mt-1 flex-shrink-0">
