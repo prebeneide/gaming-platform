@@ -184,13 +184,6 @@ export default function UserDashboard({ user, userStats, socialStats }: {
           <SocialCounts username={(user.username as string) || ""} counts={socialStats} condensed />
         </div>
       )}
-      {/* Brukerinformasjon */}
-      <div className={`text-lg ${tertiaryText} text-center flex flex-col gap-1`}>
-        <div><b>Email:</b> {user.email}</div>
-        <div><b>Username:</b> {user.username}</div>
-        <div><b>User ID:</b> {user.id}</div>
-        <div><b>Registered:</b> {userStats ? "" : "2024-05-01"}</div>
-      </div>
       {/* Statistikk */}
       <UserStats stats={userStats ? {
         matchesPlayed: userStats.matchesPlayed,

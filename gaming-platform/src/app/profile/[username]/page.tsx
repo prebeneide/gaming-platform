@@ -108,6 +108,29 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           {/* Social counts (clickable) */}
           <SocialCounts username={user.username} counts={{ followers: followersCount, following: followingCount, friends: friendsCount }} />
         </div>
+        
+        {/* Action buttons - only show if not own profile */}
+        {!isOwnProfile && sessionUser && (
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <FollowButton 
+              isFollowing={isFollowing}
+              username={username}
+              isOwnProfile={isOwnProfile}
+            />
+            <FriendButton 
+              username={username}
+              isOwnProfile={isOwnProfile}
+              isFriend={isFriend}
+            />
+            <Link 
+              href={`/chat/${username}`}
+              className="h-12 px-6 rounded-lg font-semibold text-base transition bg-gradient-to-r from-purple-600 to-pink-500 text-white hover:opacity-90 flex items-center justify-center"
+            >
+              Send Message
+            </Link>
+          </div>
+        )}
+        
         {/* Brukerstatistikk (samme som dashboard) */}
         <UserStats
           stats={{ matchesPlayed: userStats.matchesPlayed, wins: userStats.wins, losses: userStats.losses, draws: userStats.draws, rank: userStats.rank }}
