@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FiSearch, FiUser } from "react-icons/fi";
-import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
+import UserAvatar from "@/components/UserAvatar";
 
 export interface FriendUser {
   id: string;
@@ -15,7 +15,7 @@ export interface FriendUser {
   lastActiveAt?: string; // ISO
 }
 
-function presenceFrom({ isOnline, lastActiveAt }: { isOnline?: boolean; lastActiveAt?: string }): PresenceStatus | undefined {
+function presenceFrom({ isOnline, lastActiveAt }: { isOnline?: boolean; lastActiveAt?: string }): "online" | "recent" | "offline" | undefined {
   if (isOnline) return "online";
   if (!lastActiveAt) return "offline";
   const diff = Date.now() - new Date(lastActiveAt).getTime();
@@ -163,7 +163,17 @@ export default function FriendsList({ users }: { users: FriendUser[] }) {
               <li key={u.id} className="bg-neutral-950 rounded-lg p-3 sm:p-4 border border-gray-800">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <Link href={`/profile/${u.username}`} className="flex items-center gap-3 sm:gap-4 hover:opacity-90 transition">
-                    <AvatarPresence src={u.image || undefined} alt={u.username} size={48} status={status} />
+                    <UserAvatar 
+                      user={{
+                        image: u.image,
+                        username: u.username,
+                        displayName: u.displayName
+                      }}
+                      size={48}
+                      ring={true}
+                      showPresence={true}
+                      presenceStatus={status}
+                    />
                     <div className="min-w-0">
                       <div className="font-semibold truncate">{u.displayName || u.username}</div>
                       <div className="text-gray-400 text-sm truncate">@{u.username}</div>

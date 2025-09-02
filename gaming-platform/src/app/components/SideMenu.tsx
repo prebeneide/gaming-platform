@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { FiUser, FiCreditCard, FiSettings, FiLogOut, FiHome, FiUsers } from "react-icons/fi";
 import { signOut, useSession } from "next-auth/react";
+import UserAvatar from "@/components/UserAvatar";
 
 interface SideMenuProps {
   open: boolean;
@@ -40,22 +41,15 @@ export default function SideMenu({ open, onClose }: SideMenuProps) {
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-800">
           <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-r from-purple-600 to-pink-500 p-[2px]">
-              <div className="w-full h-full rounded-full overflow-hidden bg-neutral-950">
-                {session?.user?.image ? (
-                  <Image
-                    src={session.user.image}
-                    alt="Profile"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <FiUser color="#9ca3af" size={20} />
-                  </div>
-                )}
-              </div>
-            </div>
+            <UserAvatar 
+              user={{
+                image: session?.user?.image,
+                username: (session?.user as any)?.displayName || session?.user?.username,
+                displayName: (session?.user as any)?.displayName
+              }} 
+              size={40} 
+              ring={true}
+            />
             <div className="flex flex-col">
               <span className="text-white font-semibold text-sm">
                 {(session?.user as any)?.displayName || session?.user?.username || 'User'}

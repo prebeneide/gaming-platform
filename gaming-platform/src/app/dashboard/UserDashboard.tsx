@@ -8,7 +8,7 @@ import Link from "next/link";
 import UserStats from "./UserStats";
 import { UserStatsData } from "@/lib/userStats";
 import SocialCounts from "@/components/SocialCounts";
-import AvatarPresence from "@/components/AvatarPresence";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function UserDashboard({ user, userStats, socialStats }: { 
   user: {
@@ -171,7 +171,7 @@ export default function UserDashboard({ user, userStats, socialStats }: {
       </button>
       <div className="flex flex-col items-center justify-center mb-2">
         <div className="flex items-center gap-4">
-          <AvatarPresence src={user.image || undefined} alt="Profile picture" size={60} />
+          <UserAvatar user={user} size={60} ring={true} />
           <span className="text-3xl font-bold signup-gradient-text">
             {user.username || user.email}!
           </span>
@@ -219,7 +219,15 @@ export default function UserDashboard({ user, userStats, socialStats }: {
               `}
             >
               <div className="relative mb-1">
-                <AvatarPresence src={friend.image} alt={friend.name + " avatar"} size={48} />
+                <UserAvatar 
+                  user={{
+                    image: friend.image,
+                    username: friend.name,
+                    displayName: friend.name
+                  }}
+                  size={48}
+                  ring={true}
+                />
                 <span className={`absolute -bottom-1 -right-1 block w-4 h-4 rounded-full border-2 border-white ${
                   friend.status === "online"
                     ? "bg-green-400"
@@ -269,7 +277,15 @@ export default function UserDashboard({ user, userStats, socialStats }: {
               {/* Desktop/tabellvisning */}
               <span className="hidden lg:flex items-center gap-2 text-left col-span-2">
                 vs <b>{match.opponent}</b>
-                <AvatarPresence src={match.opponentImage} alt={match.opponent + " avatar"} size={28} />
+                <UserAvatar 
+                  user={{
+                    image: match.opponentImage,
+                    username: match.opponent,
+                    displayName: match.opponent
+                  }}
+                  size={28}
+                  ring={true}
+                />
               </span>
               <span className="hidden lg:block text-center">{match.game}</span>
               <span className={
@@ -288,7 +304,15 @@ export default function UserDashboard({ user, userStats, socialStats }: {
 
               {/* Kortvisning for mindre skjermer */}
               <div className="flex lg:hidden items-center gap-3 flex-wrap">
-                <AvatarPresence src={match.opponentImage} alt={match.opponent + " avatar"} size={32} />
+                <UserAvatar 
+                  user={{
+                    image: match.opponentImage,
+                    username: match.opponent,
+                    displayName: match.opponent
+                  }}
+                  size={32}
+                  ring={true}
+                />
                 <div className="flex flex-col">
                   <span className="font-semibold">vs {match.opponent}</span>
                   <span className={`${secondaryText} text-xs`}>{match.game}</span>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FiSearch } from "react-icons/fi";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function SearchBar() {
   const [query, setQuery] = useState("");
@@ -58,12 +59,14 @@ export default function SearchBar() {
                 key={user.id}
                 className="flex items-center gap-4 px-4 py-3 hover:bg-neutral-950 transition cursor-pointer last:border-b-0"
               >
-                <Image
-                  src={user.image || "/default-avatar.svg"}
-                  alt={user.username}
-                  width={48}
-                  height={48}
-                  className="rounded-full aspect-square object-cover w-12 h-12"
+                <UserAvatar 
+                  user={{
+                    image: user.image,
+                    username: user.username,
+                    displayName: user.displayName
+                  }}
+                  size={48}
+                  ring={true}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-white truncate">{user.displayName || user.username}</div>

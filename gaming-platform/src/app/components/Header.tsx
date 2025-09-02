@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import io from "socket.io-client";
 import { FaGamepad } from "react-icons/fa";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
+import UserAvatar from "@/components/UserAvatar";
 
 interface HeaderProps {
   isLoggedIn?: boolean;
@@ -248,14 +248,15 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
               <Link href="/dashboard" aria-label="Profile" className="flex items-center gap-2 text-white hover:text-[#00c6fb] transition-colors">
                 {session?.user?.image ? (
                   <>
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-pink-500">
-                      <Image
-                        src={session.user.image}
-                        alt={(session.user as any)?.displayName || session.user.username || "Profile"}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
+                    <UserAvatar 
+                      user={{
+                        image: session.user.image,
+                        username: (session.user as any)?.displayName || session.user.username,
+                        displayName: (session.user as any)?.displayName
+                      }}
+                      size={32}
+                      ring={true}
+                    />
                     <span className="hidden md:block text-sm font-medium">
                       {(session.user as any)?.displayName || session.user.username}
                     </span>
@@ -292,12 +293,14 @@ export default function Header({ isLoggedIn = false, onOpenMenu }: HeaderProps) 
           <div className="header-row-3 w-full">
             <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-900 bg-neutral-950 w-full">
               <div className="flex items-center gap-4">
-                <Image
-                  src={otherUser.image || "/default-avatar.svg"}
-                  alt="Avatar"
-                  width={48}
-                  height={48}
-                  className="rounded-full aspect-square object-cover w-12 h-12"
+                <UserAvatar 
+                  user={{
+                    image: otherUser.image,
+                    username: otherUser.username,
+                    displayName: otherUser.displayName
+                  }}
+                  size={48}
+                  ring={true}
                 />
                 <div className="flex flex-col">
                   <span className="font-bold text-lg">{otherUser.displayName || otherUser.username}</span>

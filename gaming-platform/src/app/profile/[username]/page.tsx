@@ -12,7 +12,7 @@ import SocialCounts from "@/components/SocialCounts";
 import UserMatchFeed from "./UserMatchFeed";
 import BackButton from "@/components/BackButton";
 import { getUserStats } from "@/lib/userStats";
-import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
+import UserAvatar from "@/components/UserAvatar";
 
 function presenceFrom(lastActiveAt?: Date | null): PresenceStatus {
   if (!lastActiveAt) return "offline";
@@ -89,7 +89,17 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       </div>
       <div className="bg-neutral-950 rounded-2xl shadow-xl p-8 flex flex-col gap-8 w-full max-w-lg mx-auto">
         <div className="flex flex-col items-center gap-2">
-          <AvatarPresence src={user.image || undefined} alt="Profile" size={88} status={presenceFrom(user.lastActiveAt)} />
+          <UserAvatar 
+            user={{
+              image: user.image,
+              username: user.username,
+              displayName: user.displayName
+            }}
+            size={88}
+            ring={true}
+            showPresence={true}
+            presenceStatus={presenceFrom(user.lastActiveAt)}
+          />
           <h1 className="text-2xl font-bold mt-2">{user.displayName || user.username}</h1>
           <div className="text-gray-400">@{user.username}</div>
         </div>

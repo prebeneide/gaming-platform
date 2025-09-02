@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
+import UserAvatar from "@/components/UserAvatar";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -743,14 +744,15 @@ export default function MatchDetailsPage() {
             {match.participants && match.participants.length > 0 ? (
               match.participants.map((p) => (
                 <div key={p.user.id} className="flex items-center gap-2 bg-neutral-900 rounded-lg px-3 py-2 border border-neutral-800">
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden border border-pink-400">
-                    <Image
-                      src={p.user.image || "/default-avatar.svg"}
-                      alt={p.user.displayName || p.user.username}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                  <UserAvatar 
+                    user={{
+                      image: p.user.image,
+                      username: p.user.username,
+                      displayName: p.user.displayName
+                    }}
+                    size={32}
+                    ring={true}
+                  />
                   <div className="text-white font-medium text-sm">{p.user.displayName || p.user.username}</div>
                   {/* Status eller Reported badge - kun vis for deltakere eller hvis matchen er completed/disputed */}
                   {(isParticipant || match.status === 'completed' || match.status === 'disputed') && (

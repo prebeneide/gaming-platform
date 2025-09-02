@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FiSearch } from "react-icons/fi";
 import BackButton from "@/components/BackButton";
+import UserAvatar from "@/components/UserAvatar";
 
 type Conversation = {
   id: string;
@@ -130,12 +131,14 @@ export default function MessagesPage() {
               >
                 {/* Profilbilde */}
                 <div className="relative">
-                  <Image
-                    src={conv.otherUser.image || "/default-avatar.svg"}
-                    alt={conv.otherUser.username}
-                    width={56}
-                    height={56}
-                    className="rounded-full aspect-square object-cover"
+                  <UserAvatar 
+                    user={{
+                      image: conv.otherUser.image,
+                      username: conv.otherUser.username,
+                      displayName: conv.otherUser.displayName
+                    }}
+                    size={56}
+                    ring={true}
                   />
                   {conv.lastMessage.senderId !== session?.user?.id && !conv.lastMessage.isRead && (
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-pink-500 rounded-full border-2 border-black"></div>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { FiUser } from "react-icons/fi";
 import FriendRequestActions from "./FriendRequestActions";
 import BackButton from "@/components/BackButton";
-import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
+import UserAvatar from "@/components/UserAvatar";
 
 function presenceFrom(lastActiveAt?: Date | null): PresenceStatus {
   if (!lastActiveAt) return "offline";
@@ -91,11 +91,16 @@ export default async function FriendsPage() {
                   className="bg-neutral-950 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-gray-800"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <AvatarPresence
-                      src={request.from.image}
-                      alt={request.from.username}
+                    <UserAvatar 
+                      user={{
+                        image: request.from.image,
+                        username: request.from.username,
+                        displayName: request.from.displayName
+                      }}
                       size={48}
-                      status={presenceFrom(request.from.lastActiveAt)}
+                      ring={true}
+                      showPresence={true}
+                      presenceStatus={presenceFrom(request.from.lastActiveAt)}
                     />
                     <div className="min-w-0">
                       <Link
@@ -129,11 +134,16 @@ export default async function FriendsPage() {
                   className="bg-neutral-950 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border border-gray-800"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <AvatarPresence
-                      src={request.to.image}
-                      alt={request.to.username}
+                    <UserAvatar
+                      user={{
+                        image: request.to.image,
+                        username: request.to.username,
+                        displayName: request.to.displayName
+                      }}
                       size={48}
-                      status={presenceFrom(request.to.lastActiveAt)}
+                      ring={true}
+                      showPresence={true}
+                      presenceStatus={presenceFrom(request.to.lastActiveAt)}
                     />
                     <div className="min-w-0">
                       <Link

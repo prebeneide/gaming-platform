@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import io from "socket.io-client";
 import BackButton from "@/components/BackButton";
+import UserAvatar from "@/components/UserAvatar";
 
 type User = {
   id: string;
@@ -264,14 +265,15 @@ export default function ChatPage() {
       <div className="flex items-center gap-4 p-4 border-b border-neutral-800 bg-neutral-950">
         <BackButton />
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-pink-500">
-            <Image
-              src={otherUser.image || "/default-avatar.svg"}
-              alt={otherUser.displayName || otherUser.username}
-              fill
-              className="object-cover"
-            />
-          </div>
+          <UserAvatar 
+            user={{
+              image: otherUser.image,
+              username: otherUser.username,
+              displayName: otherUser.displayName
+            }}
+            size={40}
+            ring={true}
+          />
           <div>
             <div className="font-bold text-white">{otherUser.displayName || otherUser.username}</div>
             <div className="text-sm text-gray-400">@{otherUser.username}</div>

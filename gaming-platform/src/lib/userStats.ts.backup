@@ -159,6 +159,7 @@ export async function updateUserStats(userId: string): Promise<void> {
   
   // Also sync with game ratings to ensure consistency
   try {
+    await syncUserStatsWithGameRatings(userId);
   } catch (syncError) {
     console.error('Error syncing stats after update:', syncError);
   }
@@ -557,6 +558,126 @@ export async function updateRatingsForExistingMatches(userId: string): Promise<v
 }
 
 // Sync existing UserStats with UserGameRating data
+export async function syncUserStatsWithGameRatings(userId: string): Promise<void> {
+  try {
+    console.log(`Syncing stats for user ${userId}...`);
+    
+    // Get all game ratings for this user
+    const gameRatings = await prisma.userGameRating.findMany({
+      where: { userId }
+    });
+    
+    if (gameRatings.length === 0) {
+      console.log(`No game ratings found for user ${userId}, skipping sync`);
+      return;
+    }
+    
+    // Calculate totals from game ratings
+    let totalGames = 0;
+    let totalWins = 0;
+    let totalLosses = 0;
+    let totalDraws = 0;
+    let bestRating = 1200;
+    let bestRatingTier = 'Unranked';
+    
+    gameRatings.forEach(gameRating => {
+      totalGames += gameRating.gamesPlayed;
+      totalWins += gameRating.wins;
+      totalLosses += gameRating.losses;
+      totalDraws += gameRating.draws;
+      
+      if (gameRating.rating > bestRating) {
+        bestRating = gameRating.rating;
+        bestRatingTier = getRatingTier(gameRating.rating);
+      }
+    });
+    
+    // Calculate percentages and ratios
+    const winPercent = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0;
+    const winLossRatio = totalLosses > 0 ? parseFloat((totalWins / totalLosses).toFixed(2)) : totalWins > 0 ? totalWins : 0;
+    
+    // Get last 10 results from actual matches
+    const matches = await prisma.match.findMany({
+      where: {
+        OR: [
+          { creatorId: userId },
+          {
+            participants: {
+              some: {
+                userId: userId
+              }
+            }
+          }
+        ],
+        result: {
+          status: 'agreed'
+        }
+      },
+      include: {
+        result: {
+          select: {
+            winnerId: true,
+            resultType: true
+          }
+        }
+      },
+      orderBy: {
+        result: {
+          completedAt: 'desc'
+        }
+      },
+      take: 10
+    });
+    
+    const last10Results: string[] = [];
+    matches.forEach(match => {
+      if (match.result) {
+        if (match.result.resultType === 'win') {
+          if (match.result.winnerId === userId) {
+            last10Results.push('W');
+          } else {
+            last10Results.push('L');
+          }
+        } else if (match.result.resultType === 'draw') {
+          last10Results.push('D');
+        }
+      }
+    });
+    
+    // Update UserStats with synced data
+    await prisma.userStats.upsert({
+      where: { userId },
+      update: {
+        matchesPlayed: totalGames,
+        wins: totalWins,
+        losses: totalLosses,
+        draws: totalDraws,
+        winPercent,
+        winLossRatio,
+        rating: bestRating,
+        ratingTier: bestRatingTier,
+        last10Results,
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        matchesPlayed: totalGames,
+        wins: totalWins,
+        losses: totalLosses,
+        draws: totalDraws,
+        winPercent,
+        winLossRatio,
+        rating: bestRating,
+        ratingTier: bestRatingTier,
+        last10Results
+      }
+    });
+    
+    console.log(`Successfully synced stats for user ${userId}: ${totalGames} games, ${totalWins} wins, ${totalLosses} losses, rating ${bestRating} (${bestRatingTier})`);
+  } catch (error) {
+    console.error(`Error syncing stats for user ${userId}:`, error);
+  }
+}
 
 // Get user statistics (from cache or calculate if not exists)
 export async function getUserStats(userId: string): Promise<UserStatsData> {
@@ -565,14 +686,9 @@ export async function getUserStats(userId: string): Promise<UserStatsData> {
   });
 
   if (cachedStats) {
-    console.log(`Cached stats for user ${userId}:`, {
-      matchesPlayed: cachedStats.matchesPlayed,
-      wins: cachedStats.wins,
-      losses: cachedStats.losses,
-      draws: cachedStats.draws,
-      last10Results: cachedStats.last10Results
-    });    // Always sync with game ratings to ensure consistency
+    // Always sync with game ratings to ensure consistency
     try {
+      await syncUserStatsWithGameRatings(userId);
     } catch (syncError) {
       console.error('Error syncing stats:', syncError);
     }
@@ -609,6 +725,7 @@ export async function getUserStats(userId: string): Promise<UserStatsData> {
   
   // Sync with game ratings
   try {
+    await syncUserStatsWithGameRatings(userId);
   } catch (syncError) {
     console.error('Error syncing stats:', syncError);
   }

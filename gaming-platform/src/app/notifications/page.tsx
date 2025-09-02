@@ -8,6 +8,7 @@ import BackButton from "@/components/BackButton";
 import Link from "next/link";
 import Image from "next/image";
 import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
+import UserAvatar from "@/components/UserAvatar";
 
 interface Notification {
   id: string;
@@ -256,11 +257,14 @@ export default function NotificationsPage() {
                 <div className="flex items-start gap-2 sm:gap-4">
                   {notification.type === 'friend_request' ? (
                     <Link href={`/profile/${notification.data?.requesterName}`} className="block flex-shrink-0 hover:opacity-90 transition">
-                      <AvatarPresence
-                        src={notification.data?.requesterImage}
-                        alt={`${notification.data?.requesterName || 'user'}`}
+                      <UserAvatar 
+                        user={{
+                          image: notification.data?.requesterImage,
+                          username: notification.data?.requesterName,
+                          displayName: notification.data?.requesterName
+                        }}
                         size={48}
-                        // We don't have lastActiveAt here yet; default to recent/offline not shown
+                        ring={true}
                       />
                     </Link>
                   ) : (

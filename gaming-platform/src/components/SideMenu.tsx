@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { FiUser, FiCreditCard, FiSettings, FiLogOut, FiHome, FiUsers } from "react-icons/fi";
 import { signOut, useSession } from "next-auth/react";
-import AvatarPresence from "@/components/AvatarPresence";
+import UserAvatar from "@/components/UserAvatar";
 
 interface SideMenuProps {
   open: boolean;
@@ -41,7 +41,15 @@ export default function SideMenu({ open, onClose }: SideMenuProps) {
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-800">
           <div className="flex items-center gap-3">
-            <AvatarPresence src={session?.user?.image || undefined} alt="Profile" size={40} />
+            <UserAvatar 
+              user={{
+                image: session?.user?.image,
+                username: (session?.user as any)?.displayName || session?.user?.username,
+                displayName: (session?.user as any)?.displayName
+              }} 
+              size={40} 
+              ring={true}
+            />
             <div className="flex flex-col">
               <span className="text-white font-semibold text-sm">
                 {(session?.user as any)?.displayName || session?.user?.username || 'User'}
