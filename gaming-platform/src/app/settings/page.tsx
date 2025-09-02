@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import BackButton from "@/components/BackButton";
 
 export default function SettingsPage() {
@@ -7,6 +8,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [newsletter, setNewsletter] = useState(true);
   const [challengeNotif, setChallengeNotif] = useState(true);
+  const { data: session } = useSession();
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
@@ -20,6 +22,18 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent mb-2">
           Settings
         </h1>
+        
+        {/* Account Information */}
+        <section>
+          <h2 className="text-lg font-semibold mb-2 text-pink-400">Account Information</h2>
+          <div className="text-lg text-gray-300 flex flex-col gap-1">
+            <div><b>Email:</b> {session?.user?.email}</div>
+            <div><b>Username:</b> {session?.user?.username}</div>
+            <div><b>User ID:</b> {session?.user?.id}</div>
+            <div><b>Registered:</b> 2024-05-01</div>
+          </div>
+        </section>
+        
         {/* Change Password */}
         <section>
           <h2 className="text-lg font-semibold mb-2 text-pink-400">Change Password</h2>
@@ -28,6 +42,7 @@ export default function SettingsPage() {
             <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
           </div>
         </section>
+        
         {/* Notifications */}
         <section>
           <h2 className="text-lg font-semibold mb-2 text-pink-400">Notifications</h2>
@@ -42,6 +57,7 @@ export default function SettingsPage() {
             </label>
           </div>
         </section>
+        
         {/* Delete Account */}
         <section className="mt-4 border-t border-gray-800 pt-4">
           <h2 className="text-lg font-semibold mb-2 text-red-400">Delete Account</h2>
