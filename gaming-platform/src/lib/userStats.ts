@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { getRatingTier } from "./rating"; // Import the new rating system
 
 export interface UserStatsData {
   matchesPlayed: number;
@@ -10,24 +11,10 @@ export interface UserStatsData {
   rating: number;
   ratingTier: string;
   last10Results: string[];
+  gameRatings?: any[]; // Add gameRatings to the interface
 }
 
-// Get rating tier based on ELO rating (like chess.com)
-function getRatingTier(rating: number): string {
-  if (rating >= 3000) return 'Legend';
-  if (rating >= 2800) return 'Grandmaster';
-  if (rating >= 2600) return 'International Master';
-  if (rating >= 2400) return 'Master';
-  if (rating >= 2200) return 'Expert';
-  if (rating >= 2000) return 'Advanced';
-  if (rating >= 1800) return 'Intermediate';
-  if (rating >= 1600) return 'Beginner';
-  if (rating >= 1400) return 'Novice';
-  if (rating >= 1200) return 'Rookie';
-  if (rating >= 1000) return 'Bronze';
-  if (rating >= 800) return 'Iron';
-  return 'Unranked';
-}
+// Remove the old getRatingTier function - use the one from rating.ts
 
 // Calculate user statistics from completed matches
 export async function calculateUserStatsFromMatches(userId: string): Promise<UserStatsData> {
@@ -94,16 +81,17 @@ export async function calculateUserStatsFromMatches(userId: string): Promise<Use
   // Get the user's best game rating to display as overall rating
   let bestRating = 1200; // Default rating
   let bestRatingTier = 'Unranked';
+  let gameRatings: any[] = [];
   
   try {
-    const gameRatings = await prisma.userGameRating.findMany({
+    gameRatings = await prisma.userGameRating.findMany({
       where: { userId },
       orderBy: { rating: 'desc' }
     });
     
     if (gameRatings.length > 0) {
       bestRating = gameRatings[0].rating;
-      bestRatingTier = getRatingTier(bestRating);
+      bestRatingTier = getRatingTier(bestRating); // Use the new rating system
     }
   } catch (error) {
     console.error('Error fetching game ratings for stats:', error);
@@ -121,7 +109,8 @@ export async function calculateUserStatsFromMatches(userId: string): Promise<Use
     winLossRatio,
     rating: bestRating,
     ratingTier: bestRatingTier,
-    last10Results: last10
+    last10Results: last10,
+    gameRatings // Include gameRatings in the response
   };
 }
 
@@ -571,29 +560,30 @@ export async function getUserStats(userId: string): Promise<UserStatsData> {
       losses: cachedStats.losses,
       draws: cachedStats.draws,
       last10Results: cachedStats.last10Results
-    });    // Always sync with game ratings to ensure consistency
-    try {
-    } catch (syncError) {
-      console.error('Error syncing stats:', syncError);
-    }
-    
-    // Get the updated stats after sync
-    const updatedStats = await prisma.userStats.findUnique({
-      where: { userId }
     });
     
-    if (updatedStats) {
+    // Always sync with game ratings to ensure consistency
+    try {
+      // Get game ratings
+      const gameRatings = await prisma.userGameRating.findMany({
+        where: { userId },
+        orderBy: { rating: 'desc' }
+      });
+      
       return {
-        matchesPlayed: updatedStats.matchesPlayed,
-        wins: updatedStats.wins,
-        losses: updatedStats.losses,
-        draws: updatedStats.draws,
-        winPercent: updatedStats.winPercent,
-        winLossRatio: updatedStats.winLossRatio,
-        rating: updatedStats.rating,
-        ratingTier: updatedStats.ratingTier,
-        last10Results: updatedStats.last10Results
+        matchesPlayed: cachedStats.matchesPlayed,
+        wins: cachedStats.wins,
+        losses: cachedStats.losses,
+        draws: cachedStats.draws,
+        winPercent: cachedStats.winPercent,
+        winLossRatio: cachedStats.winLossRatio,
+        rating: cachedStats.rating,
+        ratingTier: cachedStats.ratingTier,
+        last10Results: cachedStats.last10Results,
+        gameRatings // Include gameRatings
       };
+    } catch (syncError) {
+      console.error('Error syncing stats:', syncError);
     }
   }
 
@@ -609,6 +599,24 @@ export async function getUserStats(userId: string): Promise<UserStatsData> {
   
   // Sync with game ratings
   try {
+    // Get game ratings
+    const gameRatings = await prisma.userGameRating.findMany({
+      where: { userId },
+      orderBy: { rating: 'desc' }
+    });
+    
+    return {
+      matchesPlayed: cachedStats?.matchesPlayed || 0,
+      wins: cachedStats?.wins || 0,
+      losses: cachedStats?.losses || 0,
+      draws: cachedStats?.draws || 0,
+      winPercent: cachedStats?.winPercent || 0,
+      winLossRatio: cachedStats?.winLossRatio || 0,
+      rating: cachedStats?.rating || 1200,
+      ratingTier: cachedStats?.ratingTier || 'Unranked',
+      last10Results: cachedStats?.last10Results || [],
+      gameRatings // Include gameRatings
+    };
   } catch (syncError) {
     console.error('Error syncing stats:', syncError);
   }

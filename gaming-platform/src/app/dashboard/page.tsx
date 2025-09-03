@@ -3,13 +3,14 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import UserDashboard from "./UserDashboard";
-import { getUserStats } from "@/lib/userStats";
+import { getUnifiedUserStats } from "@/lib/unifiedStats";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     redirect("/login");
   }
+  
   // Hent brukerdata direkte fra databasen for å få oppdatert info
   const userDb = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -30,35 +31,34 @@ export default async function DashboardPage() {
     },
   });
 
-  // Hent sosiale statistikk
-  const [followersCount, followingCount, friendsCount] = await Promise.all([
-    prisma.follower.count({
-      where: { followingId: session.user.id }
-    }),
-    prisma.follower.count({
-      where: { followerId: session.user.id }
-    }),
-    prisma.friendRequest.count({
-      where: {
-        OR: [
-          { fromId: session.user.id, status: 'accepted' },
-          { toId: session.user.id, status: 'accepted' }
-        ]
-      }
-    })
-  ]);
   if (!userDb) {
     redirect("/login");
   }
 
-  // Get user statistics (will be calculated and cached if not exists)
-  const userStats = await getUserStats(userDb.id);
+  // Get unified user statistics (calculated from Match table)
+  const unifiedStats = await getUnifiedUserStats(userDb.id);
+
+  // Get social statistics
+  const followersCount = await prisma.follower.count({
+    where: { followingId: userDb.id }
+  });
+  const followingCount = await prisma.follower.count({
+    where: { followerId: userDb.id }
+  });
+  const friendsCount = await prisma.friendRequest.count({
+    where: {
+      OR: [
+        { fromId: userDb.id, status: 'accepted' },
+        { toId: userDb.id, status: 'accepted' }
+      ]
+    }
+  });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+    <div className="min-h-screen bg-black text-white">
       <UserDashboard 
         user={userDb} 
-        userStats={userStats} 
+        unifiedStats={unifiedStats}
         socialStats={{
           followers: followersCount,
           following: followingCount,

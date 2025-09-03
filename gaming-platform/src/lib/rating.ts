@@ -71,43 +71,77 @@ function getKFactor(rating: number): number {
 }
 
 /**
- * Get rating tier/rank based on rating
+ * Get rating tier/rank based on rating (Gaming-style names)
  * @param rating - Player's current rating
  * @returns Rating tier name
  */
 export function getRatingTier(rating: number): string {
-  if (rating >= 3000) return 'Legend';
-  if (rating >= 2800) return 'Grandmaster';
-  if (rating >= 2600) return 'International Master';
-  if (rating >= 2400) return 'Master';
-  if (rating >= 2200) return 'Expert';
-  if (rating >= 2000) return 'Advanced';
-  if (rating >= 1800) return 'Intermediate';
-  if (rating >= 1600) return 'Beginner';
-  if (rating >= 1400) return 'Novice';
-  if (rating >= 1200) return 'Rookie';
-  if (rating >= 1000) return 'Bronze';
-  if (rating >= 800) return 'Iron';
+  // Legend tier (top 0.1%)
+  if (rating >= 3200) return 'Legend';
+  if (rating >= 3000) return 'Grandmaster';
+  
+  // Master tier (top 1%)
+  if (rating >= 2800) return 'International Master';
+  if (rating >= 2600) return 'Master';
+  if (rating >= 2400) return 'Expert';
+  
+  // Advanced tier (top 5%)
+  if (rating >= 2200) return 'Advanced';
+  if (rating >= 2000) return 'Intermediate';
+  
+  // Intermediate tier (top 15%)
+  if (rating >= 1800) return 'Beginner';
+  if (rating >= 1600) return 'Novice';
+  
+  // Beginner tier (top 40%)
+  if (rating >= 1400) return 'Rookie';
+  if (rating >= 1200) return 'Bronze';
+  
+  // Novice tier (top 70%)
+  if (rating >= 1000) return 'Iron';
+  if (rating >= 800) return 'Copper';
+  
+  // Starter tier
+  if (rating >= 600) return 'Tin';
+  if (rating >= 400) return 'Lead';
+  
   return 'Unranked';
 }
 
 /**
- * Get rating color for UI display
+ * Get rating color for UI display (Gaming-style colors)
  * @param rating - Player's current rating
  * @returns Tailwind CSS color class
  */
 export function getRatingColor(rating: number): string {
-  if (rating >= 3000) return 'text-purple-500';      // Legend
-  if (rating >= 2800) return 'text-red-500';         // Grandmaster
-  if (rating >= 2600) return 'text-orange-500';      // International Master
-  if (rating >= 2400) return 'text-yellow-500';      // Master
-  if (rating >= 2200) return 'text-green-500';       // Expert
-  if (rating >= 2000) return 'text-blue-500';        // Advanced
-  if (rating >= 1800) return 'text-indigo-500';      // Intermediate
-  if (rating >= 1600) return 'text-purple-400';      // Beginner
-  if (rating >= 1400) return 'text-pink-400';        // Novice
-  if (rating >= 1200) return 'text-gray-300';        // Rookie
-  if (rating >= 1000) return 'text-amber-600';       // Bronze
-  if (rating >= 800) return 'text-stone-500';        // Iron
-  return 'text-gray-400';                            // Unranked
+  // Legend tier
+  if (rating >= 3200) return 'text-purple-400';      // Legend
+  if (rating >= 3000) return 'text-red-500';         // Grandmaster
+  
+  // Master tier
+  if (rating >= 2800) return 'text-orange-500';      // International Master
+  if (rating >= 2600) return 'text-yellow-500';      // Master
+  if (rating >= 2400) return 'text-green-500';       // Expert
+  
+  // Advanced tier
+  if (rating >= 2200) return 'text-blue-500';        // Advanced
+  if (rating >= 2000) return 'text-cyan-500';        // Intermediate
+  
+  // Intermediate tier
+  if (rating >= 1800) return 'text-indigo-500';      // Beginner
+  if (rating >= 1600) return 'text-purple-400';      // Novice
+  
+  // Beginner tier
+  if (rating >= 1400) return 'text-pink-400';        // Rookie
+  if (rating >= 1200) return 'text-amber-600';       // Bronze
+  
+  // Novice tier
+  if (rating >= 1000) return 'text-stone-500';       // Iron
+  if (rating >= 800) return 'text-orange-600';       // Copper
+  
+  // Starter tier
+  if (rating >= 600) return 'text-gray-300';         // Tin
+  if (rating >= 400) return 'text-gray-400';         // Lead
+  
+  return 'text-gray-500';                            // Unranked
 } 

@@ -7,12 +7,12 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import FollowButton from "./FollowButton";
 import FriendButton from "./FriendButton";
-import UserStats from "../../dashboard/UserStats";
 import SocialCounts from "@/components/SocialCounts";
 import UserMatchFeed from "./UserMatchFeed";
 import BackButton from "@/components/BackButton";
-import { getUserStats } from "@/lib/userStats";
+import { getUnifiedUserStats } from "@/lib/unifiedStats";
 import UserAvatar from "@/components/UserAvatar";
+import UnifiedStatsDisplay from "@/components/UnifiedStatsDisplay";
 
 function presenceFrom(lastActiveAt?: Date | null): PresenceStatus {
   if (!lastActiveAt) return "offline";
@@ -40,15 +40,14 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       xbox: true,
       customGames: true,
       lastActiveAt: true,
-      // Her kan jeg flere felter etter behov
     },
   });
   if (!user) {
     return <div className="text-center text-red-400 mt-20">User not found</div>;
   }
 
-  // Get user statistics from cache
-  const userStats = await getUserStats(user.id);
+  // Get unified user statistics (calculated from Match table)
+  const unifiedStats = await getUnifiedUserStats(user.id);
 
   // Hent antall følgere og følger
   const followersCount = await prisma.follower.count({ where: { following: { username } } });
@@ -131,13 +130,12 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           </div>
         )}
         
-        {/* Brukerstatistikk (samme som dashboard) */}
-        <UserStats
-          stats={{ matchesPlayed: userStats.matchesPlayed, wins: userStats.wins, losses: userStats.losses, draws: userStats.draws, rank: userStats.rank }}
-          winPercent={userStats.winPercent}
-          winLossRatio={userStats.winLossRatio}
-          last10={userStats.last10Results}
+        {/* Unified Statistics Display */}
+        <UnifiedStatsDisplay 
+          stats={unifiedStats}
+          isOwnProfile={isOwnProfile}
         />
+        
         {/* Social Links nederst, vises kun hvis minst én link finnes */}
         {(user.discord || user.twitter || user.twitch || user.steam || user.psn || user.xbox) && (
           <div className="mt-8">
