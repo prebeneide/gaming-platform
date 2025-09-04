@@ -3,7 +3,6 @@ import { prisma } from "./prisma";
 /**
  * Update statistics for all participants in a match
  * This function is called when a match result is reported
- * It updates the UserGameRating table with new ratings and statistics
  */
 export async function updateStatsForMatchParticipants(matchId: string): Promise<void> {
   const match = await prisma.match.findUnique({
@@ -25,7 +24,14 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
 
   if (!match || !match.result) return;
 
-  // Update game ratings for this match
+  // Update stats for all participants
+  const updatePromises = match.participants.map(participant => 
+    updateUserStats(participant.userId)
+  );
+
+  await Promise.all(updatePromises);
+  
+  // Also ensure game ratings are updated for this match
   if (match.result.resultType === 'win' && match.result.winnerId) {
     const winnerId = match.result.winnerId;
     const losers = match.participants
@@ -200,6 +206,7 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
 
             // For draws, both players get small rating changes
             const ratingDiff = Math.abs(player1Rating.rating - player2Rating.rating);
+            const drawRatingChange = Math.max(1, Math.floor(ratingDiff / 100));
             
             // Update player1 rating
             await prisma.userGameRating.update({
@@ -252,5 +259,37 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
         }
       }
     }
+  }
+}
+
+/**
+ * Update user statistics in database
+ * This is a simplified version that only updates the UserStats table
+ * The main statistics are now calculated by getUnifiedUserStats
+ */
+async function updateUserStats(userId: string): Promise<void> {
+  // For now, we'll just update the UserStats table with basic info
+  // The main statistics are calculated by getUnifiedUserStats from Match table
+  
+  const userStats = await prisma.userStats.findUnique({
+    where: { userId }
+  });
+
+  if (!userStats) {
+    // Create basic UserStats entry if it doesn't exist
+    await prisma.userStats.create({
+      data: {
+        userId,
+        matchesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+        winPercent: 0,
+        winLossRatio: 0,
+        rating: 1200,
+        rank: 'Unranked',
+        last10Results: []
+      }
+    });
   }
 }

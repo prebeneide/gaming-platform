@@ -7,7 +7,6 @@ import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
 import Link from "next/link";
 import Image from "next/image";
-import AvatarPresence, { PresenceStatus } from "@/components/AvatarPresence";
 import UserAvatar from "@/components/UserAvatar";
 
 interface Notification {
