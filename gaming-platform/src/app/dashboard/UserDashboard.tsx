@@ -38,11 +38,11 @@ export default function UserDashboard({ user, unifiedStats, socialStats }: {
 
   // Use real statistics if available, otherwise fallback to mock data
   const stats = unifiedStats ? {
-    matchesPlayed: unifiedStats.matchesPlayed,
-    wins: unifiedStats.wins,
-    losses: unifiedStats.losses,
-    draws: unifiedStats.draws,
-    rank: unifiedStats.rank,
+    matchesPlayed: unifiedStats.overall.matchesPlayed,
+    wins: unifiedStats.overall.wins,
+    losses: unifiedStats.overall.losses,
+    draws: unifiedStats.overall.draws,
+    rank: unifiedStats.overall.bestRatingTier,
     registeredAt: "2024-05-01", // This could be fetched from user data
   } : {
     matchesPlayed: 14,
@@ -93,11 +93,11 @@ export default function UserDashboard({ user, unifiedStats, socialStats }: {
   ];
 
   // Form: de 10 siste kampene (W/L/D)
-  const last10 = unifiedStats ? unifiedStats.last10Results : ["W", "L", "D", "L", "W", "W", "W", "L", "D", "D"];
+  const last10 = unifiedStats ? unifiedStats.overall.last10Results : ["W", "L", "D", "L", "W", "W", "W", "L", "D", "D"];
 
   // Win% og Win/Loss Ratio
-  const winPercent = unifiedStats ? unifiedStats.winPercent : (stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0);
-  const winLossRatio = unifiedStats ? unifiedStats.winLossRatio : (stats.losses > 0 ? (stats.wins / stats.losses).toFixed(2) : "∞");
+  const winPercent = unifiedStats ? unifiedStats.overall.winPercent : (stats.matchesPlayed > 0 ? Math.round((stats.wins / stats.matchesPlayed) * 100) : 0);
+  const winLossRatio = unifiedStats ? unifiedStats.overall.winLossRatio : (stats.losses > 0 ? (stats.wins / stats.losses).toFixed(2) : "∞");
 
   // Dynamiske tekstfarger for lys/mørk modus
   const secondaryText = lightMode ? "text-gray-700" : "text-gray-400";
