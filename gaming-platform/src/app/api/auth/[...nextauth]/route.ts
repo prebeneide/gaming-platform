@@ -8,10 +8,12 @@ import bcrypt from "bcryptjs";
 // Utvid NextAuth types
 declare module "next-auth" {
   interface User {
+    role: string;
     id: string;
     username: string;
   }
   interface Session {
+      role: string;
     user: User & {
       id: string;
       username: string;
@@ -21,6 +23,7 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
+    role: string;
     id: string;
     username: string;
   }
@@ -61,6 +64,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
+          role: user.role,
           id: user.id,
           email: user.email,
           username: user.username,
@@ -80,6 +84,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.username = user.username;
+        token.role = user.role;
         token.image = user.image;
       }
       return token;
@@ -91,6 +96,7 @@ export const authOptions: NextAuthOptions = {
           const user = await prisma.user.findUnique({
             where: { id: token.id },
             select: {
+              role: true,
               id: true,
               email: true,
               username: true,
@@ -102,6 +108,7 @@ export const authOptions: NextAuthOptions = {
           if (user) {
             session.user.id = user.id;
             session.user.username = user.username;
+            session.user.role = user.role;
             session.user.image = user.image;
             // Legg til displayName i session
             (session.user as any).displayName = user.displayName;

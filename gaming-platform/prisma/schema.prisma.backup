@@ -25,7 +25,6 @@ model User {
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   lastActiveAt           DateTime?
-  role                  String             @default("user")
   followers              Follower[]         @relation("UserFollowers")
   following              Follower[]         @relation("UserFollowing")
   friendRequestsSent     FriendRequest[]    @relation("FriendRequestFrom")
@@ -39,7 +38,6 @@ model User {
   UserGameRating         UserGameRating[]
   stats                  UserStats?
   wallet                 UserWallet?
-  activityLogs          ActivityLog[]
 }
 
 model UserStats {
@@ -222,23 +220,4 @@ model UserGameRating {
   User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, gameName])
-}
-
-model ActivityLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  action      String   // e.g., "user_registered", "match_created", "rating_updated"
-  entityType  String?  // e.g., "User", "Match", "Rating"
-  entityId    String?  // ID of the affected entity
-  details     Json?    // Additional details about the action
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-  
-  // Optional relation to User (if action was performed by a user)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  @@index([action])
-  @@index([entityType])
-  @@index([createdAt])
 }
