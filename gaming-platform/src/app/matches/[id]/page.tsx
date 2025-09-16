@@ -555,14 +555,15 @@ export default function MatchDetailsPage() {
       <div className="w-full max-w-xl mx-auto bg-neutral-950 rounded-2xl shadow-xl border border-neutral-800 overflow-hidden">
         {/* Creator info */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-2">
-          <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-pink-500 flex-shrink-0">
-            <Image
-              src={match.creator.image || "/default-avatar.svg"}
-              alt={match.creator.displayName || match.creator.username}
-              fill
-              className="object-cover"
-            />
-          </div>
+          <UserAvatar 
+            user={{
+              image: match.creator.image,
+              username: match.creator.username,
+              displayName: match.creator.displayName
+            }}
+            size={44}
+            ring={true}
+          />
           <div>
             <div className="font-bold text-lg text-white">{match.creator.displayName || match.creator.username}</div>
             <div className="text-xs text-gray-400">Created {new Date(match.createdAt).toLocaleString()}</div>

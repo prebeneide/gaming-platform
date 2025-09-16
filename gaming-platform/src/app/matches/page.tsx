@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { FiSearch } from "react-icons/fi";
+import UserAvatar from "@/components/UserAvatar";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -77,14 +78,15 @@ function MatchCard({ match }: { match: Match }) {
     <div className="w-full max-w-xl mx-auto bg-neutral-950 rounded-2xl shadow-xl border border-neutral-800 overflow-hidden">
       {/* Top: Creator info */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-2">
-        <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-pink-500 flex-shrink-0">
-          <Image
-            src={match.creator.image || "/default-avatar.svg"}
-            alt={match.creator.displayName || match.creator.username}
-            fill
-            className="object-cover"
-          />
-        </div>
+        <UserAvatar 
+          user={{
+            image: match.creator.image,
+            username: match.creator.username,
+            displayName: match.creator.displayName
+          }}
+          size={44}
+          ring={true}
+        />
         <div>
           <div className="font-bold text-lg text-white">{match.creator.displayName || match.creator.username}</div>
           <div className="text-xs text-gray-400">Created {new Date(match.createdAt).toLocaleString()}</div>
@@ -169,11 +171,15 @@ function MatchCard({ match }: { match: Match }) {
               {match.participants.map((participant) => (
                 <div key={participant.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center">
-                      <span className="text-xs text-white">
-                        {participant.user.displayName?.charAt(0) || participant.user.username.charAt(0)}
-                      </span>
-                    </div>
+                    <UserAvatar 
+                      user={{
+                        image: participant.user.image,
+                        username: participant.user.username,
+                        displayName: participant.user.displayName
+                      }}
+                      size={24}
+                      ring={true}
+                    />
                     <span className="text-sm text-gray-300">
                       {participant.user.displayName || participant.user.username}
                     </span>

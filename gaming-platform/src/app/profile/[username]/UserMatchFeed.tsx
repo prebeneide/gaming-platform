@@ -179,11 +179,15 @@ function UserMatchCard({ match, username }: { match: Match; username: string }) 
               {match.participants.map((participant) => (
                 <div key={participant.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center">
-                      <span className="text-xs text-white">
-                        {participant.user.displayName?.charAt(0) || participant.user.username.charAt(0)}
-                      </span>
-                    </div>
+                    <UserAvatar 
+                      user={{
+                        image: participant.user.image,
+                        username: participant.user.username,
+                        displayName: participant.user.displayName
+                      }}
+                      size={24}
+                      ring={true}
+                    />
                     <span className="text-sm text-gray-300">
                       {participant.user.displayName || participant.user.username}
                     </span>
