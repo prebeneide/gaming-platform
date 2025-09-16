@@ -144,6 +144,52 @@ function MatchCard({ match }: { match: Match }) {
             <div className="text-xs text-gray-400">Players</div>
           </div>
         </div>
+
+        {/* Match Result Section - Only show if completed */}
+        {match.status === 'completed' && match.result && (
+          <div className="mt-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg text-center">
+            <div className="text-green-400 font-bold text-sm mb-2">🏆 Winner</div>
+            {match.participants && match.result.winnerId && (
+              <div className="text-white font-semibold">
+                {match.participants.find(p => p.user.id === match.result?.winnerId)?.user.displayName || 
+                 match.participants.find(p => p.user.id === match.result?.winnerId)?.user.username}
+              </div>
+            )}
+            <div className="text-xs text-green-300 mt-1">
+              Completed: {new Date(match.result.createdAt).toLocaleString()}
+            </div>
+          </div>
+        )}
+
+        {/* Participants Section - Only show if completed */}
+        {match.status === 'completed' && match.participants && (
+          <div className="mt-3">
+            <div className="text-white font-semibold text-sm mb-2">Participants</div>
+            <div className="space-y-2">
+              {match.participants.map((participant) => (
+                <div key={participant.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center">
+                      <span className="text-xs text-white">
+                        {participant.user.displayName?.charAt(0) || participant.user.username.charAt(0)}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-300">
+                      {participant.user.displayName || participant.user.username}
+                    </span>
+                  </div>
+                  <div className={`px-2 py-1 rounded text-xs font-medium ${
+                    participant.user.id === match.result?.winnerId 
+                      ? 'bg-yellow-600 text-white' 
+                      : 'bg-gray-600 text-gray-300'
+                  }`}>
+                    {participant.user.id === match.result?.winnerId ? 'Winner' : 'Participant'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <Link href={`/matches/${match.id}`} className="mt-4 w-full block text-center bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2 rounded-lg hover:opacity-90 transition">
           View Details
         </Link>
