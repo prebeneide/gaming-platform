@@ -132,12 +132,12 @@ function UserMatchCard({ match, username }: { match: Match; username: string }) 
         </div>
 
         <div className="flex flex-wrap gap-3 text-sm text-gray-300">
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.gameMode}</span>
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionType}</span>
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionFormat}</span>
-          {match.matchType && <span className="bg-neutral-800 rounded px-2 py-1">{match.matchType}</span>}
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.platform}</span>
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.visibility}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{match.gameMode.charAt(0).toUpperCase() + match.gameMode.slice(1)}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionType.charAt(0).toUpperCase() + match.competitionType.slice(1)}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionFormat.charAt(0).toUpperCase() + match.competitionFormat.slice(1)}</span>
+          {match.matchType && <span className="bg-neutral-800 rounded px-2 py-1">{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>}
+          <span className="bg-neutral-800 rounded px-2 py-1">{match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{match.visibility.charAt(0).toUpperCase() + match.visibility.slice(1)}</span>
         </div>
 
         <div className="flex items-center gap-6 mt-2">

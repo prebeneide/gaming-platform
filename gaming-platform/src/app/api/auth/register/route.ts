@@ -23,20 +23,6 @@ export async function POST(req: NextRequest) {
     // Validering
     if (!email || !username || !password) {
       return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
         { error: "All fields are required" },
         { status: 400 }
       );
@@ -46,20 +32,6 @@ export async function POST(req: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
         { error: "Invalid email format" },
         { status: 400 }
       );
@@ -68,20 +40,6 @@ export async function POST(req: NextRequest) {
     // Brukernavn validering
     if (username.length < 3 || username.length > 20) {
       return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
         { error: "Username must be between 3 and 20 characters" },
         { status: 400 }
       );
@@ -90,20 +48,6 @@ export async function POST(req: NextRequest) {
     // Passord validering
     if (password.length < 8) {
       return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
         { error: "Password must be at least 8 characters long" },
         { status: 400 }
       );
@@ -121,20 +65,6 @@ export async function POST(req: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
         { error: "Email or username already exists" },
         { status: 400 }
       );
@@ -158,8 +88,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-
     // Log user registration
     await logActivity({
       userId: user.id,
@@ -173,51 +101,27 @@ export async function POST(req: NextRequest) {
       ipAddress: req.headers.get("x-forwarded-for") || "unknown",
       userAgent: req.headers.get("user-agent") || "unknown"
     });
+
+    return NextResponse.json(
       { message: "User created successfully" },
       { status: 201 }
     );
   } catch (error) {
     console.error("Registration error:", error);
     const errMsg = (error instanceof Error) ? error.message : String(error);
+    
     // Håndter rate limit feil
     if (errMsg.includes("rate limit")) {
       return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
         { error: "Too many registration attempts. Please try again later." },
         { status: 429 }
       );
     }
+    
     // Returner mer detaljert feilmelding for debugging
     return NextResponse.json(
-
-    // Log user registration
-    await logActivity({
-      userId: user.id,
-      action: ActivityTypes.USER_REGISTERED,
-      entityType: "User",
-      entityId: user.id,
-      details: {
-        email: user.email,
-        username: user.username
-      },
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown"
-    });
       { error: errMsg, details: JSON.stringify(error) },
       { status: 500 }
     );
   }
-} 
+}
