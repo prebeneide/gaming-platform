@@ -85,7 +85,7 @@ export default function UserAvatar({
             <span 
               className="text-white font-semibold select-none"
               style={{ 
-                fontSize: Math.max(12, Math.floor(size * 0.3))
+                fontSize: Math.max(8, Math.floor(size * 0.25))
               }}
             >
               {initials}
