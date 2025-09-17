@@ -168,31 +168,34 @@ function MatchCard({ match }: { match: Match }) {
           <div className="mt-3">
             <div className="text-white font-semibold text-sm mb-2">Participants</div>
             <div className="space-y-2">
-              {match.participants.map((participant) => (
-                <div key={participant.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <UserAvatar 
-                      user={{
-                        image: participant.user.image,
-                        username: participant.user.username,
-                        displayName: participant.user.displayName
-                      }}
-                      size={24}
-                      ring={true}
-                    />
-                    <span className="text-sm text-gray-300">
-                      {participant.user.displayName || participant.user.username}
-                    </span>
+              {match.participants.map((participant) => {
+                const isWinner = match.result?.winnerId === participant.user.id;
+                return (
+                  <div key={participant.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar 
+                        user={{
+                          image: participant.user.image,
+                          username: participant.user.username,
+                          displayName: participant.user.displayName
+                        }}
+                        size={24}
+                        ring={true}
+                      />
+                      <span className="text-sm text-gray-300">
+                        {participant.user.displayName || participant.user.username}
+                      </span>
+                    </div>
+                    <div className={`px-2 py-1 rounded text-xs font-medium ${
+                      isWinner 
+                        ? 'bg-yellow-600 text-white' 
+                        : 'bg-gray-600 text-gray-300'
+                    }`}>
+                      {isWinner ? 'Winner' : 'Participant'}
+                    </div>
                   </div>
-                  <div className={`px-2 py-1 rounded text-xs font-medium ${
-                    participant.user.id === match.result?.winnerId 
-                      ? 'bg-yellow-600 text-white' 
-                      : 'bg-gray-600 text-gray-300'
-                  }`}>
-                    {participant.user.id === match.result?.winnerId ? 'Winner' : 'Participant'}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

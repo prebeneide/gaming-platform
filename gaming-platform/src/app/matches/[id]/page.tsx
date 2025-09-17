@@ -755,9 +755,17 @@ export default function MatchDetailsPage() {
                     ring={true}
                   />
                   <div className="text-white font-medium text-sm">{p.user.displayName || p.user.username}</div>
-                  {/* Status eller Reported badge - kun vis for deltakere eller hvis matchen er completed/disputed */}
+                  {/* Status badge - vis Winner/Participant for completed matches, ellers vis status */}
                   {(isParticipant || match.status === 'completed' || match.status === 'disputed') && (
-                    p.hasReportedResult ? (
+                    match.status === 'completed' ? (
+                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full font-semibold ${
+                        match.result?.winnerId === p.user.id 
+                          ? 'bg-yellow-600 text-white border border-yellow-400' 
+                          : 'bg-gray-600 text-gray-300 border border-gray-500'
+                      }`}>
+                        {match.result?.winnerId === p.user.id ? 'Winner' : 'Participant'}
+                      </span>
+                    ) : p.hasReportedResult ? (
                       <span className="ml-2 text-xs px-2 py-0.5 rounded-full font-semibold bg-green-600 text-white border border-green-400">Reported</span>
                     ) : (
                       match.status === 'in_progress' ? (
