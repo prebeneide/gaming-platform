@@ -54,6 +54,66 @@ export default async function DashboardPage() {
     }
   });
 
+  // Get friends data for Friends Online section
+  const friendships = await prisma.friendRequest.findMany({
+    where: { 
+      status: "accepted", 
+      OR: [{ fromId: userDb.id }, { toId: userDb.id }] 
+    },
+    select: {
+      from: { 
+        select: { 
+          id: true, 
+          username: true, 
+          displayName: true, 
+          image: true, 
+          lastActiveAt: true 
+        } 
+      },
+      to: { 
+        select: { 
+          id: true, 
+          username: true, 
+          displayName: true, 
+          image: true, 
+          lastActiveAt: true 
+        } 
+      },
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10, // Limit to 10 friends for dashboard
+  });
+
+  // Process friends data
+  const friends = friendships.map((fr) => {
+    const other = fr.from.id === userDb.id ? fr.to : fr.from;
+    const now = new Date();
+    const lastActive = other.lastActiveAt ? new Date(other.lastActiveAt) : null;
+    
+    // Determine online status
+    let status: "online" | "recent" | "offline" = "offline";
+    if (lastActive) {
+      const timeDiff = now.getTime() - lastActive.getTime();
+      const minutesAgo = timeDiff / (1000 * 60);
+      
+      if (minutesAgo <= 5) {
+        status = "online";
+      } else if (minutesAgo <= 60) {
+        status = "recent";
+      }
+    }
+
+    return {
+      id: other.id,
+      name: other.displayName || other.username,
+      username: other.username,
+      image: other.image,
+      status: status,
+      lastActiveAt: lastActive,
+    };
+  });
+
   return (
     <div className="min-h-screen bg-black text-white">
       <UserDashboard 
@@ -64,6 +124,7 @@ export default async function DashboardPage() {
           following: followingCount,
           friends: friendsCount
         }}
+        friends={friends}
       />
     </div>
   );

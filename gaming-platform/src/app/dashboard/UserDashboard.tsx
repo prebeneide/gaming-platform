@@ -10,7 +10,7 @@ import UserAvatar from "@/components/UserAvatar";
 import UnifiedStatsDisplay from "@/components/UnifiedStatsDisplay";
 import { UnifiedUserStats } from "@/lib/unifiedStats";
 
-export default function UserDashboard({ user, unifiedStats, socialStats }: { 
+export default function UserDashboard({ user, unifiedStats, socialStats, friends = [] }: { 
   user: {
     email?: string | null;
     username?: string | null;
@@ -32,6 +32,14 @@ export default function UserDashboard({ user, unifiedStats, socialStats }: {
     following: number;
     friends: number;
   };
+  friends?: Array<{
+    id: string;
+    name: string;
+    username: string;
+    image?: string | null;
+    status: "online" | "recent" | "offline";
+    lastActiveAt?: Date | null;
+  }>;
 }) {
   const router = useRouter();
   const [lightMode, setLightMode] = useState(false);
@@ -104,48 +112,21 @@ export default function UserDashboard({ user, unifiedStats, socialStats }: {
   const tertiaryText = lightMode ? "text-gray-800" : "text-gray-300";
 
   // Mock-venner
-  const friends = [
-    {
-      id: 1,
-      name: "alexgamer",
-      image: "/default-avatar.svg",
-      status: "online",
-      game: "FIFA 24",
-      console: "PS5",
-    },
-    {
-      id: 2,
-      name: "lisa_pro",
-      image: "/default-avatar.svg",
-      status: "recent",
-      game: "Rocket League",
-      console: "PC",
-    },
-    {
-      id: 3,
-      name: "noobmaster",
-      image: "/default-avatar.svg",
-      status: "offline",
-      game: null,
-      console: null,
-    },
-    {
-      id: 4,
-      name: "sarah",
-      image: "/default-avatar.svg",
-      status: "online",
-      game: "Call of Duty",
-      console: "Xbox",
-    },
-    {
-      id: 5,
-      name: "mario",
-      image: "/default-avatar.svg",
-      status: "recent",
-      game: null,
-      console: null,
-    },
-  ];
+  // Helper function to format last active time
+  const formatLastActive = (lastActiveAt: Date | null | undefined) => {
+    if (!lastActiveAt) return "Never";
+    
+    const now = new Date();
+    const diffMs = now.getTime() - lastActiveAt.getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMinutes < 1) return "Just now";
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
 
   const handleSignOut = async () => {
     // Start redirect først
@@ -194,62 +175,61 @@ export default function UserDashboard({ user, unifiedStats, socialStats }: {
           />
         </div>
 
-        {/* Friends Online */}
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold text-pink-400 mb-4 text-center">Friends Online</h2>
-          <div className="flex flex-row gap-4 overflow-x-auto pb-2 hide-scrollbar">
-            {friends.map(friend => (
-              <div
-                key={friend.id}
-                className={`flex flex-col items-center justify-center gap-2 p-5 rounded-2xl shadow border transition min-w-[220px] min-h-[150px] max-w-xs
-                  ${lightMode
-                    ? friend.status === "online"
-                      ? "bg-green-50 border-green-100"
-                      : friend.status === "recent"
-                      ? "bg-yellow-50 border-yellow-100"
-                      : "bg-gray-100 border-gray-200"
-                    : "bg-neutral-900 border-neutral-950"}
-                `}
-              >
-                <div className="relative mb-1">
-                  <UserAvatar 
-                    user={{
-                      image: friend.image,
-                      username: friend.name,
-                      displayName: friend.name
-                    }}
-                    size={48}
-                    ring={true}
-                  />
-                  <span className={`absolute -bottom-1 -right-1 block w-4 h-4 rounded-full border-2 border-white ${
-                    friend.status === "online"
-                      ? "bg-green-400"
-                      : friend.status === "recent"
-                      ? "bg-yellow-400"
-                      : "bg-gray-400"
-                  }`}></span>
-                </div>
-                <span className="font-semibold text-lg text-center w-full truncate">{friend.name}</span>
-                <span className="text-xs text-center w-full truncate text-gray-500">
-                  {friend.status === "online"
-                    ? "Online"
-                    : friend.status === "recent"
-                    ? "Recently active"
-                    : "Offline"}
-                  {friend.game && (
-                    <span> • {friend.game} ({friend.console})</span>
-                  )}
-                </span>
-                <button
-                  className="mt-2 px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition disabled:opacity-50"
-                  disabled={friend.status === "offline"}
+        {/* Friends Online - Only show if user has friends */}
+        {friends.length > 0 && (
+          <div className="mt-4">
+            <h2 className="text-xl font-semibold text-pink-400 mb-4 text-center">Friends Online</h2>
+            <div className="flex flex-row gap-4 overflow-x-auto pb-2 hide-scrollbar">
+              {friends.map(friend => (
+                <div
+                  key={friend.id}
+                  className={`flex flex-col items-center justify-center gap-2 p-5 rounded-2xl shadow border transition min-w-[220px] min-h-[150px] max-w-xs
+                    ${lightMode
+                      ? friend.status === "online"
+                        ? "bg-green-50 border-green-100"
+                        : friend.status === "recent"
+                        ? "bg-yellow-50 border-yellow-100"
+                        : "bg-gray-100 border-gray-200"
+                      : "bg-neutral-900 border-neutral-950"}
+                  `}
                 >
-                  Invite
-                </button>
-              </div>
-            ))}
+                  <div className="relative mb-1">
+                    <UserAvatar 
+                      user={{
+                        image: friend.image,
+                        username: friend.username,
+                        displayName: friend.name
+                      }}
+                      size={48}
+                      ring={true}
+                    />
+                    <span className={`absolute -bottom-1 -right-1 block w-4 h-4 rounded-full border-2 border-white ${
+                      friend.status === "online"
+                        ? "bg-green-400"
+                        : friend.status === "recent"
+                        ? "bg-yellow-400"
+                        : "bg-gray-400"
+                    }`}></span>
+                  </div>
+                  <span className="font-semibold text-lg text-center w-full truncate">{friend.name}</span>
+                  <span className="text-xs text-center w-full truncate text-gray-500">
+                    {friend.status === "online"
+                      ? "Online"
+                      : friend.status === "recent"
+                      ? `Recently active • ${formatLastActive(friend.lastActiveAt)}`
+                      : `Offline • ${formatLastActive(friend.lastActiveAt)}`}
+                  </span>
+                  <button
+                    className="mt-2 px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition disabled:opacity-50"
+                    disabled={friend.status === "offline"}
+                  >
+                    Invite
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
         {/* Siste matcher */}
         <div>
           <h2 className="text-xl font-semibold text-pink-400 mb-2 text-center">Recent Matches</h2>
