@@ -70,12 +70,21 @@ export default function UnifiedStatsDisplay({
           <button
             key={rating.id}
             onClick={() => setSelectedGame(rating.gameName)}
-            className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+            className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-1 sm:gap-2 ${
               selectedGame === rating.gameName
                 ? 'bg-pink-500 text-white' 
                 : 'bg-neutral-800 text-gray-300 hover:bg-neutral-700'
             }`}
           >
+            <div className="relative w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded overflow-hidden flex-shrink-0">
+              <Image
+                src={getGameImage(rating.gameName)}
+                alt={rating.gameName}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 16px, (max-width: 768px) 20px, 24px"
+              />
+            </div>
             {rating.gameName}
           </button>
         ))}
