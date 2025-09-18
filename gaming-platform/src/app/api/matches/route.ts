@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { createMatchInviteNotification } from "@/lib/notifications";
+import { getMatches } from "@/lib/matchService";
 
 const prisma = new PrismaClient();
 
@@ -200,65 +201,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/matches - List all open matches with full info
+// GET /api/matches - List all matches with full info
 export async function GET() {
   try {
-    const matches = await prisma.match.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        gameName: true,
-        gameMode: true,
-        competitionType: true,
-        competitionFormat: true,
-        matchType: true,
-        platform: true,
-        buyIn: true,
-        totalPot: true,
-        potentialWinnings: true,
-        visibility: true,
-        status: true,
-        maxPlayers: true,
-        currentPlayers: true,
-        mediaUrl: true,
-        mediaType: true,
-        createdAt: true,
-        creator: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            image: true,
-          }
-        },
-        participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                image: true,
-              },
-            },
-          },
-        },
-        result: {
-          select: {
-            id: true,
-            winnerId: true,
-            resultType: true,
-            status: true,
-            agreedBy: true,
-            disputedBy: true,
-            payoutAmount: true,
-            createdAt: true,
-            completedAt: true,
-          },
-        },
-      },
-    });
+    const matches = await getMatches();
     return NextResponse.json({ matches });
   } catch (error) {
     console.error("Get matches error:", error);

@@ -9,7 +9,7 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
-      participants: {
+          participants: {
         select: {
           userId: true
         }
@@ -50,6 +50,7 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
           if (!winnerRating) {
             winnerRating = await prisma.userGameRating.create({
               data: {
+                id: `rating_${winnerId}_${matchWithGame.gameName}_${Date.now()}`,
                 userId: winnerId,
                 gameName: matchWithGame.gameName,
                 rating: 1200,
@@ -57,7 +58,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
                 wins: 0,
                 losses: 0,
                 draws: 0,
-                highestRating: 1200
+                highestRating: 1200,
+                updatedAt: new Date()
               }
             });
           }
@@ -69,6 +71,7 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
           if (!loserRating) {
             loserRating = await prisma.userGameRating.create({
               data: {
+                id: `rating_${loserId}_${matchWithGame.gameName}_${Date.now()}`,
                 userId: loserId,
                 gameName: matchWithGame.gameName,
                 rating: 1200,
@@ -76,7 +79,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
                 wins: 0,
                 losses: 0,
                 draws: 0,
-                highestRating: 1200
+                highestRating: 1200,
+                updatedAt: new Date()
               }
             });
           }
@@ -97,7 +101,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
               gamesPlayed: { increment: 1 },
               wins: { increment: 1 },
               highestRating: Math.max(winnerRating.highestRating, ratingCalculation.winnerNewRating),
-              lastGameAt: new Date()
+              lastGameAt: new Date(),
+              updatedAt: new Date()
             }
           });
 
@@ -108,7 +113,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
               rating: ratingCalculation.loserNewRating,
               gamesPlayed: { increment: 1 },
               losses: { increment: 1 },
-              lastGameAt: new Date()
+              lastGameAt: new Date(),
+              updatedAt: new Date()
             }
           });
 
@@ -167,6 +173,7 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
             if (!player1Rating) {
               player1Rating = await prisma.userGameRating.create({
                 data: {
+                  id: `rating_${player1}_${matchWithGame.gameName}_${Date.now()}`,
                   userId: player1,
                   gameName: matchWithGame.gameName,
                   rating: 1200,
@@ -174,7 +181,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
                   wins: 0,
                   losses: 0,
                   draws: 0,
-                  highestRating: 1200
+                  highestRating: 1200,
+                  updatedAt: new Date()
                 }
               });
             }
@@ -186,6 +194,7 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
             if (!player2Rating) {
               player2Rating = await prisma.userGameRating.create({
                 data: {
+                  id: `rating_${player2}_${matchWithGame.gameName}_${Date.now()}`,
                   userId: player2,
                   gameName: matchWithGame.gameName,
                   rating: 1200,
@@ -193,10 +202,11 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
                   wins: 0,
                   losses: 0,
                   draws: 0,
-                  highestRating: 1200
+                  highestRating: 1200,
+                  updatedAt: new Date()
                 }
               });
-            }
+}
 
             // For draws, both players get small rating changes
             const ratingDiff = Math.abs(player1Rating.rating - player2Rating.rating);
@@ -207,7 +217,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
               data: {
                 gamesPlayed: { increment: 1 },
                 draws: { increment: 1 },
-                lastGameAt: new Date()
+                lastGameAt: new Date(),
+                updatedAt: new Date()
               }
             });
 
@@ -217,7 +228,8 @@ export async function updateStatsForMatchParticipants(matchId: string): Promise<
               data: {
                 gamesPlayed: { increment: 1 },
                 draws: { increment: 1 },
-                lastGameAt: new Date()
+                lastGameAt: new Date(),
+                updatedAt: new Date()
               }
             });
 

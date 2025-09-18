@@ -1,72 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { getMatchById } from "@/lib/matchService";
 
 // GET /api/matches/[id] - Get a single match by id
 export async function GET(request: NextRequest, context: any) {
   const params = await context.params;
   try {
-    const match = await prisma.match.findUnique({
-      where: { id: params.id },
-      select: {
-        id: true,
-        name: true,
-        gameName: true,
-        gameMode: true,
-        competitionType: true,
-        competitionFormat: true,
-        matchType: true,
-        platform: true,
-        buyIn: true,
-        totalPot: true,
-        potentialWinnings: true,
-        visibility: true,
-        status: true,
-        maxPlayers: true,
-        currentPlayers: true,
-        mediaUrl: true,
-        mediaType: true,
-        createdAt: true,
-        scheduledAt: true,
-        creator: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            image: true,
-          },
-        },
-        participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                image: true,
-              },
-            },
-          },
-        },
-        result: {
-          select: {
-            id: true,
-            winnerId: true,
-            resultType: true,
-            status: true,
-            agreedBy: true,
-            disputedBy: true,
-            payoutAmount: true,
-            createdAt: true,
-            completedAt: true,
-          },
-        },
-      },
-    });
+    const match = await getMatchById(params.id);
+    
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
+
     return NextResponse.json({ match });
   } catch (error) {
     console.error("Get match by id error:", error);

@@ -3,16 +3,16 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    const username = params.username;
+    const { username } = await params;
 
     // Find user
     const user = await prisma.user.findUnique({
       where: { username },
       include: {
-        gameRatings: {
+        UserGameRating: {
           orderBy: { rating: 'desc' }
         }
       }
@@ -23,7 +23,7 @@ export async function GET(
     }
 
     // Transform data for frontend
-    const ratings = user.gameRatings.map(rating => ({
+    const ratings = user.UserGameRating.map(rating => ({
       gameName: rating.gameName,
       rating: rating.rating,
       gamesPlayed: rating.gamesPlayed,
