@@ -86,7 +86,21 @@ export async function POST(request: NextRequest) {
     const platformFee = totalPot * 0.10; // 10% platform fee
     const potentialWinnings = totalPot - platformFee;
 
-    // 6. Create the match in database (with wallet integration)
+    // 6. Get invited user IDs first
+    const invitedUserIds: string[] = [];
+    if (invitedUsers.length > 0) {
+      for (const username of invitedUsers) {
+        const invitedUser = await prisma.user.findUnique({
+          where: { username },
+          select: { id: true }
+        });
+        if (invitedUser) {
+          invitedUserIds.push(invitedUser.id);
+        }
+      }
+    }
+
+    // 7. Create the match in database (with wallet integration)
     const result = await prisma.$transaction(async (tx) => {
       // 1. Decrement wallet
       const updatedWallet = await tx.userWallet.update({
@@ -164,6 +178,23 @@ export async function POST(request: NextRequest) {
       return { match, updatedWallet };
     });
 
+    // Create invitations for invited users
+    if (invitedUserIds.length > 0) {
+      try {
+        await (prisma as any).matchInvitation.createMany({
+          data: invitedUserIds.map(userId => ({
+            matchId: result.match.id,
+            userId: userId,
+            status: 'pending'
+          }))
+        });
+        console.log('Invitations created successfully');
+      } catch (invitationError) {
+        console.error('Error creating invitations:', invitationError);
+        // Don't fail the entire match creation if invitations fail
+      }
+    }
+
     // Opprett notifications for invited users
     if (invitedUsers.length > 0) {
       try {
@@ -204,7 +235,11 @@ export async function POST(request: NextRequest) {
 // GET /api/matches - List all matches with full info
 export async function GET() {
   try {
-    const matches = await getMatches();
+    // Get user ID if authenticated
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id || undefined;
+    
+    const matches = await getMatches({}, userId);
     return NextResponse.json({ matches });
   } catch (error) {
     console.error("Get matches error:", error);

@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePopup } from "@/components/PopupProvider";
 
 const games = [
@@ -290,6 +290,8 @@ export default function MatchDetailsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const gameId = Number(searchParams.get('gameId'));
+  const invitedUser = searchParams.get('invite');
+  const visibilityParam = searchParams.get('visibility');
   const selectedGame = games.find((g) => g.id === gameId);
   const [selectedMode, setSelectedMode] = useState<string>("");
   const [selectedCompetition, setSelectedCompetition] = useState<string>("");
@@ -299,8 +301,10 @@ export default function MatchDetailsPage() {
   const [customBuyIn, setCustomBuyIn] = useState<string>("");
   const [matchName, setMatchName] = useState<string>("");
   const [nameError, setNameError] = useState<string>("");
-  const [visibility, setVisibility] = useState<typeof MATCH_VISIBILITY[keyof typeof MATCH_VISIBILITY]>(MATCH_VISIBILITY.PUBLIC);
-  const [invitedUsers, setInvitedUsers] = useState<string[]>([]); // usernames or ids
+  const [visibility, setVisibility] = useState<typeof MATCH_VISIBILITY[keyof typeof MATCH_VISIBILITY]>(
+    visibilityParam === 'private' ? MATCH_VISIBILITY.INVITE_ONLY : MATCH_VISIBILITY.PUBLIC
+  );
+  const [invitedUsers, setInvitedUsers] = useState<string[]>(invitedUser ? [invitedUser] : []); // usernames or ids
   const [acknowledged, setAcknowledged] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -318,6 +322,17 @@ export default function MatchDetailsPage() {
     { username: "bob" },
     { username: "charlie" },
   ];
+
+  // Set up invitation parameters
+  useEffect(() => {
+    if (invitedUser) {
+      // Pre-fill for invitation match
+      setSelectedFormat('1v1');
+      setMatchType('versus');
+      setVisibility(MATCH_VISIBILITY.INVITE_ONLY);
+      setInvitedUsers([invitedUser]);
+    }
+  }, [invitedUser]);
 
   if (!selectedGame) {
     return <div className="text-center text-red-500 mt-10">Game not found.</div>;
@@ -483,6 +498,13 @@ export default function MatchDetailsPage() {
       <h1 className="text-4xl md:text-5xl font-extrabold text-center mt-10 mb-8 text-white drop-shadow-lg">
         Match Details
       </h1>
+      {invitedUser && (
+        <div className="mb-4 p-4 bg-pink-900/60 border border-pink-600 rounded-lg text-pink-300 text-center max-w-md">
+          <b>🎮 Invitation Match</b><br />
+          <span className="font-semibold">Creating private match with @{invitedUser}</span><br />
+          <span className="block mt-2 text-sm">This will be a private 1v1 match between you and {invitedUser}</span>
+        </div>
+      )}
       <div className="bg-neutral-950 p-8 rounded-xl shadow-xl flex flex-col items-center gap-6">
         {/* Game Image and Name */}
         <div className="flex flex-col items-center gap-2">

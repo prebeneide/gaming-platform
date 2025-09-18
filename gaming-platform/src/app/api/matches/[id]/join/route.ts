@@ -5,8 +5,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest, context: { params: { id: string } }) {
-  const { params } = context;
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
   try {
     // Auth
     const session = await getServerSession(authOptions);
@@ -36,7 +36,16 @@ export async function POST(request: NextRequest, context: { params: { id: string
     // Fetch match
     const match = await prisma.match.findUnique({
       where: { id: params.id },
-      include: { participants: true }
+      include: { 
+        participants: true,
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true
+          }
+        }
+      }
     });
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
@@ -49,6 +58,49 @@ export async function POST(request: NextRequest, context: { params: { id: string
     }
     if (match.participants.some(p => p.userId === user.id)) {
       return NextResponse.json({ error: "You have already joined this match." }, { status: 400 });
+    }
+
+    // Check visibility and invitation requirements
+    if (match.visibility === "invite_only") {
+      // For invite-only matches, only invited users can join
+      // Check if this user was specifically invited
+      let invitation = null;
+      try {
+        invitation = await (prisma as any).matchInvitation.findFirst({
+          where: {
+            matchId: params.id,
+            userId: user.id,
+            status: "pending"
+          }
+        });
+      } catch (invitationError) {
+        console.error('Error checking invitation:', invitationError);
+        // If invitation check fails, treat as not invited
+        invitation = null;
+      }
+      
+      if (!invitation) {
+        return NextResponse.json({ 
+          error: "🔒 Private Match - This is an exclusive invitation-only match. Only invited players can join this game." 
+        }, { status: 403 });
+      }
+    } else if (match.visibility === "friends") {
+      // For friends-only matches, check if user is friends with creator
+      const friendship = await prisma.friendRequest.findFirst({
+        where: {
+          status: "accepted",
+          OR: [
+            { fromId: match.creator.id, toId: user.id },
+            { fromId: user.id, toId: match.creator.id }
+          ]
+        }
+      });
+      
+      if (!friendship) {
+        return NextResponse.json({ 
+          error: "👥 Friends Only - This match is exclusively for the creator's friends. Send a friend request to join!" 
+        }, { status: 403 });
+      }
     }
     // Wallet
     const wallet = await prisma.userWallet.findUnique({ where: { userId: user.id } });
@@ -87,6 +139,20 @@ export async function POST(request: NextRequest, context: { params: { id: string
               buyInTransactionId: joinTx.id,
             },
           },
+          // Update invitation status to accepted if this is an invite-only match
+          ...(match.visibility === "invite_only" && {
+            invitations: {
+              updateMany: {
+                where: {
+                  userId: user.id,
+                  status: "pending"
+                },
+                data: {
+                  status: "accepted"
+                }
+              }
+            }
+          })
         },
         select: {
           id: true,
@@ -132,7 +198,19 @@ export async function POST(request: NextRequest, context: { params: { id: string
       });
       return { updatedMatch, updatedWallet };
     });
-    return NextResponse.json({ match: updated.updatedMatch, newBalance: updated.updatedWallet.balance });
+    // Add special message for invited users
+    let successMessage = "Successfully joined the match!";
+    if (match.visibility === "invite_only") {
+      successMessage = "🎉 Welcome to your exclusive invitation match! You've been specially selected to join this private game.";
+    } else if (match.visibility === "friends") {
+      successMessage = "👥 Joined the friends-only match! Good luck playing with your friends!";
+    }
+    
+    return NextResponse.json({ 
+      match: updated.updatedMatch, 
+      newBalance: updated.updatedWallet.balance,
+      message: successMessage
+    });
   } catch (error) {
     console.error("Join match error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

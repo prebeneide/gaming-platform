@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const games = [
   {
@@ -56,9 +56,17 @@ export default function CreateMatchPage() {
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const [activeMatch, setActiveMatch] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [invitedUser, setInvitedUser] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
+    // Check for invitation parameters
+    const invite = searchParams.get('invite');
+    if (invite) {
+      setInvitedUser(invite);
+    }
+
     // Sjekk om brukeren er deltaker i en aktiv match
     async function checkActiveMatch() {
       try {
@@ -73,11 +81,17 @@ export default function CreateMatchPage() {
       setLoading(false);
     }
     checkActiveMatch();
-  }, []);
+  }, [searchParams]);
 
   const handleNext = () => {
     if (selectedGame && !activeMatch) {
-      router.push(`/matches/new/details?gameId=${selectedGame}`);
+      const params = new URLSearchParams();
+      params.set('gameId', selectedGame.toString());
+      if (invitedUser) {
+        params.set('invite', invitedUser);
+        params.set('visibility', 'private');
+      }
+      router.push(`/matches/new/details?${params.toString()}`);
     }
   };
 
@@ -90,6 +104,13 @@ export default function CreateMatchPage() {
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent drop-shadow">
           Pick a game
         </h2>
+        {invitedUser && (
+          <div className="mb-4 p-4 bg-pink-900/60 border border-pink-600 rounded-lg text-pink-300 text-center">
+            <b>🎮 Invitation Match</b><br />
+            <span className="font-semibold">You're creating a private match with @{invitedUser}</span><br />
+            <span className="block mt-2 text-sm">This will be a private 1v1 match between you and {invitedUser}</span>
+          </div>
+        )}
         {activeMatch && (
           <div className="mb-4 p-4 bg-yellow-900/60 border border-yellow-600 rounded-lg text-yellow-300 text-center">
             <b>You are already a participant in an active match:</b><br />

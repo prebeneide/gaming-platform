@@ -170,7 +170,7 @@ export default function MatchDetailsPage() {
   // 1. Legg til state for progressbar visning og timer
   const [showReportForm, setShowReportForm] = useState(false);
   const [progress, setProgress] = useState(0);
-  const progressDuration = 60; // sekunder
+  const progressDuration = 10; // sekunder (reduced for development)
 
   // Helper: Bestem brukerens rolle i matchen
   const getUserRole = () => {

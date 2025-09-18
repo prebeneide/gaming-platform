@@ -220,6 +220,14 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                       : `Offline • ${formatLastActive(friend.lastActiveAt)}`}
                   </span>
                   <button
+                    onClick={() => {
+                      // Navigate to match creation with invitation parameters
+                      const params = new URLSearchParams({
+                        invite: friend.username,
+                        visibility: 'private'
+                      });
+                      window.location.href = `/matches/new?${params.toString()}`;
+                    }}
                     className="mt-2 px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition disabled:opacity-50"
                     disabled={friend.status === "offline"}
                   >
