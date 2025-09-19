@@ -74,6 +74,21 @@ interface Match {
 // --- SIMPLE MATCHCARD (default) ---
 function MatchCard({ match }: { match: Match }) {
   const gameImg = gameImages[match.gameName] || "/Images/default-game.jpg";
+  
+  // Helper: Format visibility for display
+  const formatVisibility = (visibility: string) => {
+    switch (visibility) {
+      case 'invite_only':
+        return 'Invite Only';
+      case 'friends':
+        return 'Friends Only';
+      case 'public':
+        return 'Public';
+      default:
+        return visibility.charAt(0).toUpperCase() + visibility.slice(1);
+    }
+  };
+  
   return (
     <div className="w-full max-w-xl mx-auto bg-neutral-950 rounded-2xl shadow-xl border border-neutral-800 overflow-hidden">
       {/* Top: Creator info */}
@@ -130,7 +145,7 @@ function MatchCard({ match }: { match: Match }) {
           <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionFormat.charAt(0).toUpperCase() + match.competitionFormat.slice(1)}</span>
           {match.matchType && <span className="bg-neutral-800 rounded px-2 py-1">{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>}
           <span className="bg-neutral-800 rounded px-2 py-1">{match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}</span>
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.visibility.charAt(0).toUpperCase() + match.visibility.slice(1)}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{formatVisibility(match.visibility)}</span>
         </div>
         <div className="flex items-center gap-6 mt-2">
           <div>

@@ -38,7 +38,18 @@ export async function GET(request: NextRequest, context: any) {
         });
         
         if (!friendship) {
-          return NextResponse.json({ error: "Access denied" }, { status: 403 });
+          // Allow viewing but mark as restricted access
+          return NextResponse.json({ 
+            match: {
+              ...match,
+              restrictedAccess: true,
+              accessReason: match.visibility === "invite_only" 
+                ? "invite_only" 
+                : match.visibility === "friends" 
+                ? "friends_only" 
+                : "restricted"
+            }
+          });
         }
       }
     }

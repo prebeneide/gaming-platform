@@ -137,7 +137,7 @@ function UserMatchCard({ match, username }: { match: Match; username: string }) 
           <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionFormat.charAt(0).toUpperCase() + match.competitionFormat.slice(1)}</span>
           {match.matchType && <span className="bg-neutral-800 rounded px-2 py-1">{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>}
           <span className="bg-neutral-800 rounded px-2 py-1">{match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}</span>
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.visibility.charAt(0).toUpperCase() + match.visibility.slice(1)}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{formatVisibility(match.visibility)}</span>
         </div>
 
         <div className="flex items-center gap-6 mt-2">
@@ -223,6 +223,20 @@ export default function UserMatchFeed({ username }: { username: string }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper: Format visibility for display
+  const formatVisibility = (visibility: string) => {
+    switch (visibility) {
+      case 'invite_only':
+        return 'Invite Only';
+      case 'friends':
+        return 'Friends Only';
+      case 'public':
+        return 'Public';
+      default:
+        return visibility.charAt(0).toUpperCase() + visibility.slice(1);
+    }
+  };
 
   useEffect(() => {
     async function fetchUserMatches() {

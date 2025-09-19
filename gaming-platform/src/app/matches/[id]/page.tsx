@@ -149,6 +149,7 @@ export default function MatchDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [match, setMatch] = useState<Match | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [showJoinPopup, setShowJoinPopup] = useState(false);
@@ -172,6 +173,20 @@ export default function MatchDetailsPage() {
   const [progress, setProgress] = useState(0);
   const progressDuration = 10; // sekunder (reduced for development)
 
+  // Helper: Format visibility for display
+  const formatVisibility = (visibility: string) => {
+    switch (visibility) {
+      case 'invite_only':
+        return 'Invite Only';
+      case 'friends':
+        return 'Friends Only';
+      case 'public':
+        return 'Public';
+      default:
+        return visibility.charAt(0).toUpperCase() + visibility.slice(1);
+    }
+  };
+
   // Helper: Bestem brukerens rolle i matchen
   const getUserRole = () => {
     if (!match || !userId) return 'spectator';
@@ -193,8 +208,15 @@ export default function MatchDetailsPage() {
       try {
         const res = await fetch(`/api/matches/${id}`);
         const data = await res.json();
-        setMatch(data.match || null);
+        
+        if (res.ok) {
+          setMatch(data.match || null);
+        } else {
+          setError(data.error || "Failed to load match");
+          setMatch(null);
+        }
       } catch (err) {
+        setError("Failed to load match");
         setMatch(null);
       } finally {
         setLoading(false);
@@ -323,6 +345,20 @@ export default function MatchDetailsPage() {
   }, [match?.status, isParticipant]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading match...</div>;
+  
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-black text-white">
+      <div className="text-center">
+        <div className="text-red-500 text-xl mb-4">{error}</div>
+        <button 
+          onClick={() => window.history.back()}
+          className="px-4 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition"
+        >
+          Go Back
+        </button>
+      </div>
+    </div>
+  );
   if (!match) return <div className="min-h-screen flex items-center justify-center bg-black text-red-500">Match not found.</div>;
 
   const gameImg = gameImages[match.gameName] || "/Images/default-game.jpg";
@@ -610,6 +646,21 @@ export default function MatchDetailsPage() {
           </div>
         )}
 
+        {/* Restricted Access Info */}
+        {(match as any)?.restrictedAccess && isSpectator && (
+          <div className="mx-5 mb-4 p-4 rounded-lg text-center bg-neutral-900 border border-orange-700">
+            <div className="text-lg font-bold text-orange-400 mb-2">
+              {(match as any)?.accessReason === 'invite_only' ? '🔒 Private Match' : '👥 Friends Only'}
+            </div>
+            <div className="text-gray-200 text-sm">
+              {(match as any)?.accessReason === 'invite_only' 
+                ? 'This is an exclusive invitation-only match. Only invited players can join this game. You can watch as a spectator.'
+                : 'This match is exclusively for the creator\'s friends. Send a friend request to join! You can watch as a spectator.'
+              }
+            </div>
+          </div>
+        )}
+
         {/* Spectator Info for ready matches */}
         {match?.status === 'ready' && isSpectator && (
           <div className="mx-5 mb-4 p-4 rounded-lg text-center bg-neutral-900 border border-yellow-700">
@@ -666,7 +717,7 @@ export default function MatchDetailsPage() {
           <span className="bg-neutral-800 rounded px-2 py-1">{match.competitionFormat.charAt(0).toUpperCase() + match.competitionFormat.slice(1)}</span>
           {match.matchType && <span className="bg-neutral-800 rounded px-2 py-1">{match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}</span>}
           <span className="bg-neutral-800 rounded px-2 py-1">{match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}</span>
-          <span className="bg-neutral-800 rounded px-2 py-1">{match.visibility.charAt(0).toUpperCase() + match.visibility.slice(1)}</span>
+          <span className="bg-neutral-800 rounded px-2 py-1">{formatVisibility(match.visibility)}</span>
         </div>
           <div className="flex items-center gap-6 mt-2">
             <div>
@@ -939,7 +990,7 @@ export default function MatchDetailsPage() {
           {/* Action Buttons Section */}
           <div className="px-5 pb-5">
             {/* Join Match button - kun for tilskuere */}
-            {canJoin && isSpectator && (
+            {canJoin && isSpectator && !(match as any)?.restrictedAccess && (
               <button
                 onClick={handleJoinClick}
                 className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -947,6 +998,16 @@ export default function MatchDetailsPage() {
               >
                 {joining ? "Joining..." : `Join Match ($${match.buyIn.toFixed(2)})`}
               </button>
+            )}
+            
+            {/* Restricted Access Message */}
+            {(match as any)?.restrictedAccess && isSpectator && (
+              <div className="w-full bg-neutral-800 text-gray-400 font-bold py-2 rounded-lg text-center border border-orange-700">
+                {(match as any)?.accessReason === 'invite_only' 
+                  ? '🔒 Invitation Required to Join'
+                  : '👥 Friends Only - Send Friend Request to Join'
+                }
+              </div>
             )}
             {/* Hvis bruker ikke kan joine pga aktiv match, vis melding */}
             {!canJoin && isSpectator && activeMatch && (
