@@ -219,20 +219,31 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                       ? `Recently active • ${formatLastActive(friend.lastActiveAt)}`
                       : `Offline • ${formatLastActive(friend.lastActiveAt)}`}
                   </span>
-                  <button
-                    onClick={() => {
-                      // Navigate to match creation with invitation parameters
-                      const params = new URLSearchParams({
-                        invite: friend.username,
-                        visibility: 'private'
-                      });
-                      window.location.href = `/matches/new?${params.toString()}`;
-                    }}
-                    className="mt-2 px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition disabled:opacity-50"
-                    disabled={friend.status === "offline"}
-                  >
-                    Invite
-                  </button>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        // Navigate to match creation with invitation parameters
+                        const params = new URLSearchParams({
+                          invite: friend.username,
+                          visibility: 'private'
+                        });
+                        window.location.href = `/matches/new?${params.toString()}`;
+                      }}
+                      className="px-3 py-1 rounded bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition disabled:opacity-50"
+                      disabled={friend.status === "offline"}
+                    >
+                      Invite
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Navigate to personal chat with this friend
+                        window.location.href = `/chat/${friend.username}`;
+                      }}
+                      className="px-3 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-600 transition"
+                    >
+                      Chat
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
