@@ -42,7 +42,7 @@ export default function Home() {
               <div className="text-4xl mb-4 flex justify-start">
                 <span className="text-pink-400 animate-pulse-slow">🎮</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4 text-pink-400">Multiple Games</h3>
+              <h3 className="text-xl font-semibold mb-4 text-white">Multiple Games</h3>
               <p className="text-gray-300">
                 From Call of Duty to FIFA, choose from a wide range of popular games to compete in.
               </p>
@@ -54,7 +54,7 @@ export default function Home() {
               <div className="text-4xl mb-4 flex justify-start">
                 <span className="text-pink-400 animate-pulse-slow">💰</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4 text-pink-400">Win Real Prizes</h3>
+              <h3 className="text-xl font-semibold mb-4 text-white">Win Real Prizes</h3>
               <p className="text-gray-300">
                 Turn your gaming skills into real rewards with our secure payment system.
               </p>
@@ -66,7 +66,7 @@ export default function Home() {
               <div className="text-4xl mb-4 flex justify-start">
                 <span className="text-pink-400 animate-pulse-slow">👥</span>
               </div>
-              <h3 className="text-xl font-semibold mb-4 text-pink-400">Gaming Community</h3>
+              <h3 className="text-xl font-semibold mb-4 text-white">Gaming Community</h3>
               <p className="text-gray-300">
                 Connect with other players, make friends, and join exciting tournaments.
               </p>

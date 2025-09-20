@@ -80,7 +80,7 @@ export default async function FriendsPage() {
 
         {/* Innkommende forespørsler */}
         <div className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4 text-pink-400">Incoming Requests</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-white">Incoming Requests</h2>
           {incomingRequests.length === 0 ? (
             <p className="text-gray-400">No incoming friend requests</p>
           ) : (
@@ -123,7 +123,7 @@ export default async function FriendsPage() {
 
         {/* Utgående forespørsler */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4 text-pink-400">Outgoing Requests</h2>
+          <h2 className="text-2xl font-semibold mb-4 text-white">Outgoing Requests</h2>
           {outgoingRequests.length === 0 ? (
             <p className="text-gray-400">No outgoing friend requests</p>
           ) : (

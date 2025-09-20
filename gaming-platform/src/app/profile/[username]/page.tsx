@@ -139,7 +139,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         {/* Social Links nederst, vises kun hvis minst én link finnes */}
         {(user.discord || user.twitter || user.twitch || user.steam || user.psn || user.xbox) && (
           <div className="mt-8">
-            <h2 className="text-lg font-semibold mb-2 text-pink-400">Social Links</h2>
+            <h2 className="text-lg font-semibold mb-2 text-white">Social Links</h2>
             <ul className="flex flex-col gap-1">
               {user.discord && <li><b>Discord:</b> {user.discord}</li>}
               {user.twitter && <li><b>Twitter:</b> {user.twitter}</li>}
@@ -153,7 +153,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         {/* Custom Games */}
         {user.customGames && Array.isArray(user.customGames) && user.customGames.length > 0 && user.customGames.some((g: any) => g.game || g.username) && (
           <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-2 text-pink-400">Custom Games</h2>
+            <h2 className="text-lg font-semibold mb-2 text-white">Custom Games</h2>
             <ul className="flex flex-col gap-1">
               {user.customGames.map((g: any, idx: number) => ((g.game || g.username) ? <li key={idx}><b>{g.game}:</b> {g.username}</li> : null))}
             </ul>

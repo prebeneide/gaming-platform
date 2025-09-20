@@ -555,7 +555,7 @@ export default function MatchFeedPage() {
       
       {/* Filtrering: Dropdown + Chips */}
       <div className="max-w-4xl mx-auto mb-8 p-6 bg-neutral-950 rounded-xl border border-neutral-800">
-        <h2 className="text-xl font-bold mb-4 text-pink-400">Filter Matches</h2>
+        <h2 className="text-xl font-bold mb-4 text-white">Filter Matches</h2>
         
         {/* Dropdowns for hovedkategorier */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

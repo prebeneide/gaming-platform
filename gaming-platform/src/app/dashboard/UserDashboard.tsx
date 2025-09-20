@@ -185,7 +185,7 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
         {/* Friends Online - Only show if user has friends */}
         {friends.length > 0 && (
       <div className="mt-4">
-        <h2 className="text-xl font-semibold text-pink-400 mb-4 text-center">Friends Online</h2>
+        <h2 className="text-xl font-semibold text-white mb-4 text-center">Friends Online</h2>
         <div className="flex flex-row gap-4 overflow-x-auto pb-2 hide-scrollbar">
           {friends.map(friend => (
             <div
@@ -258,7 +258,7 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
         )}
         {/* Recent Matches - Modern Card Design */}
         <div className="mt-6">
-          <h2 className="text-2xl font-bold text-pink-400 mb-6 text-center">Recent Matches</h2>
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">My Recent Matches</h2>
           
           {recentMatches.length === 0 ? (
             <div className="text-center py-12">

@@ -25,7 +25,7 @@ export default function SettingsPage() {
         
         {/* Account Information */}
         <section>
-          <h2 className="text-lg font-semibold mb-2 text-pink-400">Account Information</h2>
+          <h2 className="text-lg font-semibold mb-2 text-white">Account Information</h2>
           <div className="text-lg text-gray-300 flex flex-col gap-1">
             <div><b>Email:</b> {session?.user?.email}</div>
             <div><b>Username:</b> {session?.user?.username}</div>
@@ -36,7 +36,7 @@ export default function SettingsPage() {
         
         {/* Change Password */}
         <section>
-          <h2 className="text-lg font-semibold mb-2 text-pink-400">Change Password</h2>
+          <h2 className="text-lg font-semibold mb-2 text-white">Change Password</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
             <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
@@ -45,7 +45,7 @@ export default function SettingsPage() {
         
         {/* Notifications */}
         <section>
-          <h2 className="text-lg font-semibold mb-2 text-pink-400">Notifications</h2>
+          <h2 className="text-lg font-semibold mb-2 text-white">Notifications</h2>
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} />

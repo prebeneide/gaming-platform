@@ -214,7 +214,7 @@ export default function EditProfilePage() {
           </section>
           {/* Sosiale lenker */}
           <section>
-            <h2 className="text-lg font-semibold mb-2 text-pink-400">Social Links</h2>
+            <h2 className="text-lg font-semibold mb-2 text-white">Social Links</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="w-full">
                 <label className="block text-sm mb-1">Discord</label>
@@ -245,7 +245,7 @@ export default function EditProfilePage() {
           {/* Custom Games */}
           <section>
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold text-pink-400">Custom Games</h2>
+              <h2 className="text-lg font-semibold text-white">Custom Games</h2>
               <button
                 type="button"
                 onClick={addGameRow}

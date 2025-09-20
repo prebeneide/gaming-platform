@@ -291,7 +291,7 @@ export default function UserMatchFeed({ username }: { username: string }) {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold mb-6 text-center text-pink-400">Match History</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center text-white">Match History</h2>
       <div className="flex flex-col gap-8">
         {matches.map((match) => (
           <UserMatchCard key={match.id} match={match} username={username} />

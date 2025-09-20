@@ -22,7 +22,7 @@ export default function UnifiedStatsDisplay({
 
   if (!stats.gameRatings || stats.gameRatings.length === 0) {
     return (
-      <div className={`bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 rounded-xl p-3 sm:p-4 md:p-6 border border-neutral-700 shadow-xl w-full ${className}`}>
+      <div className={`bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-xl w-full ${className}`}>
         <div className="text-center text-neutral-400">
           <div className="text-lg sm:text-xl md:text-2xl mb-2">🎮</div>
           <div className="text-sm sm:text-base md:text-lg font-semibold mb-2">No Game Ratings Yet</div>
@@ -49,7 +49,7 @@ export default function UnifiedStatsDisplay({
   const selectedRating = stats.gameRatings.find(r => r.gameName === selectedGame) || bestRating;
 
   return (
-    <div className={`bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 rounded-xl p-3 sm:p-4 md:p-6 border border-neutral-700 shadow-xl w-full ${className}`}>
+    <div className={`bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 rounded-xl p-3 sm:p-4 md:p-6 shadow-xl w-full ${className}`}>
       {/* Header */}
       <div className="text-center mb-3 sm:mb-4 md:mb-6">
         <h2 className="text-base sm:text-lg md:text-2xl font-bold text-white mb-1 sm:mb-2">Game Ratings</h2>
@@ -145,7 +145,7 @@ export default function UnifiedStatsDisplay({
 
       {/* Overall Statistics - Fully responsive */}
       <div className="border-t border-neutral-700 pt-3 sm:pt-4 md:pt-6">
-        <h3 className="text-sm sm:text-lg md:text-xl font-semibold text-pink-400 mb-2 sm:mb-3 md:mb-4 text-center">Overall Statistics</h3>
+        <h3 className="text-sm sm:text-lg md:text-xl font-semibold text-white mb-2 sm:mb-3 md:mb-4 text-center">Overall Statistics</h3>
         
         {/* First row - Matches, Wins, Losses, Draws - Fully responsive */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 md:gap-8 text-center mb-2 sm:mb-3 md:mb-4">

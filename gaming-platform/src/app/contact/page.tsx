@@ -46,7 +46,7 @@ export default function ContactPage() {
           {/* Contact Information */}
           <div className="space-y-8">
             <div>
-              <h2 className="text-2xl font-semibold mb-6 text-pink-400">Get in Touch</h2>
+              <h2 className="text-2xl font-semibold mb-6 text-white">Get in Touch</h2>
               <p className="text-gray-300 leading-relaxed mb-8">
                 Have questions about GameChallenger? Need support with your account? 
                 Want to report an issue? We're here to help!
@@ -102,7 +102,7 @@ export default function ContactPage() {
 
           {/* Contact Form */}
           <div className="bg-gray-900/30 rounded-lg p-8 border border-gray-800">
-            <h2 className="text-2xl font-semibold mb-6 text-pink-400">Send us a Message</h2>
+            <h2 className="text-2xl font-semibold mb-6 text-white">Send us a Message</h2>
             
             {submitStatus === "success" && (
               <div className="mb-6 p-4 bg-green-500/20 border border-green-500/30 rounded-lg">
