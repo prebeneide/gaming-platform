@@ -272,11 +272,17 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                 const gameImg = getGameImage(match.game);
                 
                 return (
-                  <div key={match.id} className={`relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
-                    lightMode 
-                      ? "bg-white shadow-sm" 
-                      : "bg-gradient-to-r from-neutral-900 to-neutral-800 shadow-lg"
-                  }`}>
+              <div 
+                key={match.id} 
+                onClick={() => {
+                  window.location.href = `/matches/${match.id}`;
+                }}
+                className={`relative overflow-hidden rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer ${
+                  lightMode 
+                    ? "bg-white shadow-sm" 
+                    : "bg-gradient-to-r from-neutral-900 to-neutral-800 shadow-lg"
+                }`}
+              >
                     {/* Background Game Image */}
                     <div className="absolute inset-0 opacity-20">
                       <img 
@@ -289,24 +295,32 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                     {/* Content */}
                     <div className="relative p-2">
                       <div className="flex items-center justify-between mb-1">
-                        {/* Opponent Info */}
-                        <div className="flex items-center gap-1.5">
-                          <UserAvatar 
-                            user={{
-                              image: match.opponent.image,
-                              username: match.opponent.username,
-                              displayName: match.opponent.displayName
-                            }}
-                            size={24}
-                            ring={true}
-                          />
-      <div>
-                            <div className="font-bold text-xs">
-                              vs {match.opponent.displayName || match.opponent.username}
-                            </div>
-                            <div className="text-xs text-gray-400">@{match.opponent.username}</div>
-                          </div>
-        </div>
+                    {/* Opponent Info */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/profile/${match.opponent.username}`;
+                      }}
+                      className="flex items-center gap-1.5 hover:bg-pink-500/10 rounded-lg p-2 -m-2 transition-all duration-200 hover:scale-105 group"
+                    >
+                      <UserAvatar 
+                        user={{
+                          image: match.opponent.image,
+                          username: match.opponent.username,
+                          displayName: match.opponent.displayName
+                        }}
+                        size={24}
+                        ring={true}
+                      />
+                      <div className="text-left">
+                        <div className="font-bold text-xs group-hover:text-pink-300 transition-colors duration-200">
+                          vs {match.opponent.displayName || match.opponent.username}
+                        </div>
+                        <div className="text-xs text-gray-400 group-hover:text-pink-400/80 transition-colors duration-200">
+                          @{match.opponent.username}
+                        </div>
+                      </div>
+                    </button>
                         
                         {/* Result Badge */}
                         <div className={`px-1.5 py-0.5 rounded-full font-bold text-xs ${

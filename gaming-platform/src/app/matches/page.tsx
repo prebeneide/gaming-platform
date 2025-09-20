@@ -71,7 +71,7 @@ interface Match {
   };
 }
 
-// --- SIMPLE MATCHCARD (default) ---
+// --- SIMPLE MATCHCARD (current active version) ---
 function MatchCard({ match }: { match: Match }) {
   const gameImg = gameImages[match.gameName] || "/Images/default-game.jpg";
   
@@ -223,83 +223,199 @@ function MatchCard({ match }: { match: Match }) {
 }
 // --- END SIMPLE MATCHCARD ---
 
-// --- DELUXE MATCHCARD (kommentert ut, aktiver ved behov) ---
+// --- DELUXE MATCHCARD (enhanced version with all features - commented out) ---
 /*
-function MatchCard({ match }: { match: Match }) {
+function DeluxeMatchCard({ match }: { match: Match }) {
   const gameImg = gameImages[match.gameName] || "/Images/default-game.jpg";
+  
+  // Helper: Format visibility for display
+  const formatVisibility = (visibility: string) => {
+    switch (visibility) {
+      case 'invite_only':
+        return 'Invite Only';
+      case 'friends':
+        return 'Friends Only';
+      case 'public':
+        return 'Public';
+      default:
+        return visibility.charAt(0).toUpperCase() + visibility.slice(1);
+    }
+  };
+  
   return (
-    <div className="w-full max-w-xl mx-auto bg-neutral-950 rounded-2xl shadow-xl border border-neutral-800 overflow-hidden transition-transform duration-200 hover:scale-105 hover:shadow-2xl group">
-      <div className="flex items-center gap-3 px-5 pt-5 pb-2">
-        <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-pink-500 flex-shrink-0">
-          <Image
-            src={match.creator.image || "/Images/default-avatar.png"}
-            alt={match.creator.displayName || match.creator.username}
-            fill
-            className="object-cover"
+    <div className="w-full max-w-xl mx-auto bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 rounded-3xl shadow-2xl border border-neutral-700/50 overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-pink-500/20 hover:shadow-2xl group backdrop-blur-sm">
+      <div className="flex items-center gap-4 px-6 pt-6 pb-3 bg-gradient-to-r from-neutral-900/50 to-transparent">
+        <div className="relative">
+          <UserAvatar 
+            user={{
+              image: match.creator.image,
+              username: match.creator.username,
+              displayName: match.creator.displayName
+            }}
+            size={48}
+            ring={true}
           />
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full border-2 border-neutral-950 animate-pulse"></div>
         </div>
-        <div>
-          <div className="font-bold text-lg text-white">{match.creator.displayName || match.creator.username}</div>
-          <div className="text-xs text-gray-400">Created {new Date(match.createdAt).toLocaleString()}</div>
+        <div className="flex-1">
+          <div className="font-bold text-xl text-white group-hover:text-pink-300 transition-colors duration-300">
+            {match.creator.displayName || match.creator.username}
+          </div>
+          <div className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-300">
+            Created {new Date(match.createdAt).toLocaleString()}
+          </div>
         </div>
       </div>
-      <div className="relative w-full aspect-video bg-black flex items-center justify-center">
+      
+      <div className="relative w-full aspect-video bg-black flex items-center justify-center overflow-hidden">
         {match.mediaUrl ? (
           match.mediaType === "video" ? (
-            <video src={match.mediaUrl} controls className="w-full h-full object-cover rounded-b-2xl" />
+            <video src={match.mediaUrl} controls className="w-full h-full object-cover" />
           ) : (
-            <Image src={match.mediaUrl} alt="Match media" fill className="object-cover rounded-b-2xl" />
+            <Image src={match.mediaUrl} alt="Match media" fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
           )
         ) : (
-          <Image src={gameImg} alt={match.gameName} fill className="object-cover opacity-80 rounded-b-2xl" />
+          <Image src={gameImg} alt={match.gameName} fill className="object-cover opacity-80 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500" />
         )}
-        <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none rounded-b-2xl" />
-        <div className="absolute top-2 left-2 px-3 py-1 text-xs font-bold text-pink-400 rounded-lg backdrop-blur-sm bg-black/40 border border-pink-400 shadow-md">
+        
+        <div className="absolute bottom-0 left-0 w-full h-1/3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-1/4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+        
+        <div className="absolute top-3 left-3 px-4 py-2 text-sm font-bold text-pink-400 rounded-xl backdrop-blur-md bg-black/60 border border-pink-400/50 shadow-lg group-hover:bg-pink-500/20 group-hover:border-pink-400 transition-all duration-300">
           {match.gameName}
         </div>
+        
+        <div className="absolute top-3 right-3">
+          <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase shadow-lg border-2 backdrop-blur-sm ${
+            match.status === 'open' 
+              ? 'bg-green-600/90 border-green-400 text-white animate-pulse shadow-green-500/50' 
+              : match.status === 'countdown' 
+              ? 'bg-orange-600/90 border-orange-400 text-white animate-pulse shadow-orange-500/50'
+              : match.status === 'ready' 
+              ? 'bg-yellow-600/90 border-yellow-400 text-white animate-pulse shadow-yellow-500/50'
+              : match.status === 'in_progress' 
+              ? 'bg-blue-600/90 border-blue-400 text-white animate-pulse shadow-blue-500/50'
+              : match.status === 'cancelled' 
+              ? 'bg-gray-600/90 border-gray-400 text-white shadow-gray-500/50'
+              : 'bg-gray-700/90 border-gray-400 text-white shadow-gray-500/50'
+          }`}>
+            {match.status === 'in_progress' ? 'IN PROGRESS' : match.status.replace(/_/g, ' ').toUpperCase()}
+          </div>
+        </div>
       </div>
-      <div className="p-5 flex flex-col gap-2">
+      
+      <div className="p-6 flex flex-col gap-4 bg-gradient-to-b from-transparent to-neutral-900/30">
         <div className="flex items-center justify-between">
-          <div className="text-xl font-bold text-white">{match.name}</div>
-          <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md border-2 ${
-            match.status === 'open'
-              ? 'bg-green-600/90 border-green-400 text-white animate-pulse'
-              : match.status === 'in_progress'
-              ? 'bg-yellow-600/90 border-yellow-400 text-white animate-pulse'
-              : 'bg-gray-700 border-gray-400 text-white'
-          }`}>{match.status}</div>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs font-semibold">
-          <span className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-1 rounded shadow">{match.gameMode}</span>
-          <span className="bg-gradient-to-r from-yellow-400 to-pink-500 text-white px-2 py-1 rounded shadow">{match.competitionType}</span>
-          <span className="bg-gradient-to-r from-blue-500 to-green-400 text-white px-2 py-1 rounded shadow">{match.competitionFormat}</span>
-          {match.matchType && <span className="bg-gradient-to-r from-purple-500 to-pink-400 text-white px-2 py-1 rounded shadow">{match.matchType}</span>}
-          <span className="bg-gradient-to-r from-gray-700 to-gray-900 text-white px-2 py-1 rounded shadow">{match.platform}</span>
-          <span className="bg-gradient-to-r from-pink-700 to-pink-900 text-white px-2 py-1 rounded shadow">{match.visibility}</span>
-        </div>
-        <div className="flex items-center gap-6 mt-2">
-          <div>
-            <div className="text-pink-400 font-bold text-lg drop-shadow">${match.buyIn.toFixed(2)}</div>
-            <div className="text-xs text-gray-400">Buy-in</div>
-          </div>
-          <div>
-            <div className="text-yellow-400 font-bold text-lg drop-shadow">${match.potentialWinnings.toFixed(2)}</div>
-            <div className="text-xs text-gray-400">To Winner</div>
-          </div>
-          <div>
-            <div className="text-white font-bold text-lg drop-shadow">{match.currentPlayers}/{match.maxPlayers}</div>
-            <div className="text-xs text-gray-400">Players</div>
+          <div className="text-2xl font-bold text-white group-hover:text-pink-200 transition-colors duration-300">
+            {match.name}
           </div>
         </div>
-        <Link href={`/matches/${match.id}`} className="mt-4 w-full block text-center bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold py-2 rounded-lg shadow-lg hover:from-pink-400 hover:to-purple-500 hover:shadow-pink-500/40 transition-all duration-200">
-          View Details
+        
+        <div className="flex flex-wrap gap-2 text-sm font-semibold">
+          <span className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-1.5 rounded-full shadow-lg hover:shadow-pink-500/30 transition-all duration-200">
+            {match.gameMode.charAt(0).toUpperCase() + match.gameMode.slice(1)}
+          </span>
+          <span className="bg-gradient-to-r from-yellow-400 to-pink-500 text-white px-3 py-1.5 rounded-full shadow-lg hover:shadow-yellow-500/30 transition-all duration-200">
+            {match.competitionType.charAt(0).toUpperCase() + match.competitionType.slice(1)}
+          </span>
+          <span className="bg-gradient-to-r from-blue-500 to-green-400 text-white px-3 py-1.5 rounded-full shadow-lg hover:shadow-blue-500/30 transition-all duration-200">
+            {match.competitionFormat.charAt(0).toUpperCase() + match.competitionFormat.slice(1)}
+          </span>
+          {match.matchType && (
+            <span className="bg-gradient-to-r from-purple-500 to-pink-400 text-white px-3 py-1.5 rounded-full shadow-lg hover:shadow-purple-500/30 transition-all duration-200">
+              {match.matchType.charAt(0).toUpperCase() + match.matchType.slice(1)}
+            </span>
+          )}
+          <span className="bg-gradient-to-r from-gray-600 to-gray-800 text-white px-3 py-1.5 rounded-full shadow-lg hover:shadow-gray-500/30 transition-all duration-200">
+            {match.platform.charAt(0).toUpperCase() + match.platform.slice(1)}
+          </span>
+          <span className="bg-gradient-to-r from-pink-600 to-pink-800 text-white px-3 py-1.5 rounded-full shadow-lg hover:shadow-pink-500/30 transition-all duration-200">
+            {formatVisibility(match.visibility)}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-8 mt-4">
+          <div className="text-center group-hover:scale-105 transition-transform duration-200">
+            <div className="text-pink-400 font-bold text-2xl drop-shadow-lg group-hover:text-pink-300 transition-colors duration-300">
+              ${match.buyIn.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-300">Buy-in</div>
+          </div>
+          <div className="text-center group-hover:scale-105 transition-transform duration-200">
+            <div className="text-yellow-400 font-bold text-2xl drop-shadow-lg group-hover:text-yellow-300 transition-colors duration-300">
+              ${match.potentialWinnings.toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-300">To Winner</div>
+          </div>
+          <div className="text-center group-hover:scale-105 transition-transform duration-200">
+            <div className="text-white font-bold text-2xl drop-shadow-lg group-hover:text-pink-200 transition-colors duration-300">
+              {match.currentPlayers}/{match.maxPlayers}
+            </div>
+            <div className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors duration-300">Players</div>
+          </div>
+        </div>
+
+        {match.status === 'completed' && match.result && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/50 rounded-2xl text-center backdrop-blur-sm shadow-lg group-hover:shadow-green-500/20 transition-all duration-300">
+            <div className="text-green-400 font-bold text-lg mb-2 drop-shadow-lg">🏆 Winner</div>
+            {match.participants && match.result.winnerId && (
+              <div className="text-white font-semibold text-xl group-hover:text-green-200 transition-colors duration-300">
+                {match.participants.find(p => p.user.id === match.result?.winnerId)?.user.displayName || 
+                 match.participants.find(p => p.user.id === match.result?.winnerId)?.user.username}
+              </div>
+            )}
+            <div className="text-xs text-green-300 mt-2 group-hover:text-green-200 transition-colors duration-300">
+              Completed: {new Date(match.result.createdAt).toLocaleString()}
+            </div>
+          </div>
+        )}
+
+        {match.status === 'completed' && match.participants && (
+          <div className="mt-4 p-4 bg-gradient-to-r from-neutral-800/50 to-neutral-700/50 rounded-2xl backdrop-blur-sm border border-neutral-600/30">
+            <div className="text-white font-semibold text-lg mb-3 group-hover:text-pink-200 transition-colors duration-300">Participants</div>
+            <div className="space-y-3">
+              {match.participants.map((participant) => {
+                const isWinner = match.result?.winnerId === participant.user.id;
+                return (
+                  <div key={participant.id} className="flex items-center justify-between p-2 rounded-xl bg-neutral-900/50 group-hover:bg-neutral-800/70 transition-all duration-200">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar 
+                        user={{
+                          image: participant.user.image,
+                          username: participant.user.username,
+                          displayName: participant.user.displayName
+                        }}
+                        size={28}
+                        ring={true}
+                      />
+                      <span className="text-sm text-gray-300 group-hover:text-white transition-colors duration-200">
+                        {participant.user.displayName || participant.user.username}
+                      </span>
+                    </div>
+                    <div className={`px-3 py-1.5 rounded-full text-xs font-medium shadow-lg transition-all duration-200 ${
+                      isWinner 
+                        ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-yellow-500/30 group-hover:shadow-yellow-500/50' 
+                        : 'bg-gradient-to-r from-gray-600 to-gray-700 text-gray-200 shadow-gray-500/30 group-hover:shadow-gray-500/50'
+                    }`}>
+                      {isWinner ? 'Winner' : 'Participant'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        <Link href={`/matches/${match.id}`} className="mt-6 w-full block text-center bg-gradient-to-r from-pink-500 via-purple-600 to-pink-500 text-white font-bold py-3 rounded-2xl shadow-lg hover:from-pink-400 hover:via-purple-500 hover:to-pink-400 hover:shadow-pink-500/40 hover:shadow-2xl transition-all duration-300 group-hover:scale-[1.02] relative overflow-hidden">
+          <span className="relative z-10">View Details</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-400 via-purple-500 to-pink-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </Link>
       </div>
     </div>
   );
 }
 */
-// --- SLUTT DELUXE MATCHCARD ---
+// --- END DELUXE MATCHCARD ---
 
 export default function MatchFeedPage() {
   const [matches, setMatches] = useState<Match[]>([]);

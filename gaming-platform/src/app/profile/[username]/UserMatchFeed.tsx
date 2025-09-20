@@ -73,6 +73,20 @@ function UserMatchCard({ match, username }: { match: Match; username: string }) 
   const gameImg = gameImages[match.gameName] || "/Images/default-game.jpg";
   const isCreator = match.creator.username === username;
   
+  // Helper: Format visibility for display
+  const formatVisibility = (visibility: string) => {
+    switch (visibility) {
+      case 'invite_only':
+        return 'Invite Only';
+      case 'friends':
+        return 'Friends Only';
+      case 'public':
+        return 'Public';
+      default:
+        return visibility.charAt(0).toUpperCase() + visibility.slice(1);
+    }
+  };
+  
   return (
     <div className="w-full max-w-xl mx-auto bg-neutral-950 rounded-2xl shadow-xl border border-neutral-800 overflow-hidden">
       {/* Top: Creator info with role badge */}
@@ -223,20 +237,6 @@ export default function UserMatchFeed({ username }: { username: string }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Helper: Format visibility for display
-  const formatVisibility = (visibility: string) => {
-    switch (visibility) {
-      case 'invite_only':
-        return 'Invite Only';
-      case 'friends':
-        return 'Friends Only';
-      case 'public':
-        return 'Public';
-      default:
-        return visibility.charAt(0).toUpperCase() + visibility.slice(1);
-    }
-  };
 
   useEffect(() => {
     async function fetchUserMatches() {
