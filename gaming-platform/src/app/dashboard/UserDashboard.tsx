@@ -320,8 +320,9 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                         </div>
                       </div>
                       
-                      {/* Match Details - Fixed layout for consistent alignment */}
-                      <div className="grid grid-cols-12 gap-1 items-center">
+                      {/* Match Details - Responsive layout */}
+                      {/* Desktop: Single row grid */}
+                      <div className="hidden sm:grid grid-cols-12 gap-1 items-center">
                         {/* Game Image - Separate column for perfect alignment */}
                         <div className="col-span-1 text-center">
                           <div className="w-12 h-12 flex items-center justify-center mx-auto p-2">
@@ -335,22 +336,60 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                         </div>
                         <div className="col-span-2 text-center">
                           <div className="text-xs text-gray-400 mb-0.5">Platform</div>
-                          <div className="font-semibold text-xs">{match.platform}</div>
+                          <div className="font-semibold text-xs truncate">{match.platform}</div>
                         </div>
                         <div className="col-span-3 text-center">
                           <div className="text-xs text-gray-400 mb-0.5">Prize</div>
-                          <div className="font-semibold text-xs text-green-400">
+                          <div className="font-semibold text-xs text-green-400 truncate">
                             {match.prize > 0 ? `$${match.prize.toFixed(2)}` : 'No prize'}
                           </div>
                         </div>
                         <div className="col-span-2 text-center">
                           <div className="text-xs text-gray-400 mb-0.5">Format</div>
-                          <div className="font-semibold text-xs">{match.type}</div>
+                          <div className="font-semibold text-xs truncate">{match.type}</div>
                         </div>
                         <div className="col-span-2 text-center">
                           <div className="text-xs text-gray-400 mb-0.5">Time</div>
-                          <div className="font-semibold text-xs text-gray-400">
+                          <div className="font-semibold text-xs text-gray-400 truncate">
                             {dateTime.time}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Mobile/Tablet: Two rows layout */}
+                      <div className="sm:hidden space-y-2">
+                        {/* First row: Game image, name, and platform */}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0 p-1">
+                            <img src={gameImg} alt={match.game} className="w-8 h-8 rounded-full" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-xs text-gray-400 mb-0.5">Game</div>
+                            <div className="font-semibold text-xs">{match.game}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs text-gray-400 mb-0.5">Platform</div>
+                            <div className="font-semibold text-xs">{match.platform}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Second row: Prize, format, and time */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="text-center">
+                            <div className="text-xs text-gray-400 mb-0.5">Prize</div>
+                            <div className="font-semibold text-xs text-green-400">
+                              {match.prize > 0 ? `$${match.prize.toFixed(2)}` : 'No prize'}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs text-gray-400 mb-0.5">Format</div>
+                            <div className="font-semibold text-xs">{match.type}</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs text-gray-400 mb-0.5">Time</div>
+                            <div className="font-semibold text-xs text-gray-400">
+                              {dateTime.time}
+                            </div>
                           </div>
                         </div>
                       </div>
