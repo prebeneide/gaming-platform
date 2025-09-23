@@ -2,7 +2,7 @@
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
 import Link from "next/link";
 import SocialCounts from "@/components/SocialCounts";
@@ -10,6 +10,60 @@ import UserAvatar from "@/components/UserAvatar";
 import UnifiedStatsDisplay from "@/components/UnifiedStatsDisplay";
 import { UnifiedUserStats } from "@/lib/unifiedStats";
 import { getGameImage } from "@/lib/gameImages";
+import MatchCard, { Match } from "@/components/MatchCard";
+
+// FriendsRecentMatches component that fetches data from /api/matches like match feed
+function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMatches() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/matches", { method: "GET" });
+        const data = await res.json();
+        setMatches(data.matches || []);
+      } catch (err) {
+        setMatches([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchMatches();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-gray-400">Loading friends' matches...</div>
+      </div>
+    );
+  }
+
+  // Filter out cancelled matches and user's own matches
+  const friendsMatches = matches.filter(match => 
+    match.status !== 'cancelled' && match.creator.id !== currentUserId
+  );
+
+  if (friendsMatches.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-gray-400">No recent matches from friends</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+      {friendsMatches.slice(0, 6).map((match) => (
+        <div key={match.id} className="w-80 flex-shrink-0">
+          <MatchCard match={match} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function UserDashboard({ user, unifiedStats, socialStats, friends = [], recentMatches = [] }: { 
   user: {
@@ -319,7 +373,7 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
                         <div className="text-xs text-gray-400 group-hover:text-pink-400/80 transition-colors duration-200">
                           @{match.opponent.username}
                         </div>
-                      </div>
+        </div>
                     </button>
                         
                         {/* Result Badge */}
@@ -414,6 +468,15 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
               </div>
           )}
       </div>
+
+      {/* Friends Recent Matches - Only show if user has friends */}
+      {friends.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">Friends Recent Matches</h2>
+          
+          <FriendsRecentMatches currentUserId={user.id || ""} />
+        </div>
+      )}
       {/* CTA-knapper */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
         <Link href="/matches/new">
