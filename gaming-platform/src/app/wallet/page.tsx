@@ -7,12 +7,21 @@ import BackButton from "@/components/BackButton";
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'match_payment' | 'match_winning';
+  type: 'deposit' | 'withdrawal' | 'match_payment' | 'match_winning' | 'match_payout' | 'match_refund' | 'match_draw_refund';
   amount: number;
   status: 'pending' | 'completed' | 'failed';
   description: string;
   createdAt: string;
 }
+
+// Helper function to determine if transaction is a credit (money in) or debit (money out)
+const isCredit = (type: string): boolean => {
+  return ['deposit', 'match_payout', 'match_refund', 'match_draw_refund'].includes(type);
+};
+
+const isDebit = (type: string): boolean => {
+  return ['withdrawal', 'match_payment'].includes(type);
+};
 
 interface WalletData {
   balance: number;
@@ -242,53 +251,56 @@ export default function WalletPage() {
           <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Transaction History</h3>
           
           <div className="space-y-2 sm:space-y-4">
-            {walletData?.transactions.map((transaction) => (
-              <div key={transaction.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-neutral-800 rounded-lg gap-2 sm:gap-0 overflow-x-auto">
-                <div className="flex items-center gap-2 sm:gap-4">
-                  {/* Ikon til venstre */}
-                  <div className="text-xl sm:text-2xl">
-                    {['deposit', 'match_payout', 'match_winning'].includes(transaction.type) && (
-                      <span className="text-amber-400"><FiDollarSign /></span>
-                    )}
-                    {['match_refund', 'match_draw_refund'].includes(transaction.type) && (
-                      <span className="text-green-400"><FiDollarSign /></span>
-                    )}
-                    {['withdrawal', 'match_payment'].includes(transaction.type) && (
-                      <span className="text-red-500"><FiDollarSign /></span>
-                    )}
-                  </div>
-                  <div className="flex flex-col text-xs sm:text-base">
-                    <span className="font-semibold">{transaction.description}</span>
-                    <span className="text-gray-400">{new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
-                  <span className={`font-bold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'} text-sm sm:text-base`}>{transaction.amount > 0 ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}</span>
-                  {getStatusIcon(transaction.status)}
-                  {/* Godta-knapper for pending transactions */}
-                  {transaction.status === 'pending' && (
-                    <div className="flex gap-2">
-                      {transaction.type === 'deposit' && (
-                        <button
-                          onClick={() => handleConfirmDeposit(transaction.id)}
-                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
-                        >
-                          Godta
-                        </button>
-                      )}
-                      {transaction.type === 'withdrawal' && (
-                        <button
-                          onClick={() => handleConfirmWithdrawal(transaction.id)}
-                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
-                        >
-                          Godta
-                        </button>
-                      )}
+            {walletData?.transactions.map((transaction) => {
+              const isCreditTransaction = isCredit(transaction.type);
+              const isDebitTransaction = isDebit(transaction.type);
+              const displayAmount = Math.abs(transaction.amount);
+              const sign = isCreditTransaction ? '+' : '-';
+              const amountColor = isCreditTransaction ? 'text-green-400' : 'text-red-400';
+
+              return (
+                <div key={transaction.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-neutral-800 rounded-lg gap-2 sm:gap-0 overflow-x-auto">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    {/* Ikon til venstre - Credit = green, Debit = red */}
+                    <div className="text-xl sm:text-2xl">
+                      {isCreditTransaction && <span className="text-green-500"><FiPlus /></span>}
+                      {isDebitTransaction && <span className="text-red-500"><FiMinus /></span>}
                     </div>
-                  )}
+                    <div className="flex flex-col text-xs sm:text-base">
+                      <span className="font-semibold">{transaction.description}</span>
+                      <span className="text-gray-400">{new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+                    <span className={`font-bold ${amountColor} text-sm sm:text-base`}>
+                      {sign}${displayAmount.toFixed(2)}
+                    </span>
+                    {getStatusIcon(transaction.status)}
+                    {/* Godta-knapper for pending transactions */}
+                    {transaction.status === 'pending' && (
+                      <div className="flex gap-2">
+                        {transaction.type === 'deposit' && (
+                          <button
+                            onClick={() => handleConfirmDeposit(transaction.id)}
+                            className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                          >
+                            Godta
+                          </button>
+                        )}
+                        {transaction.type === 'withdrawal' && (
+                          <button
+                            onClick={() => handleConfirmWithdrawal(transaction.id)}
+                            className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                          >
+                            Godta
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
