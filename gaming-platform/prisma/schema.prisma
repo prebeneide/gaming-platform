@@ -41,6 +41,7 @@ model User {
   wallet                 UserWallet?
   activityLogs          ActivityLog[]
   matchInvitations      MatchInvitation[]
+  globalMessages        GlobalMessage[]
 }
 
 model UserStats {
@@ -254,5 +255,15 @@ model ActivityLog {
   
   @@index([action])
   @@index([entityType])
+  @@index([createdAt])
+}
+
+model GlobalMessage {
+  id        String   @id @default(cuid())
+  content   String
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
   @@index([createdAt])
 }

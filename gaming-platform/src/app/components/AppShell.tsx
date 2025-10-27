@@ -9,6 +9,7 @@ import Link from "next/link";
 import { FiCreditCard, FiMenu, FiMessageSquare, FiActivity, FiCompass } from "react-icons/fi";
 import { FaGamepad } from "react-icons/fa";
 import io from "socket.io-client";
+import GlobalChat from "@/components/GlobalChat";
 
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -151,6 +152,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         {children}
       </div>
       {!isChatPage && <BottomNavigation onOpenMenu={() => setMenuOpen(true)} />}
+      {session?.user && <GlobalChat />}
     </>
   );
 } 

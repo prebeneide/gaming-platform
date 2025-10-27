@@ -12,8 +12,9 @@ const server = http.createServer((req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"], // Allowing both dev ports
-    methods: ["GET", "POST"]
+    origin: "*", // Allow all origins for now
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -73,6 +74,34 @@ io.on("connection", (socket) => {
       });
     } catch (error) {
       console.error("Error marking messages as read:", error);
+    }
+  });
+
+  // Global chat message handling
+  socket.on("global chat message", async (msg) => {
+    console.log("[Socket] Received global chat message:", msg);
+    try {
+      // Save message to database
+      const savedMessage = await prisma.globalMessage.create({
+        data: {
+          content: msg.content,
+          senderId: msg.senderId,
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              image: true,
+            },
+          },
+        },
+      });
+      // Broadcast to all connected clients
+      io.emit("global chat message", savedMessage);
+    } catch (error) {
+      console.error("Error saving global message:", error);
     }
   });
 

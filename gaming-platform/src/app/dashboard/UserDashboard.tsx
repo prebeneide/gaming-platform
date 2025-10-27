@@ -12,6 +12,91 @@ import { UnifiedUserStats } from "@/lib/unifiedStats";
 import { getGameImage } from "@/lib/gameImages";
 import MatchCard, { Match } from "@/components/MatchCard";
 
+// Games list for Create Game slider
+const games = [
+  {
+    id: 1,
+    name: 'FC25',
+    image: '/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg',
+  },
+  {
+    id: 2,
+    name: 'Fortnite',
+    image: '/Images/Fortnite/c3c2a2242cc7e196f639bd78bc8bacfa.jpg',
+  },
+  {
+    id: 3,
+    name: 'Rocket League',
+    image: '/Images/RocketLeague/d37e92eaeab39c4e1cb20495cb903bb7.jpg',
+  },
+  {
+    id: 4,
+    name: 'COD:MW2',
+    image: '/Images/COD-ModernWarfare2/aa11186dc69287ff7192992845d8585b.jpg',
+  },
+  {
+    id: 5,
+    name: 'COD:MW3',
+    image: '/Images/COD-ModernWarfare3/b248a47671cc9b3d3f7c1fdd23a0a8a5.jpg',
+  },
+  {
+    id: 6,
+    name: 'Apex Legends',
+    image: '/Images/ApexLegends/45e8fbf182fa6f0e180a02793180f91e.jpg',
+  },
+  {
+    id: 7,
+    name: 'Battlefield V',
+    image: '/Images/BattlefieldV/battlefield-5-pc-game-ea-app-cover.jpg',
+  },
+  {
+    id: 8,
+    name: 'Battlefield 2042',
+    image: '/Images/Battlefield2042/Battlefield_2042_cover_art.jpg',
+  },
+  {
+    id: 9,
+    name: 'COD: Black Ops 6',
+    image: '/Images/COD-BlackOps6/BO6_KA_SECONDARY_240724_16x9_Trio_B.jpg',
+  },
+];
+
+// CreateGameSlider component
+function CreateGameSlider() {
+  const router = useRouter();
+
+  const handleGameSelect = (gameId: number) => {
+    const params = new URLSearchParams();
+    params.set('gameId', gameId.toString());
+    router.push(`/matches/new/details?${params.toString()}`);
+  };
+
+  return (
+    <div className="flex flex-row gap-4 overflow-x-auto pb-2 hide-scrollbar">
+      {games.map((game) => (
+        <button
+          key={game.id}
+          onClick={() => handleGameSelect(game.id)}
+          className="flex flex-col items-center gap-2 p-4 bg-neutral-900 rounded-xl hover:bg-neutral-800 transition-all min-w-[140px] max-w-[140px] group"
+        >
+          <div className="relative w-24 h-32 rounded-lg overflow-hidden">
+            <Image
+              src={game.image}
+              alt={game.name}
+              fill
+              style={{ objectFit: 'cover' }}
+              className="rounded-lg group-hover:scale-105 transition-transform duration-200"
+            />
+          </div>
+          <span className="text-sm font-semibold text-center text-white">
+            {game.name}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // FriendsRecentMatches component that fetches data from /api/matches like match feed
 function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -235,6 +320,12 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
             isOwnProfile={true}
           />
       </div>
+
+        {/* Create a Game Section */}
+        <div className="mt-4">
+          <h2 className="text-xl font-semibold text-white mb-4 text-center">Create a Game</h2>
+          <CreateGameSlider />
+        </div>
 
         {/* Friends Online - Only show if user has friends */}
         {friends.length > 0 && (
