@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
+import { FiDollarSign, FiPlus } from "react-icons/fi";
 import Link from "next/link";
 import SocialCounts from "@/components/SocialCounts";
 import UserAvatar from "@/components/UserAvatar";
@@ -150,7 +151,7 @@ function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
   );
 }
 
-export default function UserDashboard({ user, unifiedStats, socialStats, friends = [], recentMatches = [] }: { 
+export default function UserDashboard({ user, walletBalance, unifiedStats, socialStats, friends = [], recentMatches = [] }: { 
   user: {
     email?: string | null;
     username?: string | null;
@@ -166,6 +167,7 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
     xbox?: string | null;
     customGames?: any;
   };
+  walletBalance?: number;
   unifiedStats: UnifiedUserStats;
   socialStats?: {
     followers: number;
@@ -312,6 +314,49 @@ export default function UserDashboard({ user, unifiedStats, socialStats, friends
           <SocialCounts username={(user.username as string) || ""} counts={socialStats} condensed />
         </div>
       )}
+
+      {/* Wallet Section */}
+      <div className="w-full mb-4 sm:mb-6">
+        <div className={`relative overflow-hidden rounded-2xl p-6 ${
+          lightMode 
+            ? "bg-gradient-to-r from-pink-500 to-purple-600" 
+            : "bg-gradient-to-r from-pink-600 to-purple-700"
+        } shadow-lg`}>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-lg p-3">
+                  <FiDollarSign className="text-2xl text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white text-lg font-semibold">Wallet Balance</h3>
+                  <p className="text-white/80 text-sm">Available funds</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl sm:text-4xl font-bold text-white">
+                  ${walletBalance?.toFixed(2) || '0.00'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link href="/wallet" className="flex-1">
+                <button className="w-full px-4 py-3 bg-white text-pink-600 font-semibold rounded-lg hover:bg-gray-100 transition flex items-center justify-center">
+                  <span>View Wallet</span>
+                </button>
+              </Link>
+              <Link href="/wallet?deposit=true" className="flex-1">
+                <button className="w-full px-4 py-3 bg-white/20 border-2 border-white text-white font-semibold rounded-lg hover:bg-white/30 transition flex items-center justify-center gap-2">
+                  <FiPlus />
+                  <span>Add Funds</span>
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
         
         {/* Unified Statistics Display */}
         <div className="w-full mb-4 sm:mb-6">

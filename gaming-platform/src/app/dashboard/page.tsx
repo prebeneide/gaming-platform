@@ -14,20 +14,8 @@ export default async function DashboardPage() {
   // Hent brukerdata direkte fra databasen for å få oppdatert info
   const userDb = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: {
-      id: true,
-      email: true,
-      username: true,
-      image: true,
-      displayName: true,
-      bio: true,
-      discord: true,
-      twitter: true,
-      twitch: true,
-      steam: true,
-      psn: true,
-      xbox: true,
-      customGames: true,
+    include: {
+      wallet: true,
     },
   });
 
@@ -189,110 +177,14 @@ export default async function DashboardPage() {
     };
   });
 
-  // Get friend IDs for friends recent matches
-  const friendIds = friendships.map((fr) => 
-    fr.from.id === userDb.id ? fr.to.id : fr.from.id
-  );
-
-  // Get friends recent matches
-  let friendsRecentMatches = [];
-  if (friendIds.length > 0) {
-    const friendsMatches = await prisma.match.findMany({
-      where: {
-        participants: {
-          some: {
-            userId: {
-              in: friendIds
-            }
-          }
-        },
-        status: {
-          in: ["completed", "cancelled"]
-        }
-      },
-      include: {
-        participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                image: true
-              }
-            }
-          }
-        },
-        creator: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            image: true
-          }
-        },
-        result: true
-      },
-      orderBy: {
-        createdAt: "desc"
-      },
-      take: 6
-    });
-
-    friendsRecentMatches = friendsMatches.map(match => {
-      // Find the friend who participated in this match
-      const friendParticipant = match.participants.find(p => 
-        friendIds.includes(p.user.id)
-      );
-      
-      // Find the opponent (not the friend)
-      const opponentParticipant = match.participants.find(p => 
-        p.user.id !== friendParticipant?.user.id
-      );
-
-      // Determine result for the friend
-      let result = "Draw";
-      if (match.result?.winnerId === friendParticipant?.user.id) {
-        result = "Win";
-      } else if (match.result?.winnerId && match.result.winnerId !== friendParticipant?.user.id) {
-        result = "Loss";
-      }
-
-      return {
-        id: match.id,
-        game: match.gameName,
-        result,
-        platform: match.platform,
-        buyIn: match.buyIn,
-        prize: match.result?.winnerId === friendParticipant?.user.id ? match.buyIn * 1.8 : 0,
-        type: match.competitionFormat,
-        createdAt: match.createdAt,
-        friend: friendParticipant ? {
-          username: friendParticipant.user.username,
-          displayName: friendParticipant.user.displayName,
-          image: friendParticipant.user.image
-        } : {
-          username: match.creator.username,
-          displayName: match.creator.displayName,
-          image: match.creator.image
-        },
-        opponent: opponentParticipant ? {
-          username: opponentParticipant.user.username,
-          displayName: opponentParticipant.user.displayName,
-          image: opponentParticipant.user.image
-        } : {
-          username: match.creator.username,
-          displayName: match.creator.displayName,
-          image: match.creator.image
-        }
-      };
-    });
-  }
+  // Get wallet balance
+  const walletBalance = userDb?.wallet?.balance || 0;
 
   return (
     <div className="min-h-screen bg-black text-white">
       <UserDashboard 
         user={userDb} 
+        walletBalance={walletBalance}
         unifiedStats={unifiedStats}
         socialStats={{
           followers: followersCount,
@@ -301,7 +193,6 @@ export default async function DashboardPage() {
         }}
         friends={friends}
         recentMatches={transformedRecentMatches}
-        friendsRecentMatches={friendsRecentMatches}
       />
     </div>
   );

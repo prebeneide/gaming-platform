@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { FiPlus, FiMinus, FiDollarSign, FiClock, FiCheck, FiX } from "react-icons/fi";
 import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
@@ -32,12 +33,25 @@ interface WalletData {
 export default function WalletPage() {
   const { data: session } = useSession();
   const { showPopup } = usePopup();
+  const searchParams = useSearchParams();
   const [walletData, setWalletData] = useState<WalletData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+
+  // Check if we should open deposit modal from URL
+  useEffect(() => {
+    const depositParam = searchParams.get('deposit');
+    if (depositParam === 'true') {
+      setShowDepositModal(true);
+      // Clean up URL parameter
+      if (typeof window !== 'undefined') {
+        window.history.replaceState({}, '', '/wallet');
+      }
+    }
+  }, [searchParams]);
 
   const fetchWalletData = async () => {
     setLoading(true);

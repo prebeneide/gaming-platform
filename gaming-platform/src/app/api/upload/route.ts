@@ -26,12 +26,18 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(arrayBuffer);
   // Last opp til Cloudinary
   try {
-    const uploadResult = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
-        if (error) return reject(error);
-        resolve(result);
-      }).end(buffer);
-    });
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { 
+            folder: "gaming-platform",
+            resource_type: "auto" 
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        ).end(buffer);
+      });
     return NextResponse.json({ url: uploadResult.secure_url });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Upload failed" }, { status: 500 });
