@@ -519,27 +519,39 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               <div>
                 <h3 className="text-lg font-semibold mb-4">Transaction History</h3>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {transactions.map((transaction) => (
-                    <div key={transaction.id} className="bg-neutral-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{transaction.type}</p>
-                          <p className="text-sm text-neutral-400">
-                            ${transaction.amount} • {transaction.status}
-                          </p>
-                          {transaction.description && (
-                            <p className="text-xs text-neutral-500">{transaction.description}</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <TimeFormatter date={transaction.createdAt} format="time" />
-                          <p className="text-xs text-neutral-500">
-                            <TimeFormatter date={transaction.createdAt} format="relative" />
-                          </p>
+                  {transactions.map((transaction) => {
+                    const isPositive = transaction.type.includes('deposit') || 
+                                     transaction.type.includes('payout') || 
+                                     transaction.type.includes('refund') ||
+                                     transaction.type.includes('admin_deposit');
+                    const amountColor = isPositive ? 'text-green-400' : 'text-red-400';
+                    const amountPrefix = isPositive ? '+' : '-';
+                    
+                    return (
+                      <div key={transaction.id} className="bg-neutral-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{transaction.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                            <p className="text-sm text-neutral-400">
+                              {transaction.status}
+                            </p>
+                            {transaction.description && (
+                              <p className="text-xs text-neutral-500">{transaction.description}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-lg font-bold ${amountColor}`}>
+                              {amountPrefix}${transaction.amount.toFixed(2)}
+                            </p>
+                            <TimeFormatter date={transaction.createdAt} format="time" />
+                            <p className="text-xs text-neutral-500">
+                              <TimeFormatter date={transaction.createdAt} format="relative" />
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
