@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiArrowLeft, FiFilter, FiRefreshCw, FiPlus, FiMinus, FiWallet } from "react-icons/fi";
+import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiArrowLeft, FiFilter, FiRefreshCw, FiPlus, FiMinus, FiWallet, FiTrendingUp, FiTrendingDown, FiCreditCard, FiGift, FiXCircle, FiCheckCircle, FiAlertCircle, FiSearch } from "react-icons/fi";
 import Link from "next/link";
 import TimeFormatter from "@/components/TimeFormatter";
 
@@ -108,6 +108,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [transferAmount, setTransferAmount] = useState("");
   const [transferType, setTransferType] = useState<"deposit" | "withdraw">("deposit");
   const [transferReason, setTransferReason] = useState("");
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [transactionFilter, setTransactionFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
 
   useEffect(() => {
     if (status === "loading") return;
@@ -216,8 +221,66 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
   const filteredActivities = activities.filter(activity => {
     if (activityFilter === "all") return true;
-    return activity.action.includes(activityFilter);
+    if (activityFilter === "match") return activity.action.includes("match");
+    if (activityFilter === "message") return activity.action.includes("message") || activity.action.includes("chat");
+    if (activityFilter === "transaction") return activity.action.includes("deposit") || activity.action.includes("withdrawal") || activity.action.includes("payment");
+    if (activityFilter === "social") return activity.action.includes("friend") || activity.action.includes("follow");
+    if (activityFilter === "profile") return activity.action.includes("profile") || activity.action.includes("preferences");
+    return true;
   });
+
+  // Filter transactions with search and filters
+  const filteredTransactions = transactions.filter(transaction => {
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = 
+        transaction.type.toLowerCase().includes(searchLower) ||
+        transaction.description?.toLowerCase().includes(searchLower) ||
+        transaction.id.toLowerCase().includes(searchLower);
+      if (!matchesSearch) return false;
+    }
+
+    // Transaction type filter
+    if (transactionFilter !== "all") {
+      if (transactionFilter === "deposits" && !transaction.type.includes("deposit")) return false;
+      if (transactionFilter === "withdrawals" && !transaction.type.includes("withdrawal")) return false;
+      if (transactionFilter === "match_related" && !transaction.type.includes("match")) return false;
+      if (transactionFilter === "admin" && !transaction.type.includes("admin")) return false;
+    }
+
+    // Date filter
+    if (dateFilter !== "all") {
+      const transactionDate = new Date(transaction.createdAt);
+      const now = new Date();
+      const daysDiff = Math.floor((now.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (dateFilter === "today" && daysDiff > 0) return false;
+      if (dateFilter === "week" && daysDiff > 7) return false;
+      if (dateFilter === "month" && daysDiff > 30) return false;
+    }
+
+    return true;
+  });
+
+  // Get transaction icon based on type
+  const getTransactionIcon = (type: string) => {
+    if (type.includes('deposit') || type.includes('payout')) return <FiTrendingUp className="text-green-500" />;
+    if (type.includes('withdrawal') || type.includes('payment')) return <FiTrendingDown className="text-red-500" />;
+    if (type.includes('refund')) return <FiGift className="text-blue-500" />;
+    if (type.includes('admin')) return <FiCreditCard className="text-purple-500" />;
+    return <FiDollarSign className="text-neutral-400" />;
+  };
+
+  // Get transaction status icon
+  const getTransactionStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <FiCheckCircle className="text-green-500" />;
+      case 'pending': return <FiClock className="text-yellow-500" />;
+      case 'failed': return <FiXCircle className="text-red-500" />;
+      default: return <FiAlertCircle className="text-neutral-400" />;
+    }
+  };
 
   const tabs = [
     { id: "overview", label: "Overview", icon: FiUser },
@@ -404,12 +467,17 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
             {activeTab === "activities" && (
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Activity Log</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-semibold">Activity Log</h3>
+                    <p className="text-sm text-neutral-400 mt-1">
+                      Showing {filteredActivities.length} of {activities.length} activities
+                    </p>
+                  </div>
                   <select
                     value={activityFilter}
                     onChange={(e) => setActivityFilter(e.target.value)}
-                    className="bg-neutral-700 text-white px-3 py-1 rounded-lg text-sm"
+                    className="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm border border-neutral-600"
                   >
                     <option value="all">All Activities</option>
                     <option value="match">Match Activities</option>
@@ -450,29 +518,41 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium text-white">{actionType}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-white">{actionType}</p>
+                                  <span className="text-xs bg-neutral-600 text-neutral-300 px-2 py-1 rounded">
+                                    Activity ID: {activity.id.slice(0, 8)}...
+                                  </span>
+                                </div>
                                 {activity.entityType && (
-                                  <p className="text-sm text-neutral-400">
+                                  <p className="text-sm text-neutral-400 mt-1">
                                     {activity.entityType} {activity.entityId && `#${activity.entityId.slice(0, 8)}`}
                                   </p>
                                 )}
                               </div>
                               <div className="text-right">
-                                <TimeFormatter date={activity.createdAt} format="time" />
-                                <p className="text-xs text-neutral-500">
+                                <div className="text-sm text-neutral-300">
+                                  <TimeFormatter date={activity.createdAt} format="date" />
+                                </div>
+                                <div className="text-sm text-neutral-300">
+                                  <TimeFormatter date={activity.createdAt} format="time" />
+                                </div>
+                                <div className="text-xs text-neutral-500 mt-1">
                                   <TimeFormatter date={activity.createdAt} format="relative" />
-                                </p>
+                                </div>
                               </div>
                             </div>
                             {activity.details && typeof activity.details === 'object' && (
                               <div className="mt-3 bg-neutral-800 rounded p-3 text-xs">
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                   {Object.entries(activity.details as Record<string, any>).map(([key, value]) => {
                                     if (typeof value === 'object') return null;
                                     return (
-                                      <div key={key}>
-                                        <span className="text-neutral-400 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>{' '}
-                                        <span className="text-neutral-200">{String(value)}</span>
+                                      <div key={key} className="flex items-start gap-2">
+                                        <span className="text-neutral-400 capitalize font-medium min-w-0 flex-shrink-0">
+                                          {key.replace(/([A-Z])/g, ' $1')}:
+                                        </span>
+                                        <span className="text-neutral-200 break-words">{String(value)}</span>
                                       </div>
                                     );
                                   })}
@@ -490,23 +570,58 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
             {activeTab === "matches" && (
               <div>
-                <h3 className="text-lg font-semibold mb-4">Match History</h3>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold">Match History</h3>
+                  <p className="text-sm text-neutral-400 mt-1">
+                    Showing {matches.length} matches
+                  </p>
+                </div>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {matches.map((match) => (
-                    <div key={match.id} className="bg-neutral-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{match.name}</p>
-                          <p className="text-sm text-neutral-400">{match.gameName}</p>
-                          <p className="text-xs text-neutral-500">
-                            Buy-in: ${match.buyInAmount} • Status: {match.status}
+                    <div key={match.id} className="bg-neutral-700 rounded-lg p-4 hover:bg-neutral-650 border border-transparent hover:border-neutral-600 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="font-medium text-white">{match.name}</p>
+                            <span className="text-xs bg-neutral-600 text-neutral-300 px-2 py-1 rounded">
+                              Match ID: {match.id.slice(0, 8)}...
+                            </span>
+                          </div>
+                          <p className="text-sm text-neutral-400 mb-1">
+                            Game: {match.gameName}
                           </p>
+                          <p className="text-sm text-neutral-400 mb-1">
+                            Buy-in: ${match.buyInAmount.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-neutral-400 mb-2">
+                            Status: <span className="capitalize">{match.status}</span>
+                          </p>
+                          {match.result && (
+                            <div className="mt-2 p-2 bg-neutral-800 rounded text-xs">
+                              <p className="text-neutral-300">
+                                Winner: {match.result.winnerId ? match.result.winnerId.slice(0, 8) + '...' : 'N/A'}
+                              </p>
+                              <p className="text-neutral-300">
+                                Payout: ${match.result.payoutAmount?.toFixed(2) || '0.00'}
+                              </p>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
-                          <TimeFormatter date={match.createdAt} format="time" />
-                          <p className="text-xs text-neutral-500">
+                          <div className="text-sm text-neutral-300">
+                            <TimeFormatter date={match.createdAt} format="date" />
+                          </div>
+                          <div className="text-sm text-neutral-300">
+                            <TimeFormatter date={match.createdAt} format="time" />
+                          </div>
+                          <div className="text-xs text-neutral-500 mt-1">
                             <TimeFormatter date={match.createdAt} format="relative" />
-                          </p>
+                          </div>
+                          {match.completedAt && (
+                            <div className="text-xs text-neutral-500 mt-2">
+                              Completed: <TimeFormatter date={match.completedAt} format="date" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -517,9 +632,48 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
             {activeTab === "transactions" && (
               <div>
-                <h3 className="text-lg font-semibold mb-4">Transaction History</h3>
+                {/* Search and Filter Controls */}
+                <div className="mb-6 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-1">
+                      <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+                      <input
+                        type="text"
+                        placeholder="Search transactions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <select
+                      value={transactionFilter}
+                      onChange={(e) => setTransactionFilter(e.target.value)}
+                      className="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm border border-neutral-600"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="deposits">Deposits</option>
+                      <option value="withdrawals">Withdrawals</option>
+                      <option value="match_related">Match Related</option>
+                      <option value="admin">Admin Actions</option>
+                    </select>
+                    <select
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      className="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm border border-neutral-600"
+                    >
+                      <option value="all">All Time</option>
+                      <option value="today">Today</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                    </select>
+                  </div>
+                  <div className="text-sm text-neutral-400">
+                    Showing {filteredTransactions.length} of {transactions.length} transactions
+                  </div>
+                </div>
+
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {transactions.map((transaction) => {
+                  {filteredTransactions.map((transaction) => {
                     const isPositive = transaction.type.includes('deposit') || 
                                      transaction.type.includes('payout') || 
                                      transaction.type.includes('refund') ||
@@ -528,25 +682,44 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     const amountPrefix = isPositive ? '+' : '-';
                     
                     return (
-                      <div key={transaction.id} className="bg-neutral-700 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{transaction.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                            <p className="text-sm text-neutral-400">
-                              {transaction.status}
-                            </p>
-                            {transaction.description && (
-                              <p className="text-xs text-neutral-500">{transaction.description}</p>
-                            )}
+                      <div key={transaction.id} className="bg-neutral-700 rounded-lg p-4 hover:bg-neutral-650 border border-transparent hover:border-neutral-600 transition-colors">
+                        <div className="flex items-start gap-4">
+                          <div className="mt-1">
+                            {getTransactionIcon(transaction.type)}
                           </div>
-                          <div className="text-right">
-                            <p className={`text-lg font-bold ${amountColor}`}>
-                              {amountPrefix}${transaction.amount.toFixed(2)}
-                            </p>
-                            <TimeFormatter date={transaction.createdAt} format="time" />
-                            <p className="text-xs text-neutral-500">
-                              <TimeFormatter date={transaction.createdAt} format="relative" />
-                            </p>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-white">
+                                    {transaction.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </p>
+                                  {getTransactionStatusIcon(transaction.status)}
+                                </div>
+                                <p className="text-sm text-neutral-400 mt-1">
+                                  Transaction ID: {transaction.id.slice(0, 8)}...
+                                </p>
+                                {transaction.description && (
+                                  <p className="text-xs text-neutral-500 mt-1 break-words">
+                                    {transaction.description}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-lg font-bold ${amountColor}`}>
+                                  {amountPrefix}${transaction.amount.toFixed(2)}
+                                </p>
+                                <div className="text-xs text-neutral-500 mt-1">
+                                  <TimeFormatter date={transaction.createdAt} format="date" />
+                                </div>
+                                <div className="text-xs text-neutral-500">
+                                  <TimeFormatter date={transaction.createdAt} format="time" />
+                                </div>
+                                <div className="text-xs text-neutral-600 mt-1">
+                                  <TimeFormatter date={transaction.createdAt} format="relative" />
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -558,30 +731,49 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
             {activeTab === "messages" && (
               <div>
-                <h3 className="text-lg font-semibold mb-4">Message History</h3>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold">Message History</h3>
+                  <p className="text-sm text-neutral-400 mt-1">
+                    Showing {messages.length} messages
+                  </p>
+                </div>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {messages.map((message) => (
-                    <div key={message.id} className="bg-neutral-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{message.type} message</p>
-                          <p className="text-sm text-neutral-400">{message.content}</p>
+                    <div key={message.id} className="bg-neutral-700 rounded-lg p-4 hover:bg-neutral-650 border border-transparent hover:border-neutral-600 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className="font-medium text-white capitalize">{message.type} Message</p>
+                            <span className="text-xs bg-neutral-600 text-neutral-300 px-2 py-1 rounded">
+                              Message ID: {message.id.slice(0, 8)}...
+                            </span>
+                          </div>
+                          <p className="text-sm text-neutral-300 mb-2 break-words">{message.content}</p>
                           {message.match && (
-                            <p className="text-xs text-neutral-500">
-                              Match: {message.match.name} ({message.match.gameName})
-                            </p>
+                            <div className="mt-2 p-2 bg-neutral-800 rounded text-xs">
+                              <p className="text-neutral-300">
+                                Match: {message.match.name} ({message.match.gameName})
+                              </p>
+                            </div>
                           )}
                           {message.recipient && (
-                            <p className="text-xs text-neutral-500">
-                              To: {message.recipient.username}
-                            </p>
+                            <div className="mt-2 p-2 bg-neutral-800 rounded text-xs">
+                              <p className="text-neutral-300">
+                                To: {message.recipient.username}
+                              </p>
+                            </div>
                           )}
                         </div>
                         <div className="text-right">
-                          <TimeFormatter date={message.createdAt} format="time" />
-                          <p className="text-xs text-neutral-500">
+                          <div className="text-sm text-neutral-300">
+                            <TimeFormatter date={message.createdAt} format="date" />
+                          </div>
+                          <div className="text-sm text-neutral-300">
+                            <TimeFormatter date={message.createdAt} format="time" />
+                          </div>
+                          <div className="text-xs text-neutral-500 mt-1">
                             <TimeFormatter date={message.createdAt} format="relative" />
-                          </p>
+                          </div>
                         </div>
                       </div>
                     </div>
