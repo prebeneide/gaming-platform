@@ -5,6 +5,25 @@ const { PrismaClient } = require("@prisma/client");
 const PORT = process.env.SOCKET_PORT || 4000;
 const prisma = new PrismaClient();
 
+// Activity logging helper
+async function logActivity(data) {
+  try {
+    await prisma.activityLog.create({
+      data: {
+        userId: data.userId,
+        action: data.action,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        details: data.details,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+      }
+    });
+  } catch (error) {
+    console.error("Error logging activity:", error);
+  }
+}
+
 const server = http.createServer((req, res) => {
   if (req.method === 'POST') {
     let body = '';
@@ -123,6 +142,15 @@ io.on("connection", (socket) => {
       });
       // Broadcast to all connected clients
       io.emit("global chat message", savedMessage);
+
+      // Log activity
+      await logActivity({
+        userId: msg.senderId,
+        action: "global_chat_message",
+        entityType: 'GlobalMessage',
+        entityId: savedMessage.id,
+        details: { content: msg.content }
+      });
     } catch (error) {
       console.error("Error saving global message:", error);
     }
@@ -167,6 +195,15 @@ io.on("connection", (socket) => {
       console.log("[Socket] Broadcasting to match room:", msg.matchId);
       io.to(msg.matchId).emit("match chat message", savedMessage);
       console.log("[Socket] Message broadcast complete");
+
+      // Log activity
+      await logActivity({
+        userId: msg.senderId,
+        action: "match_chat_message",
+        entityType: 'MatchMessage',
+        entityId: savedMessage.id,
+        details: { content: msg.content, matchId: msg.matchId }
+      });
     } catch (error) {
       console.error("[Socket] Error saving match message:", error);
       console.error("[Socket] Error details:", error.message);

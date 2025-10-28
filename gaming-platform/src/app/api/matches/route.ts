@@ -4,6 +4,7 @@ import { authOptions } from "../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { createMatchInviteNotification } from "@/lib/notifications";
 import { getMatches } from "@/lib/matchService";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 const prisma = new PrismaClient();
 
@@ -176,6 +177,31 @@ export async function POST(request: NextRequest) {
       });
 
       return { match, updatedWallet };
+    });
+
+    // Log match creation
+    await logActivity({
+      userId: user.id,
+      action: ActivityTypes.MATCH_CREATED,
+      entityType: 'Match',
+      entityId: result.match.id,
+      details: {
+        matchName: result.match.name,
+        gameName: result.match.gameName,
+        buyIn: result.match.buyIn,
+        maxPlayers: result.match.maxPlayers
+      }
+    });
+
+    // Log buy-in transaction
+    await logActivity({
+      userId: user.id,
+      action: ActivityTypes.BUY_IN_PAID,
+      entityType: 'Transaction',
+      details: {
+        amount: buyIn,
+        matchId: result.match.id
+      }
     });
 
     // Create invitations for invited users

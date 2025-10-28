@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { createFriendRequestNotification } from "@/lib/notifications";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 const prisma = new PrismaClient();
 
@@ -70,6 +71,15 @@ export async function POST(req: Request) {
     } catch (notificationError) {
       console.error("Notification failed, but friend request was created:", notificationError);
     }
+
+    // Log activity
+    await logActivity({
+      userId: session.user.id,
+      action: ActivityTypes.FRIEND_REQUEST_SENT,
+      entityType: 'FriendRequest',
+      entityId: friendRequest.id,
+      details: { toUsername: username, toUserId: toUser.id }
+    });
 
     return NextResponse.json({ success: true, friendRequest });
   } catch (error) {

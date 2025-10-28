@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 // Følg en bruker
 export async function POST(req: NextRequest) {
@@ -32,6 +33,16 @@ export async function POST(req: NextRequest) {
       followingId: followingUser.id,
     },
   });
+
+  // Log activity
+  await logActivity({
+    userId: followerId,
+    action: ActivityTypes.FOLLOW_USER,
+    entityType: 'User',
+    entityId: followingUser.id,
+    details: { followingUsername: username }
+  });
+
   return NextResponse.json({ success: true });
 }
 
@@ -53,5 +64,15 @@ export async function DELETE(req: NextRequest) {
       followingId: followingUser.id,
     },
   });
+
+  // Log activity
+  await logActivity({
+    userId: followerId,
+    action: ActivityTypes.UNFOLLOW_USER,
+    entityType: 'User',
+    entityId: followingUser.id,
+    details: { unfollowedUsername: username }
+  });
+
   return NextResponse.json({ success: true });
 } 

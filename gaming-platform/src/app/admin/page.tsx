@@ -67,8 +67,19 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-neutral-900 text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-neutral-400">Overview of platform activity and statistics</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-neutral-400">Overview of platform activity and statistics</p>
+            </div>
+            <a
+              href="/admin/users"
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              <FiUsers className="text-lg" />
+              User Management
+            </a>
+          </div>
         </div>
 
         {/* Stats Cards */}

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
 import UserAvatar from "@/components/UserAvatar";
+import MatchChatInCard from "@/components/MatchChatInCard";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -836,6 +837,11 @@ export default function MatchDetailsPage() {
               <div className="text-gray-400 text-sm">No participants yet.</div>
             )}
           </div>
+
+          {/* Match Chat Section */}
+          {match && session?.user && (
+            <MatchChatInCard matchId={match.id} />
+          )}
 
           {/* Spectator Info Section (for non-participants when match is in progress) */}
           {match.status === 'in_progress' && isSpectator && (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 const prisma = new PrismaClient();
 
@@ -198,6 +199,31 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       });
       return { updatedMatch, updatedWallet };
     });
+
+    // Log match join activity
+    await logActivity({
+      userId: user.id,
+      action: ActivityTypes.MATCH_JOINED,
+      entityType: 'Match',
+      entityId: updated.updatedMatch.id,
+      details: {
+        matchName: updated.updatedMatch.name,
+        gameName: updated.updatedMatch.gameName,
+        buyIn: match.buyIn
+      }
+    });
+
+    // Log buy-in payment
+    await logActivity({
+      userId: user.id,
+      action: ActivityTypes.BUY_IN_PAID,
+      entityType: 'Transaction',
+      details: {
+        amount: match.buyIn,
+        matchId: updated.updatedMatch.id
+      }
+    });
+
     // Add special message for invited users
     let successMessage = "Successfully joined the match!";
     if (match.visibility === "invite_only") {
