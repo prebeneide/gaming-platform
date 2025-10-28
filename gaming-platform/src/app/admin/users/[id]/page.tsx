@@ -3,8 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiArrowLeft, FiFilter, FiRefreshCw, FiPlus, FiMinus, FiWallet, FiTrendingUp, FiTrendingDown, FiCreditCard, FiGift, FiXCircle, FiCheckCircle, FiAlertCircle, FiSearch } from "react-icons/fi";
-import Link from "next/link";
+import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiRefreshCw, FiPlus, FiMinus, FiTrendingUp, FiTrendingDown, FiCreditCard, FiGift, FiXCircle, FiCheckCircle, FiAlertCircle, FiSearch } from "react-icons/fi";
 import TimeFormatter from "@/components/TimeFormatter";
 import AdminLayout from "@/components/AdminLayout";
 
@@ -51,8 +50,6 @@ interface ActivityLog {
   entityType?: string;
   entityId?: string;
   details?: any;
-  ipAddress?: string;
-  userAgent?: string;
   createdAt: string;
 }
 
@@ -168,39 +165,29 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   };
 
   const handleTransfer = async () => {
-    if (!transferAmount || !transferReason) {
-      alert("Please fill in all fields");
-      return;
-    }
-
-    const amount = parseFloat(transferAmount);
-    if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid amount");
-      return;
-    }
-
     try {
       const response = await fetch(`/api/admin/users/${resolvedParams.id}/transfer`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           type: transferType,
-          amount,
-          reason: transferReason
+          amount: parseFloat(transferAmount),
+          reason: transferReason,
         }),
       });
 
       if (response.ok) {
-        alert("Transfer completed successfully!");
+        const data = await response.json();
         setShowTransferModal(false);
         setTransferAmount("");
         setTransferReason("");
-        fetchUserDetails(); // Refresh user data
+        await fetchUserDetails(); // Refresh data
+        alert(`Transfer successful! New balance: $${data.newBalance.toFixed(2)}`);
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        alert(`Transfer failed: ${error.error}`);
       }
     } catch (error) {
       console.error("Error processing transfer:", error);
@@ -334,7 +321,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* User Info Card */}
-        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700 mb-6">
+        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
@@ -342,119 +329,110 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                 <div><span className="text-neutral-400">Username:</span> {user.username}</div>
                 <div><span className="text-neutral-400">Email:</span> {user.email}</div>
                 <div><span className="text-neutral-400">Role:</span> 
-                  <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${
-                    user.role === "admin" 
-                      ? "bg-red-100 text-red-800" 
-                      : "bg-green-100 text-green-800"
+                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                    user.role === "admin" ? "bg-purple-600 text-white" : "bg-green-600 text-white"
                   }`}>
                     {user.role}
                   </span>
                 </div>
                 <div><span className="text-neutral-400">Created:</span> <TimeFormatter date={user.createdAt} /></div>
-                <div><span className="text-neutral-400">Last Active:</span> 
-                  {user.lastActiveAt ? <TimeFormatter date={user.lastActiveAt} format="relative" /> : "Never"}
-                </div>
+                {user.lastActiveAt && (
+                  <div><span className="text-neutral-400">Last Active:</span> <TimeFormatter date={user.lastActiveAt} /></div>
+                )}
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-4">Social Links</h3>
-              <div className="space-y-2">
-                {user.discord && <div><span className="text-neutral-400">Discord:</span> {user.discord}</div>}
-                {user.twitter && <div><span className="text-neutral-400">Twitter:</span> {user.twitter}</div>}
-                {user.twitch && <div><span className="text-neutral-400">Twitch:</span> {user.twitch}</div>}
-                {user.steam && <div><span className="text-neutral-400">Steam:</span> {user.steam}</div>}
-                {user.psn && <div><span className="text-neutral-400">PSN:</span> {user.psn}</div>}
-                {user.xbox && <div><span className="text-neutral-400">Xbox:</span> {user.xbox}</div>}
+              <h3 className="text-lg font-semibold mb-4">Statistics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-neutral-700 rounded-lg p-4">
+                  <div className="text-center">
+                    <p className="text-neutral-400 text-sm">Activities</p>
+                    <p className="text-2xl font-bold text-white">{user._count.activityLogs}</p>
+                  </div>
+                </div>
+                <div className="bg-neutral-700 rounded-lg p-4">
+                  <div className="text-center">
+                    <p className="text-neutral-400 text-sm">Matches</p>
+                    <p className="text-2xl font-bold text-white">{user._count.createdMatches}</p>
+                  </div>
+                </div>
+                <div className="bg-neutral-700 rounded-lg p-4">
+                  <div className="text-center">
+                    <p className="text-neutral-400 text-sm">Transactions</p>
+                    <p className="text-2xl font-bold text-white">{user._count.transactions}</p>
+                  </div>
+                </div>
+                <div className="bg-neutral-700 rounded-lg p-4">
+                  <div className="text-center">
+                    <p className="text-neutral-400 text-sm">Messages</p>
+                    <p className="text-2xl font-bold text-white">{user._count.sentMessages + user._count.receivedMessages}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          {user.bio && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Bio</h3>
-              <p className="text-neutral-300">{user.bio}</p>
-            </div>
-          )}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-            <div className="text-center">
-              <p className="text-neutral-400 text-sm">Activities</p>
-              <p className="text-2xl font-bold text-blue-400">{user._count.activityLogs}</p>
-            </div>
-          </div>
-          <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-            <div className="text-center">
-              <p className="text-neutral-400 text-sm">Matches</p>
-              <p className="text-2xl font-bold text-green-400">{user._count.matchParticipations}</p>
-            </div>
-          </div>
-          <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-            <div className="text-center">
-              <p className="text-neutral-400 text-sm">Messages</p>
-              <p className="text-2xl font-bold text-purple-400">{user._count.sentMessages + user._count.globalMessages + user._count.matchMessages}</p>
-            </div>
-          </div>
-          <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-            <div className="text-center">
-              <p className="text-neutral-400 text-sm">Transactions</p>
-              <p className="text-2xl font-bold text-orange-400">{user._count.transactions}</p>
-            </div>
-          </div>
+        {/* Wallet Balance */}
+        {user.wallet && (
           <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
             <div className="text-center">
               <p className="text-neutral-400 text-sm">Wallet Balance</p>
               <p className="text-2xl font-bold text-yellow-400">${user.wallet?.balance?.toFixed(2) || "0.00"}</p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-neutral-800 rounded-lg border border-neutral-700">
-          <div className="border-b border-neutral-700">
-            <nav className="flex space-x-8 px-6">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === tab.id
-                        ? "border-purple-500 text-purple-400"
-                        : "border-transparent text-neutral-400 hover:text-neutral-300 hover:border-neutral-300"
-                    }`}
-                  >
-                    <Icon className="text-sm" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </nav>
+          <div className="flex border-b border-neutral-700">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-6 py-4 font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-purple-600 text-white border-b-2 border-purple-400"
+                      : "text-neutral-400 hover:text-white hover:bg-neutral-700"
+                  }`}
+                >
+                  <Icon className="text-lg" />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="p-6">
             {activeTab === "overview" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Social Stats</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-neutral-700 rounded-lg p-4 text-center">
-                      <p className="text-neutral-400 text-sm">Followers</p>
-                      <p className="text-xl font-bold text-blue-400">{user._count.followers}</p>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">User Overview</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-neutral-700 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2">Social Stats</h4>
+                    <div className="space-y-1 text-sm">
+                      <div>Followers: {user._count.followers}</div>
+                      <div>Following: {user._count.following}</div>
+                      <div>Friend Requests Sent: {user._count.friendRequestsSent}</div>
+                      <div>Friend Requests Received: {user._count.friendRequestsReceived}</div>
                     </div>
-                    <div className="bg-neutral-700 rounded-lg p-4 text-center">
-                      <p className="text-neutral-400 text-sm">Following</p>
-                      <p className="text-xl font-bold text-green-400">{user._count.following}</p>
+                  </div>
+                  <div className="bg-neutral-700 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2">Match Stats</h4>
+                    <div className="space-y-1 text-sm">
+                      <div>Created Matches: {user._count.createdMatches}</div>
+                      <div>Participated Matches: {user._count.matchParticipations}</div>
                     </div>
-                    <div className="bg-neutral-700 rounded-lg p-4 text-center">
-                      <p className="text-neutral-400 text-sm">Friends Sent</p>
-                      <p className="text-xl font-bold text-purple-400">{user._count.friendRequestsSent}</p>
-                    </div>
-                    <div className="bg-neutral-700 rounded-lg p-4 text-center">
-                      <p className="text-neutral-400 text-sm">Friends Received</p>
-                      <p className="text-xl font-bold text-orange-400">{user._count.friendRequestsReceived}</p>
+                  </div>
+                  <div className="bg-neutral-700 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2">Communication</h4>
+                    <div className="space-y-1 text-sm">
+                      <div>Sent Messages: {user._count.sentMessages}</div>
+                      <div>Received Messages: {user._count.receivedMessages}</div>
+                      <div>Global Messages: {user._count.globalMessages}</div>
+                      <div>Match Messages: {user._count.matchMessages}</div>
                     </div>
                   </div>
                 </div>
@@ -715,12 +693,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                                   <TimeFormatter date={transaction.createdAt} format="relative" />
                                 </div>
                               </div>
-          </div>
-        </div>
-      </div>
-    </AdminLayout>
-  );
-})}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
