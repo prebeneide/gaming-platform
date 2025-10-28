@@ -1,9 +1,8 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiUsers, FiActivity, FiDollarSign, FiAward, FiClock, FiAlertTriangle } from "react-icons/fi";
+import AdminLayout from "@/components/AdminLayout";
 
 interface AdminStats {
   totalUsers: number;
@@ -22,21 +21,12 @@ interface AdminStats {
 }
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "loading") return;
-    
-    if (!session || session.user.role !== "admin") {
-      router.push("/dashboard");
-      return;
-    }
-
     fetchAdminStats();
-  }, [session, status, router]);
+  }, []);
 
   const fetchAdminStats = async () => {
     try {
@@ -52,60 +42,34 @@ export default function AdminDashboard() {
     }
   };
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white text-xl">Loading admin stats...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
-  if (!session || session.user.role !== "admin") {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-neutral-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-              <p className="text-neutral-400">Overview of platform activity and statistics</p>
-            </div>
-            <div className="flex gap-3">
-              <a
-                href="/admin/users"
-                className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-              >
-                <FiUsers className="text-lg" />
-                User Management
-              </a>
-              <a
-                href="/admin/disputes"
-                className="relative flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                <FiAlertTriangle className="text-lg" />
-                Disputes
-                {stats && stats.activeDisputes > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
-                    {stats.activeDisputes}
-                  </span>
-                )}
-              </a>
-            </div>
-          </div>
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+          <p className="text-neutral-400 mt-2">Overview of platform statistics and recent activity</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-neutral-400 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-pink-400">{stats?.totalUsers || 0}</p>
+                <p className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</p>
               </div>
-              <FiUsers className="text-2xl text-pink-400" />
+              <FiUsers className="text-2xl text-blue-400" />
             </div>
           </div>
 
@@ -113,7 +77,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-neutral-400 text-sm">Total Matches</p>
-                <p className="text-2xl font-bold text-green-400">{stats?.totalMatches || 0}</p>
+                <p className="text-2xl font-bold text-white">{stats?.totalMatches || 0}</p>
               </div>
               <FiAward className="text-2xl text-green-400" />
             </div>
@@ -122,10 +86,10 @@ export default function AdminDashboard() {
           <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-neutral-400 text-sm">Transactions</p>
-                <p className="text-2xl font-bold text-blue-400">{stats?.totalTransactions || 0}</p>
+                <p className="text-neutral-400 text-sm">Total Transactions</p>
+                <p className="text-2xl font-bold text-white">{stats?.totalTransactions || 0}</p>
               </div>
-              <FiDollarSign className="text-2xl text-blue-400" />
+              <FiDollarSign className="text-2xl text-yellow-400" />
             </div>
           </div>
 
@@ -138,46 +102,69 @@ export default function AdminDashboard() {
               <FiAlertTriangle className="text-2xl text-red-400" />
             </div>
           </div>
+        </div>
 
-          <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-400 text-sm">Recent Activity</p>
-                <p className="text-2xl font-bold text-orange-400">{stats?.recentActivity?.length || 0}</p>
-              </div>
-              <FiActivity className="text-2xl text-orange-400" />
-            </div>
+        {/* Quick Actions */}
+        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+          <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <a
+              href="/admin/users"
+              className="flex items-center gap-3 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <FiUsers className="text-lg" />
+              User Management
+            </a>
+            <a
+              href="/admin/disputes"
+              className="relative flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            >
+              <FiAlertTriangle className="text-lg" />
+              Disputes
+              {stats && stats.activeDisputes > 0 && (
+                <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                  {stats.activeDisputes}
+                </span>
+              )}
+            </a>
+            <a
+              href="/admin/activity"
+              className="flex items-center gap-3 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              <FiActivity className="text-lg" />
+              All Activity
+            </a>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <FiClock className="text-orange-400" />
-            Recent Activity
-          </h2>
-          
-          {stats?.recentActivity && stats.recentActivity.length > 0 ? (
+        {stats && stats.recentActivity.length > 0 && (
+          <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+            <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
             <div className="space-y-3">
               {stats.recentActivity.map((activity) => (
                 <div key={activity.id} className="flex items-center justify-between p-3 bg-neutral-700 rounded-lg">
-                  <div>
-                    <p className="font-medium">{activity.action}</p>
-                    <p className="text-sm text-neutral-400">
-                      {activity.entityType} • {activity.user?.username || "System"}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <FiActivity className="text-neutral-400" />
+                    <div>
+                      <p className="text-white font-medium">
+                        {activity.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </p>
+                      <p className="text-sm text-neutral-400">
+                        {activity.user?.username} • {activity.entityType}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-sm text-neutral-400">
-                    {new Date(activity.createdAt).toLocaleString()}
+                  <div className="flex items-center gap-2 text-sm text-neutral-400">
+                    <FiClock className="text-xs" />
+                    {new Date(activity.createdAt).toLocaleDateString()}
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-neutral-400">No recent activity</p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }

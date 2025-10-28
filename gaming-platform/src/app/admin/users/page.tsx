@@ -3,9 +3,10 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiUsers, FiSearch, FiEye, FiFilter, FiRefreshCw } from "react-icons/fi";
+import { FiUsers, FiSearch, FiEye, FiFilter, FiRefreshCw, FiUser } from "react-icons/fi";
 import Link from "next/link";
 import TimeFormatter from "@/components/TimeFormatter";
+import AdminLayout from "@/components/AdminLayout";
 
 interface User {
   id: string;
@@ -22,6 +23,8 @@ interface User {
     transactions: number;
     sentMessages: number;
     receivedMessages: number;
+    globalMessages: number;
+    matchMessages: number;
   };
 }
 
@@ -32,7 +35,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortBy, setSortBy] = useState<"createdAt" | "username" | "lastActiveAt" | "activityCount">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
@@ -104,9 +107,11 @@ export default function AdminUsersPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white text-xl">Loading users...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
@@ -115,25 +120,25 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white">
-      <div className="container mx-auto px-4 py-8">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold">User Management</h1>
-            <button
-              onClick={fetchUsers}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
-            >
-              <FiRefreshCw className="text-sm" />
-              Refresh
-            </button>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">User Management</h1>
+            <p className="text-neutral-400 mt-2">Manage and monitor all platform users</p>
           </div>
-          <p className="text-neutral-400">Manage and monitor all platform users</p>
+          <button
+            onClick={fetchUsers}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+          >
+            <FiRefreshCw className="text-sm" />
+            Refresh
+          </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
             <div className="flex items-center justify-between">
               <div>
@@ -146,163 +151,140 @@ export default function AdminUsersPage() {
           <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-neutral-400 text-sm">Admins</p>
-                <p className="text-2xl font-bold text-red-400">{users.filter(u => u.role === "admin").length}</p>
+                <p className="text-neutral-400 text-sm">Regular Users</p>
+                <p className="text-2xl font-bold text-green-400">{users.filter(u => u.role === "user").length}</p>
               </div>
-              <FiUsers className="text-2xl text-red-400" />
+              <FiUser className="text-2xl text-green-400" />
+            </div>
+          </div>
+          <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-neutral-400 text-sm">Admins</p>
+                <p className="text-2xl font-bold text-purple-400">{users.filter(u => u.role === "admin").length}</p>
+              </div>
+              <FiUser className="text-2xl text-purple-400" />
             </div>
           </div>
           <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-neutral-400 text-sm">Active Today</p>
-                <p className="text-2xl font-bold text-green-400">
-                  {users.filter(u => u.lastActiveAt && new Date(u.lastActiveAt) > new Date(Date.now() - 24 * 60 * 60 * 1000)).length}
+                <p className="text-2xl font-bold text-yellow-400">
+                  {users.filter(u => {
+                    if (!u.lastActiveAt) return false;
+                    const lastActive = new Date(u.lastActiveAt);
+                    const today = new Date();
+                    return lastActive.toDateString() === today.toDateString();
+                  }).length}
                 </p>
               </div>
-              <FiUsers className="text-2xl text-green-400" />
-            </div>
-          </div>
-          <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-neutral-400 text-sm">New This Week</p>
-                <p className="text-2xl font-bold text-purple-400">
-                  {users.filter(u => new Date(u.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length}
-                </p>
-              </div>
-              <FiUsers className="text-2xl text-purple-400" />
+              <FiUser className="text-2xl text-yellow-400" />
             </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Search</label>
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Username, email, or display name"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-neutral-700 text-white px-10 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
+        {/* Search and Filters */}
+        <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Role</label>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="w-full bg-neutral-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="all">All Roles</option>
-                <option value="user">Users</option>
-                <option value="admin">Admins</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-neutral-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="createdAt">Created Date</option>
-                <option value="lastActiveAt">Last Active</option>
-                <option value="username">Username</option>
-                <option value="activityCount">Activity Count</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Order</label>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
-                className="w-full bg-neutral-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="desc">Newest First</option>
-                <option value="asc">Oldest First</option>
-              </select>
-            </div>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm border border-neutral-600"
+            >
+              <option value="all">All Roles</option>
+              <option value="user">Users</option>
+              <option value="admin">Admins</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm border border-neutral-600"
+            >
+              <option value="createdAt">Sort by Created</option>
+              <option value="username">Sort by Username</option>
+              <option value="lastActiveAt">Sort by Last Active</option>
+              <option value="activityCount">Sort by Activity</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors"
+            >
+              <FiFilter className="text-sm" />
+              {sortOrder === "asc" ? "↑" : "↓"}
+            </button>
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-neutral-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Activity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Matches</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Messages</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Last Active</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-700">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-neutral-700/50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="font-medium text-white">{user.displayName || user.username}</div>
-                        <div className="text-sm text-neutral-400">{user.email}</div>
-                        <div className="text-xs text-neutral-500">ID: {user.id}</div>
+        {/* Users List */}
+        <div className="bg-neutral-800 rounded-lg border border-neutral-700">
+          <div className="p-6 border-b border-neutral-700">
+            <h2 className="text-xl font-semibold text-white">
+              Users ({filteredUsers.length})
+            </h2>
+          </div>
+          <div className="divide-y divide-neutral-700">
+            {filteredUsers.map((user) => (
+              <Link href={`/admin/users/${user.id}`} key={user.id}>
+                <div className="p-6 hover:bg-neutral-750 transition-colors cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-white text-lg">
+                          {user.username}
+                          {user.displayName && (
+                            <span className="text-neutral-400 ml-2">({user.displayName})</span>
+                          )}
+                        </h3>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          user.role === "admin" 
+                            ? "bg-purple-600 text-white" 
+                            : "bg-green-600 text-white"
+                        }`}>
+                          {user.role}
+                        </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === "admin" 
-                          ? "bg-red-100 text-red-800" 
-                          : "bg-green-100 text-green-800"
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-300">
-                      {user._count.activityLogs} activities
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-300">
-                      {user._count.createdMatches} created, {user._count.matchParticipations} joined
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-300">
-                      {user._count.sentMessages} sent, {user._count.receivedMessages} received
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-300">
-                      {user.lastActiveAt ? (
-                        <TimeFormatter date={user.lastActiveAt} format="relative" />
-                      ) : (
-                        "Never"
+                      <p className="text-neutral-400 mb-2">{user.email}</p>
+                      <div className="flex items-center gap-4 text-sm text-neutral-500">
+                        <span>Activities: {user._count.activityLogs}</span>
+                        <span>Matches: {user._count.createdMatches}</span>
+                        <span>Transactions: {user._count.transactions}</span>
+                        <span>Messages: {user._count.sentMessages + user._count.receivedMessages}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-neutral-400 mb-1">
+                        Created: <TimeFormatter date={user.createdAt} />
+                      </p>
+                      {user.lastActiveAt && (
+                        <p className="text-sm text-neutral-500">
+                          Last active: <TimeFormatter date={user.lastActiveAt} />
+                        </p>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/admin/users/${user.id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition-colors"
-                      >
-                        <FiEye className="text-xs" />
-                        View Details
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="mt-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-neutral-700 text-neutral-300 rounded text-xs">
+                          <FiEye className="text-xs" />
+                          View Details
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
-
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-8 text-neutral-400">
-            No users found matching your criteria.
-          </div>
-        )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }

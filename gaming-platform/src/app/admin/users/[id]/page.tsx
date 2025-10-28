@@ -6,6 +6,7 @@ import { useEffect, useState, use } from "react";
 import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiArrowLeft, FiFilter, FiRefreshCw, FiPlus, FiMinus, FiWallet, FiTrendingUp, FiTrendingDown, FiCreditCard, FiGift, FiXCircle, FiCheckCircle, FiAlertCircle, FiSearch } from "react-icons/fi";
 import Link from "next/link";
 import TimeFormatter from "@/components/TimeFormatter";
+import AdminLayout from "@/components/AdminLayout";
 
 interface UserDetails {
   id: string;
@@ -209,9 +210,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-white text-xl">Loading...</div>
+        </div>
+      </AdminLayout>
     );
   }
 
@@ -291,50 +294,43 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white">
-      <div className="container mx-auto px-4 py-8">
+    <AdminLayout>
+      <div className="space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link
-              href="/admin/users"
-              className="flex items-center gap-2 px-3 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors"
-            >
-              <FiArrowLeft className="text-sm" />
-              Back to Users
-            </Link>
-            <div className="flex gap-3">
-              <button
-                onClick={fetchUserDetails}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
-              >
-                <FiRefreshCw className="text-sm" />
-                Refresh
-              </button>
-              <button
-                onClick={() => {
-                  setTransferType("deposit");
-                  setShowTransferModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-              >
-                <FiPlus className="text-sm" />
-                Add Money
-              </button>
-              <button
-                onClick={() => {
-                  setTransferType("withdraw");
-                  setShowTransferModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                <FiMinus className="text-sm" />
-                Remove Money
-              </button>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">{user.displayName || user.username}</h1>
+            <p className="text-neutral-400 mt-2">User ID: {user.id}</p>
           </div>
-          <h1 className="text-3xl font-bold">{user.displayName || user.username}</h1>
-          <p className="text-neutral-400">User ID: {user.id}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchUserDetails}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+            >
+              <FiRefreshCw className="text-sm" />
+              Refresh
+            </button>
+            <button
+              onClick={() => {
+                setTransferType("deposit");
+                setShowTransferModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+            >
+              <FiPlus className="text-sm" />
+              Add Money
+            </button>
+            <button
+              onClick={() => {
+                setTransferType("withdraw");
+                setShowTransferModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+            >
+              <FiMinus className="text-sm" />
+              Remove Money
+            </button>
+          </div>
         </div>
 
         {/* User Info Card */}
@@ -719,12 +715,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                                   <TimeFormatter date={transaction.createdAt} format="relative" />
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+          </div>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+})}
                 </div>
               </div>
             )}
@@ -844,6 +840,6 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }
