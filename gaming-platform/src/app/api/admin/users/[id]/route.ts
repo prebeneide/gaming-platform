@@ -36,6 +36,7 @@ export async function GET(
         steam: true,
         psn: true,
         xbox: true,
+        wallet: true,
         _count: {
           select: {
             activityLogs: true,

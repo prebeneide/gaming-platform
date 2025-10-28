@@ -94,6 +94,8 @@ export const ActivityTypes = {
   ADMIN_MATCH_MODERATED: "admin_match_moderated",
   ADMIN_TRANSACTION_MODERATED: "admin_transaction_moderated",
   ADMIN_DISPUTE_RESOLVED: "admin_dispute_resolved",
+  ADMIN_DEPOSIT: "admin_deposit",
+  ADMIN_WITHDRAWAL: "admin_withdrawal",
   
   // System Events
   HEARTBEAT: "heartbeat",

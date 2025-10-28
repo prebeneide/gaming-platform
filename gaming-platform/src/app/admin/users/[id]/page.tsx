@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiArrowLeft, FiFilter, FiRefreshCw } from "react-icons/fi";
+import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiArrowLeft, FiFilter, FiRefreshCw, FiPlus, FiMinus, FiWallet } from "react-icons/fi";
 import Link from "next/link";
 import TimeFormatter from "@/components/TimeFormatter";
 
@@ -23,6 +23,11 @@ interface UserDetails {
   steam?: string;
   psn?: string;
   xbox?: string;
+  wallet?: {
+    id: string;
+    balance: number;
+    currency: string;
+  };
   _count: {
     activityLogs: number;
     createdMatches: number;
@@ -99,6 +104,10 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [activityFilter, setActivityFilter] = useState("all");
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferType, setTransferType] = useState<"deposit" | "withdraw">("deposit");
+  const [transferReason, setTransferReason] = useState("");
 
   useEffect(() => {
     if (status === "loading") return;
@@ -152,10 +161,46 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const filteredActivities = activities.filter(activity => {
-    if (activityFilter === "all") return true;
-    return activity.action.includes(activityFilter);
-  });
+  const handleTransfer = async () => {
+    if (!transferAmount || !transferReason) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    const amount = parseFloat(transferAmount);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${resolvedParams.id}/transfer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: transferType,
+          amount,
+          reason: transferReason
+        }),
+      });
+
+      if (response.ok) {
+        alert("Transfer completed successfully!");
+        setShowTransferModal(false);
+        setTransferAmount("");
+        setTransferReason("");
+        fetchUserDetails(); // Refresh user data
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Error processing transfer:", error);
+      alert("Failed to process transfer");
+    }
+  };
 
   if (status === "loading" || loading) {
     return (
@@ -190,13 +235,35 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               <FiArrowLeft className="text-sm" />
               Back to Users
             </Link>
-            <button
-              onClick={fetchUserDetails}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
-            >
-              <FiRefreshCw className="text-sm" />
-              Refresh
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={fetchUserDetails}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+              >
+                <FiRefreshCw className="text-sm" />
+                Refresh
+              </button>
+              <button
+                onClick={() => {
+                  setTransferType("deposit");
+                  setShowTransferModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                <FiPlus className="text-sm" />
+                Add Money
+              </button>
+              <button
+                onClick={() => {
+                  setTransferType("withdraw");
+                  setShowTransferModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                <FiMinus className="text-sm" />
+                Remove Money
+              </button>
+            </div>
           </div>
           <h1 className="text-3xl font-bold">{user.displayName || user.username}</h1>
           <p className="text-neutral-400">User ID: {user.id}</p>
@@ -246,7 +313,7 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
             <div className="text-center">
               <p className="text-neutral-400 text-sm">Activities</p>
@@ -269,6 +336,12 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             <div className="text-center">
               <p className="text-neutral-400 text-sm">Transactions</p>
               <p className="text-2xl font-bold text-orange-400">{user._count.transactions}</p>
+            </div>
+          </div>
+          <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
+            <div className="text-center">
+              <p className="text-neutral-400 text-sm">Wallet Balance</p>
+              <p className="text-2xl font-bold text-yellow-400">${user.wallet?.balance?.toFixed(2) || "0.00"}</p>
             </div>
           </div>
         </div>
@@ -501,6 +574,66 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             )}
           </div>
         </div>
+
+        {/* Transfer Modal */}
+        {showTransferModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-neutral-800 rounded-lg p-6 w-full max-w-md border border-neutral-700">
+              <h3 className="text-xl font-bold mb-4">
+                {transferType === "deposit" ? "Add Money" : "Remove Money"}
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Amount ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    placeholder="0.00"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Reason</label>
+                  <textarea
+                    value={transferReason}
+                    onChange={(e) => setTransferReason(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    rows={3}
+                    placeholder="Reason for this transfer..."
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleTransfer}
+                    className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                      transferType === "deposit"
+                        ? "bg-green-600 hover:bg-green-700"
+                        : "bg-red-600 hover:bg-red-700"
+                    }`}
+                  >
+                    {transferType === "deposit" ? "Add Money" : "Remove Money"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowTransferModal(false);
+                      setTransferAmount("");
+                      setTransferReason("");
+                    }}
+                    className="px-4 py-2 bg-neutral-600 hover:bg-neutral-700 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
