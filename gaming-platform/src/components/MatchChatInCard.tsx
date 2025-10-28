@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import io from "socket.io-client";
-import { FiMessageSquare, FiX, FiSend, FiSmile } from "react-icons/fi";
+import { FiMessageSquare, FiSend, FiSmile, FiX } from "react-icons/fi";
 import UserAvatar from "@/components/UserAvatar";
 import TimeFormatter from "@/components/TimeFormatter";
 
-interface GlobalMessage {
+interface MatchMessage {
   id: string;
   content: string;
   senderId: string;
@@ -22,10 +22,14 @@ interface GlobalMessage {
 
 const POPULAR_EMOJIS = ['😀', '😂', '🥰', '😎', '🤔', '🔥', '💯', '👍', '👎', '❤️', '🎉', '🎮', '⚡', '💪', '🤝', '👏', '🙌'];
 
-export default function GlobalChat() {
+interface MatchChatInCardProps {
+  matchId: string;
+}
+
+export default function MatchChatInCard({ matchId }: MatchChatInCardProps) {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<GlobalMessage[]>([]);
+  const [messages, setMessages] = useState<MatchMessage[]>([]);
   const [message, setMessage] = useState("");
   const [isConnecting, setIsConnecting] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -36,52 +40,55 @@ export default function GlobalChat() {
 
   // Initialize socket connection
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !matchId) return;
 
-    console.log("[GlobalChat] Initializing socket connection...");
+    console.log("[MatchChatInCard] Initializing socket connection for match:", matchId);
     socketRef.current = io("http://localhost:4000");
 
     socketRef.current.on("connect", () => {
-      console.log("[GlobalChat] Socket connected:", socketRef.current?.id);
+      console.log("[MatchChatInCard] Socket connected:", socketRef.current?.id);
       setIsConnecting(false);
+      // Join the match room
+      socketRef.current.emit("join match room", matchId);
     });
 
     socketRef.current.on("connect_error", (error: Error) => {
-      console.error("[GlobalChat] Connection error:", error);
+      console.error("[MatchChatInCard] Connection error:", error);
       setIsConnecting(true);
     });
 
     socketRef.current.on("disconnect", () => {
-      console.log("[GlobalChat] Socket disconnected");
+      console.log("[MatchChatInCard] Socket disconnected");
       setIsConnecting(true);
     });
 
-    // Listen for global chat messages
-    socketRef.current.on("global chat message", (msg: GlobalMessage) => {
-      console.log("[GlobalChat] Received message:", msg);
+    // Listen for match chat messages
+    socketRef.current.on("match chat message", (msg: MatchMessage) => {
+      console.log("[MatchChatInCard] Received message:", msg);
       setMessages((prev) => [...prev, msg]);
       scrollToBottom();
     });
 
     // Load initial messages
-    fetch("/api/global-chat")
+    fetch(`/api/matches/${matchId}/chat`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("[GlobalChat] Loaded messages:", data);
+        console.log("[MatchChatInCard] Loaded messages:", data);
         if (data.messages) {
           setMessages(data.messages);
           scrollToBottom();
         }
       })
-      .catch((err) => console.error("[GlobalChat] Error fetching messages:", err));
+      .catch((err) => console.error("[MatchChatInCard] Error fetching messages:", err));
 
     return () => {
-      console.log("[GlobalChat] Cleaning up socket connection...");
+      console.log("[MatchChatInCard] Cleaning up socket connection...");
       if (socketRef.current) {
+        socketRef.current.emit("leave match room", matchId);
         socketRef.current.disconnect();
       }
     };
-  }, [session]);
+  }, [session, matchId]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -111,23 +118,26 @@ export default function GlobalChat() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[MatchChatInCard] Submit clicked:", {
+      hasMessage: !!message.trim(),
+      hasSocket: !!socketRef.current,
+      hasUserId: !!session?.user?.id,
+      message: message.trim(),
+    });
+    
     if (!message.trim() || !socketRef.current || !session?.user?.id) {
-      console.log("[GlobalChat] Cannot send message:", { 
-        hasMessage: !!message.trim(), 
-        hasSocket: !!socketRef.current, 
-        hasUserId: !!session?.user?.id 
-      });
+      console.log("[MatchChatInCard] Cannot send - missing requirements");
       return;
     }
 
     const msgData = {
       content: message.trim(),
       senderId: session.user.id,
+      matchId: matchId,
     };
 
-    console.log("[GlobalChat] Sending message:", msgData);
-    // Send to server via socket
-    socketRef.current.emit("global chat message", msgData);
+    console.log("[MatchChatInCard] Emitting message:", msgData);
+    socketRef.current.emit("match chat message", msgData);
     setMessage("");
     inputRef.current?.focus();
   };
@@ -135,36 +145,28 @@ export default function GlobalChat() {
   if (!session) return null;
 
   return (
-    <>
-      {/* Floating Chat Button - Fixed to top left */}
+    <div className="mt-4">
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed top-1/3 left-0 z-50 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-500 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        aria-label="Open global chat"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-neutral-800/50 hover:bg-neutral-800 rounded-lg transition-colors"
       >
-        <FiMessageSquare className="text-white text-xl" />
+        <div className="flex items-center gap-2">
+          <FiMessageSquare className="text-purple-400" />
+          <span className="text-white font-semibold">Match Chat</span>
+          {!isConnecting && messages.length > 0 && (
+            <span className="text-xs text-gray-400">({messages.length})</span>
+          )}
+        </div>
         {isConnecting && (
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 animate-pulse" />
+          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
 
-      {/* Chat Window */}
+      {/* Chat Window - Collapsible */}
       {isOpen && (
-        <div className="fixed top-0 left-0 w-96 h-screen bg-neutral-900 shadow-2xl flex flex-col z-50 border border-neutral-800">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-            <h3 className="text-lg font-semibold text-white">Global Chat</h3>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-white transition"
-              aria-label="Close chat"
-            >
-              <FiX className="text-xl" />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="mt-2 border border-neutral-800 rounded-lg overflow-hidden bg-neutral-900">
+          {/* Chat Messages */}
+          <div className="h-64 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
                 Be the first to say something!
@@ -182,17 +184,17 @@ export default function GlobalChat() {
                             displayName: msg.sender.displayName,
                             image: msg.sender.image,
                           }}
-                          size={32}
+                          size={24}
                         />
                       </div>
                     )}
-                    <div className={`max-w-[70%] rounded-lg px-3 py-2 ${isOwn ? "bg-gradient-to-r from-purple-600 to-pink-500 text-white" : "bg-neutral-800 text-gray-100"}`}>
+                    <div className={`max-w-[70%] rounded-lg px-3 py-2 text-sm ${isOwn ? "bg-gradient-to-r from-purple-600 to-pink-500 text-white" : "bg-neutral-800 text-gray-100"}`}>
                       {!isOwn && (
                         <div className="text-xs font-semibold mb-1">
                           {msg.sender.displayName || msg.sender.username || "Anonymous"}
                         </div>
                       )}
-                      <div className="text-sm">{msg.content}</div>
+                      <div>{msg.content}</div>
                       <div className={`text-xs mt-1 ${isOwn ? "text-white/70" : "text-gray-400"}`}>
                         <TimeFormatter date={msg.createdAt} format="time" />
                       </div>
@@ -205,16 +207,16 @@ export default function GlobalChat() {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSubmit} className="p-4 border-t border-neutral-800 relative">
+          <form onSubmit={handleSubmit} className="p-3 border-t border-neutral-800 relative">
             {/* Emoji Picker */}
             {showEmojiPicker && (
-              <div ref={emojiPickerRef} className="absolute bottom-full left-0 mb-2 bg-neutral-800 rounded-lg p-3 w-full grid grid-cols-4 gap-2 max-h-48 overflow-y-auto border border-neutral-700">
+              <div ref={emojiPickerRef} className="absolute bottom-full left-3 mb-2 bg-neutral-800 rounded-lg p-3 w-[calc(100%-1.5rem)] grid grid-cols-6 gap-2 max-h-48 overflow-y-auto border border-neutral-700">
                 {POPULAR_EMOJIS.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => insertEmoji(emoji)}
-                    className="text-2xl hover:bg-neutral-700 rounded p-2 transition"
+                    className="text-xl hover:bg-neutral-700 rounded p-1 transition"
                   >
                     {emoji}
                   </button>
@@ -227,7 +229,7 @@ export default function GlobalChat() {
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="text-gray-400 hover:text-white transition flex-shrink-0"
               >
-                <FiSmile className="text-xl" />
+                <FiSmile className="text-lg" />
               </button>
               <input
                 ref={inputRef}
@@ -235,13 +237,13 @@ export default function GlobalChat() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 bg-neutral-800 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex-1 bg-neutral-800 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                 disabled={isConnecting}
               />
               <button
                 type="submit"
                 disabled={!message.trim() || isConnecting}
-                className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                className="bg-gradient-to-r from-purple-600 to-pink-500 text-white px-3 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 text-sm"
               >
                 <FiSend />
               </button>
@@ -249,7 +251,7 @@ export default function GlobalChat() {
           </form>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

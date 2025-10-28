@@ -5,6 +5,7 @@ import { FiBell, FiCheck, FiX, FiClock, FiUser, FiDollarSign } from "react-icons
 import { FaTrophy } from "react-icons/fa";
 import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
+import TimeFormatter from "@/components/TimeFormatter";
 import Link from "next/link";
 import Image from "next/image";
 import UserAvatar from "@/components/UserAvatar";
@@ -298,11 +299,7 @@ export default function NotificationsPage() {
                               <span className="flex items-center gap-1">
                                 <span className="block sm:hidden"><FiClock size={12} /></span>
                                 <span className="hidden sm:block"><FiClock size={14} /></span>
-                                {new Date(notification.createdAt).toLocaleDateString()} at{' '}
-                                {new Date(notification.createdAt).toLocaleTimeString([], { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
+                                <TimeFormatter date={notification.createdAt} />
                               </span>
                               {!notification.isRead && (
                                 <span className="text-pink-400 font-medium">New</span>

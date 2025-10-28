@@ -16,7 +16,8 @@ export default async function DashboardPage() {
     where: { id: session.user.id },
     include: {
       wallet: true,
-    },
+      preferences: true,
+    } as any,
   });
 
   if (!userDb) {
@@ -177,14 +178,23 @@ export default async function DashboardPage() {
     };
   });
 
-  // Get wallet balance
-  const walletBalance = userDb?.wallet?.balance || 0;
+
+  // Get user preferences - handle possible null/undefined
+  const preferences = (userDb as any)?.preferences || {
+    timeFormat: "12",
+    dateFormat: "MM/DD/YYYY",
+    timezone: "UTC"
+  };
+  
+  // Get wallet balance - handle possible null/undefined  
+  const walletBalance = (userDb as any)?.wallet?.balance || 0;
 
   return (
     <div className="min-h-screen bg-black text-white">
       <UserDashboard 
         user={userDb} 
         walletBalance={walletBalance}
+        preferences={preferences}
         unifiedStats={unifiedStats}
         socialStats={{
           followers: followersCount,

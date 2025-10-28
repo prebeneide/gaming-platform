@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { FiPlus, FiMinus, FiDollarSign, FiClock, FiCheck, FiX } from "react-icons/fi";
 import { usePopup } from "@/components/PopupProvider";
 import BackButton from "@/components/BackButton";
+import TimeFormatter from "@/components/TimeFormatter";
 
 interface Transaction {
   id: string;
@@ -282,7 +283,9 @@ export default function WalletPage() {
                     </div>
                     <div className="flex flex-col text-xs sm:text-base">
                       <span className="font-semibold">{transaction.description}</span>
-                      <span className="text-gray-400">{new Date(transaction.createdAt).toLocaleDateString()} at {new Date(transaction.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                      <span className="text-gray-400">
+                        <TimeFormatter date={transaction.createdAt} />
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">

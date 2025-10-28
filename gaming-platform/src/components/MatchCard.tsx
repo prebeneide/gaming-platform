@@ -2,6 +2,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import UserAvatar from "@/components/UserAvatar";
+import TimeFormatter from "@/components/TimeFormatter";
 
 const gameImages: Record<string, string> = {
   "FC25": "/Images/FC25/98678603c00b2f99573ac233ce0e1780.jpg",
@@ -104,7 +105,9 @@ export default function MatchCard({ match, className = "" }: MatchCardProps) {
         />
         <div>
           <div className="font-bold text-lg text-white">{match.creator.displayName || match.creator.username}</div>
-          <div className="text-xs text-gray-400">Created {new Date(match.createdAt).toLocaleString()}</div>
+          <div className="text-xs text-gray-400">
+            <TimeFormatter date={match.createdAt} format="relative" />
+          </div>
         </div>
       </div>
       {/* Media section */}
@@ -173,7 +176,7 @@ export default function MatchCard({ match, className = "" }: MatchCardProps) {
               </div>
             )}
             <div className="text-xs text-green-300 mt-1">
-              Completed: {new Date(match.result.createdAt).toLocaleString()}
+              Completed: <TimeFormatter date={match.result.createdAt} />
             </div>
           </div>
         )}

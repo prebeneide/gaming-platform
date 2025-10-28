@@ -152,7 +152,7 @@ function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
   );
 }
 
-export default function UserDashboard({ user, walletBalance, unifiedStats, socialStats, friends = [], recentMatches = [] }: { 
+export default function UserDashboard({ user, walletBalance, unifiedStats, socialStats, friends = [], recentMatches = [], preferences }: { 
   user: {
     email?: string | null;
     username?: string | null;
@@ -170,6 +170,11 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
   };
   walletBalance?: number;
   unifiedStats: UnifiedUserStats;
+  preferences?: {
+    timeFormat?: string;
+    dateFormat?: string;
+    timezone?: string;
+  };
   socialStats?: {
     followers: number;
     following: number;
@@ -219,32 +224,36 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
     registeredAt: "2024-05-01",
   };
 
-  // Helper function to format date and time
+  // Helper function to format date and time based on user preferences
   const formatMatchDateTime = (date: Date) => {
     const now = new Date();
     const matchDate = new Date(date);
     const timeDiff = now.getTime() - matchDate.getTime();
     const daysAgo = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
     
+    // Use preferences or defaults
+    const timeFormat = preferences?.timeFormat || "12";
+    const hour12 = timeFormat === "12";
+    
     if (daysAgo === 0) {
       return {
         date: "Today",
-        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12 })
       };
     } else if (daysAgo === 1) {
       return {
         date: "Yesterday",
-        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12 })
       };
     } else if (daysAgo < 7) {
       return {
         date: `${daysAgo} days ago`,
-        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12 })
       };
     } else {
       return {
         date: matchDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }),
-        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+        time: matchDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12 })
       };
     }
   };

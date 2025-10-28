@@ -4,10 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import io from "socket.io-client";
 import { FiMessageSquare, FiX, FiSend, FiSmile } from "react-icons/fi";
-import UserAvatar from "@/components/UserAvatar";
 import TimeFormatter from "@/components/TimeFormatter";
 
-interface GlobalMessage {
+interface MatchMessage {
   id: string;
   content: string;
   senderId: string;
@@ -22,10 +21,14 @@ interface GlobalMessage {
 
 const POPULAR_EMOJIS = ['😀', '😂', '🥰', '😎', '🤔', '🔥', '💯', '👍', '👎', '❤️', '🎉', '🎮', '⚡', '💪', '🤝', '👏', '🙌'];
 
-export default function GlobalChat() {
+interface MatchChatProps {
+  matchId: string;
+}
+
+export default function MatchChat({ matchId }: MatchChatProps) {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<GlobalMessage[]>([]);
+  const [messages, setMessages] = useState<MatchMessage[]>([]);
   const [message, setMessage] = useState("");
   const [isConnecting, setIsConnecting] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -36,52 +39,55 @@ export default function GlobalChat() {
 
   // Initialize socket connection
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !matchId) return;
 
-    console.log("[GlobalChat] Initializing socket connection...");
+    console.log("[MatchChat] Initializing socket connection for match:", matchId);
     socketRef.current = io("http://localhost:4000");
 
     socketRef.current.on("connect", () => {
-      console.log("[GlobalChat] Socket connected:", socketRef.current?.id);
+      console.log("[MatchChat] Socket connected:", socketRef.current?.id);
       setIsConnecting(false);
+      // Join the match room
+      socketRef.current.emit("join match room", matchId);
     });
 
     socketRef.current.on("connect_error", (error: Error) => {
-      console.error("[GlobalChat] Connection error:", error);
+      console.error("[MatchChat] Connection error:", error);
       setIsConnecting(true);
     });
 
     socketRef.current.on("disconnect", () => {
-      console.log("[GlobalChat] Socket disconnected");
+      console.log("[MatchChat] Socket disconnected");
       setIsConnecting(true);
     });
 
-    // Listen for global chat messages
-    socketRef.current.on("global chat message", (msg: GlobalMessage) => {
-      console.log("[GlobalChat] Received message:", msg);
+    // Listen for match chat messages
+    socketRef.current.on("match chat message", (msg: MatchMessage) => {
+      console.log("[MatchChat] Received message:", msg);
       setMessages((prev) => [...prev, msg]);
       scrollToBottom();
     });
 
     // Load initial messages
-    fetch("/api/global-chat")
+    fetch(`/api/matches/${matchId}/chat`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("[GlobalChat] Loaded messages:", data);
+        console.log("[MatchChat] Loaded messages:", data);
         if (data.messages) {
           setMessages(data.messages);
           scrollToBottom();
         }
       })
-      .catch((err) => console.error("[GlobalChat] Error fetching messages:", err));
+      .catch((err) => console.error("[MatchChat] Error fetching messages:", err));
 
     return () => {
-      console.log("[GlobalChat] Cleaning up socket connection...");
+      console.log("[MatchChat] Cleaning up socket connection...");
       if (socketRef.current) {
+        socketRef.current.emit("leave match room", matchId);
         socketRef.current.disconnect();
       }
     };
-  }, [session]);
+  }, [session, matchId]);
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -112,7 +118,7 @@ export default function GlobalChat() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !socketRef.current || !session?.user?.id) {
-      console.log("[GlobalChat] Cannot send message:", { 
+      console.log("[MatchChat] Cannot send message:", { 
         hasMessage: !!message.trim(), 
         hasSocket: !!socketRef.current, 
         hasUserId: !!session?.user?.id 
@@ -123,11 +129,12 @@ export default function GlobalChat() {
     const msgData = {
       content: message.trim(),
       senderId: session.user.id,
+      matchId: matchId,
     };
 
-    console.log("[GlobalChat] Sending message:", msgData);
+    console.log("[MatchChat] Sending message:", msgData);
     // Send to server via socket
-    socketRef.current.emit("global chat message", msgData);
+    socketRef.current.emit("match chat message", msgData);
     setMessage("");
     inputRef.current?.focus();
   };
@@ -136,11 +143,11 @@ export default function GlobalChat() {
 
   return (
     <>
-      {/* Floating Chat Button - Fixed to top left */}
+      {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed top-1/3 left-0 z-50 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-500 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        aria-label="Open global chat"
+        className="fixed top-20 right-4 z-50 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-500 flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
+        aria-label="Open match chat"
       >
         <FiMessageSquare className="text-white text-xl" />
         {isConnecting && (
@@ -150,10 +157,10 @@ export default function GlobalChat() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed top-0 left-0 w-96 h-screen bg-neutral-900 shadow-2xl flex flex-col z-50 border border-neutral-800">
+        <div className="fixed top-20 right-4 w-96 h-[600px] bg-neutral-900 shadow-2xl flex flex-col z-50 border border-neutral-800">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-            <h3 className="text-lg font-semibold text-white">Global Chat</h3>
+            <h3 className="text-lg font-semibold text-white">Match Chat</h3>
             <button
               onClick={() => setIsOpen(false)}
               className="text-gray-400 hover:text-white transition"

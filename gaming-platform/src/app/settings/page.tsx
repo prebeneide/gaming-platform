@@ -1,14 +1,70 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import BackButton from "@/components/BackButton";
+import { usePopup } from "@/components/PopupProvider";
 
 export default function SettingsPage() {
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [newsletter, setNewsletter] = useState(true);
-  const [challengeNotif, setChallengeNotif] = useState(true);
   const { data: session } = useSession();
+  const { showPopup } = usePopup();
+  
+  // Display preferences
+  const [timeFormat, setTimeFormat] = useState("12");
+  const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
+  const [timezone, setTimezone] = useState("UTC");
+  const [saving, setSaving] = useState(false);
+  
+  // Load preferences from API
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserPreferences();
+    }
+  }, [session]);
+
+  const fetchUserPreferences = async () => {
+    try {
+      const response = await fetch(`/api/user/preferences?userId=${session?.user?.id}`);
+      const data = await response.json();
+      
+      if (data.preferences) {
+        const prefs = data.preferences;
+        setTimeFormat(prefs.timeFormat || "12");
+        setDateFormat(prefs.dateFormat || "MM/DD/YYYY");
+        setTimezone(prefs.timezone || "UTC");
+      }
+    } catch (error) {
+      console.error("Error loading preferences:", error);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session?.user?.id,
+          preferences: {
+            timeFormat,
+            dateFormat,
+            timezone,
+          }
+        })
+      });
+
+      if (response.ok) {
+        showPopup({ type: 'success', message: 'Preferences saved successfully!' });
+      } else {
+        showPopup({ type: 'error', message: 'Failed to save preferences' });
+      }
+    } catch (error) {
+      console.error('Error saving preferences:', error);
+      showPopup({ type: 'error', message: 'Failed to save preferences' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
@@ -34,28 +90,83 @@ export default function SettingsPage() {
           </div>
         </section>
         
-        {/* Change Password */}
-        <section>
-          <h2 className="text-lg font-semibold mb-2 text-white">Change Password</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
-            <input type="password" placeholder="Confirm password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="rounded-lg bg-neutral-900 text-white px-3 py-2" />
-          </div>
-        </section>
         
-        {/* Notifications */}
+        {/* Display Preferences */}
         <section>
-          <h2 className="text-lg font-semibold mb-2 text-white">Notifications</h2>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} />
-              Receive newsletter
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={challengeNotif} onChange={e => setChallengeNotif(e.target.checked)} />
-              Notify me about new challenges
-            </label>
+          <h2 className="text-lg font-semibold mb-4 text-white">Display Preferences</h2>
+          
+          {/* Time Format */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Time Format</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="timeFormat"
+                  value="12"
+                  checked={timeFormat === "12"}
+                  onChange={(e) => setTimeFormat(e.target.value)}
+                  className="w-4 h-4"
+                />
+                <span>12-hour (3:45 PM)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="timeFormat"
+                  value="24"
+                  checked={timeFormat === "24"}
+                  onChange={(e) => setTimeFormat(e.target.value)}
+                  className="w-4 h-4"
+                />
+                <span>24-hour (15:45)</span>
+              </label>
+            </div>
           </div>
+
+          {/* Date Format */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Date Format</label>
+            <select
+              value={dateFormat}
+              onChange={(e) => setDateFormat(e.target.value)}
+              className="w-full bg-neutral-900 text-white px-4 py-2 rounded-lg"
+            >
+              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            </select>
+          </div>
+
+          {/* Timezone */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Timezone</label>
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="w-full bg-neutral-900 text-white px-4 py-2 rounded-lg"
+            >
+              <option value="UTC">UTC</option>
+              <option value="America/New_York">Eastern Time (ET)</option>
+              <option value="America/Chicago">Central Time (CT)</option>
+              <option value="America/Denver">Mountain Time (MT)</option>
+              <option value="America/Los_Angeles">Pacific Time (PT)</option>
+              <option value="Europe/London">London (GMT)</option>
+              <option value="Europe/Paris">Paris (CET)</option>
+              <option value="Europe/Oslo">Oslo (CET)</option>
+              <option value="Asia/Tokyo">Tokyo (JST)</option>
+              <option value="Australia/Sydney">Sydney (AEDT)</option>
+            </select>
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={handleSavePreferences}
+            disabled={saving}
+            className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Preferences'}
+          </button>
         </section>
         
         {/* Delete Account */}

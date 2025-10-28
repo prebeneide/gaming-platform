@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import io from "socket.io-client";
-import BackButton from "@/components/BackButton";
+import TimeFormatter from "@/components/TimeFormatter";
 import UserAvatar from "@/components/UserAvatar";
 
 type User = {
@@ -219,7 +219,7 @@ export default function ChatPage() {
       date.getMonth() === yesterday.getMonth() &&
       date.getFullYear() === yesterday.getFullYear();
 
-    const time = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const time = <TimeFormatter date={date} format="time" />;
     if (isToday) return time;
     if (isYesterday) return `I går ${time}`;
     // Hvis ikke i år, vis også år (f.eks. 12.06.22 20:38)
