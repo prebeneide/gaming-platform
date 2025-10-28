@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import io from "socket.io-client";
 import { FiMessageSquare, FiX, FiSend, FiSmile } from "react-icons/fi";
 import TimeFormatter from "@/components/TimeFormatter";
+import UserAvatar from "@/components/UserAvatar";
 
 interface MatchMessage {
   id: string;

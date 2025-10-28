@@ -13,6 +13,7 @@ import { UnifiedUserStats } from "@/lib/unifiedStats";
 import { getGameImage } from "@/lib/gameImages";
 import MatchCard, { Match } from "@/components/MatchCard";
 import GlobalChatWidget from "@/components/GlobalChatWidget";
+import WinnersFeed from "@/components/WinnersFeed";
 
 // Games list for Create Game slider
 const games = [
@@ -100,7 +101,7 @@ function CreateGameSlider() {
 }
 
 // FriendsRecentMatches component that fetches data from /api/matches like match feed
-function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
+function FriendsRecentMatches({ currentUserId, friendIds }: { currentUserId: string; friendIds: string[] }) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -128,9 +129,11 @@ function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
     );
   }
 
-  // Filter out cancelled matches and user's own matches
+  // Only include COMPLETED matches created by friends (not the current user)
   const friendsMatches = matches.filter(match => 
-    match.status !== 'cancelled' && match.creator.id !== currentUserId
+    match.status === 'completed' &&
+    match.creator.id !== currentUserId &&
+    friendIds.includes(match.creator.id)
   );
 
   if (friendsMatches.length === 0) {
@@ -148,6 +151,52 @@ function FriendsRecentMatches({ currentUserId }: { currentUserId: string }) {
           <MatchCard match={match} />
         </div>
       ))}
+    </div>
+  );
+}
+
+// FriendsMatchesReadyToJoin component (open/ready matches by friends)
+function FriendsMatchesReadyToJoin({ currentUserId, friendIds }: { currentUserId: string; friendIds: string[] }) {
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMatches() {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/matches", { method: "GET" });
+        const data = await res.json();
+        setMatches(data.matches || []);
+      } catch (err) {
+        setMatches([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchMatches();
+  }, []);
+
+  // Only include OPEN/READY matches created by friends (not the current user)
+  const readyStatuses = new Set(["open", "ready", "countdown"]);
+  const joinableMatches = matches.filter(match =>
+    readyStatuses.has(match.status) &&
+    match.creator.id !== currentUserId &&
+    friendIds.includes(match.creator.id)
+  );
+
+  if (loading) return null; // do not render placeholder; section should appear only if data exists
+  if (joinableMatches.length === 0) return null; // hide entire section if none
+
+  return (
+    <div className="mt-6">
+      <h2 className="text-2xl font-bold text-white mb-6 text-center">Friends Matches Ready to Join</h2>
+      <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+        {joinableMatches.slice(0, 8).map((match) => (
+          <div key={match.id} className="w-80 flex-shrink-0">
+            <MatchCard match={match} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -379,6 +428,11 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
       {/* Global Chat Widget */}
       <div className="w-full mb-4 sm:mb-6">
         <GlobalChatWidget />
+      </div>
+
+      {/* Winners Feed */}
+      <div className="w-full mb-4 sm:mb-6">
+        <WinnersFeed />
       </div>
 
         {/* Create a Game Section */}
@@ -620,12 +674,22 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
           )}
       </div>
 
-      {/* Friends Recent Matches - Only show if user has friends */}
+      {/* Friends Matches Ready to Join - only visible when there are joinable matches */}
+      {friends.length > 0 && (
+        <FriendsMatchesReadyToJoin
+          currentUserId={user.id || ""}
+          friendIds={friends.map(f => f.id)}
+        />
+      )}
+
+      {/* Friends Recent Matches (completed only) - Only show if user has friends */}
       {friends.length > 0 && (
         <div className="mt-6">
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Friends Recent Matches</h2>
-          
-          <FriendsRecentMatches currentUserId={user.id || ""} />
+          <FriendsRecentMatches 
+            currentUserId={user.id || ""}
+            friendIds={friends.map(f => f.id)}
+          />
         </div>
       )}
       {/* CTA-knapper */}

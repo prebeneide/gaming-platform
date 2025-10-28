@@ -227,6 +227,36 @@ export async function POST(request: NextRequest, context: { params: { id: string
           });
           console.log(`Payout of $${payoutAmount} sent to winner ${firstResult.winnerId}`);
 
+          // Emit Socket.IO event for winners feed
+          try {
+            const winnerUser = match.participants.find(p => p.userId === firstResult.winnerId)?.user;
+            if (winnerUser) {
+              // Emit via API endpoint
+              fetch('http://localhost:4000', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  type: 'emit',
+                  event: 'match completed',
+                  data: {
+                    winner: {
+                      id: `${match.id}-${winnerUser.id}`,
+                      username: winnerUser.username,
+                      displayName: winnerUser.displayName || winnerUser.username,
+                      image: winnerUser.image,
+                      amount: payoutAmount,
+                      matchName: match.name,
+                      gameName: match.gameName,
+                      wonAt: new Date()
+                    }
+                  }
+                })
+              }).catch(err => console.error('Error emitting match completed event:', err));
+            }
+          } catch (emitError) {
+            console.error('Error emitting Socket.IO event:', emitError);
+          }
+
           // Opprett notification for vinneren
           try {
             await createMatchResultNotification(

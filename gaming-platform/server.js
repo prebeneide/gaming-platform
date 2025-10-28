@@ -6,8 +6,31 @@ const PORT = process.env.SOCKET_PORT || 4000;
 const prisma = new PrismaClient();
 
 const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("Socket.IO server running");
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (data.type === 'emit' && data.event && data.data) {
+          io.emit(data.event, data.data);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } else {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid request' }));
+        }
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+  } else {
+    res.writeHead(200);
+    res.end("Socket.IO server running");
+  }
 });
 
 const io = new Server(server, {
@@ -102,6 +125,51 @@ io.on("connection", (socket) => {
       io.emit("global chat message", savedMessage);
     } catch (error) {
       console.error("Error saving global message:", error);
+    }
+  });
+
+  // Match room handling
+  socket.on("join match room", (matchId) => {
+    socket.join(matchId);
+    console.log(`User ${socket.id} joined match room ${matchId}`);
+  });
+
+  socket.on("leave match room", (matchId) => {
+    socket.leave(matchId);
+    console.log(`User ${socket.id} left match room ${matchId}`);
+  });
+
+  // Match chat message handling
+  socket.on("match chat message", async (msg) => {
+    console.log("[Socket] Received match chat message:", msg);
+    try {
+      // Save message to database
+      console.log("[Socket] Attempting to save match message to database...");
+      const savedMessage = await prisma.matchMessage.create({
+        data: {
+          content: msg.content,
+          senderId: msg.senderId,
+          matchId: msg.matchId,
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              image: true,
+            },
+          },
+        },
+      });
+      console.log("[Socket] Message saved successfully:", savedMessage);
+      // Broadcast to all clients in this match room
+      console.log("[Socket] Broadcasting to match room:", msg.matchId);
+      io.to(msg.matchId).emit("match chat message", savedMessage);
+      console.log("[Socket] Message broadcast complete");
+    } catch (error) {
+      console.error("[Socket] Error saving match message:", error);
+      console.error("[Socket] Error details:", error.message);
     }
   });
 
