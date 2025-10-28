@@ -9,7 +9,7 @@ import TimeFormatter from "@/components/TimeFormatter";
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'match_payment' | 'match_winning' | 'match_payout' | 'match_refund' | 'match_draw_refund';
+  type: 'deposit' | 'withdrawal' | 'match_payment' | 'match_winning' | 'match_payout' | 'match_refund' | 'match_draw_refund' | 'admin_deposit' | 'admin_withdrawal';
   amount: number;
   status: 'pending' | 'completed' | 'failed';
   description: string;
@@ -18,11 +18,11 @@ interface Transaction {
 
 // Helper function to determine if transaction is a credit (money in) or debit (money out)
 const isCredit = (type: string): boolean => {
-  return ['deposit', 'match_payout', 'match_refund', 'match_draw_refund'].includes(type);
+  return ['deposit', 'match_payout', 'match_refund', 'match_draw_refund', 'admin_deposit'].includes(type);
 };
 
 const isDebit = (type: string): boolean => {
-  return ['withdrawal', 'match_payment'].includes(type);
+  return ['withdrawal', 'match_payment', 'admin_withdrawal'].includes(type);
 };
 
 interface WalletData {
