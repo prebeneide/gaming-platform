@@ -12,6 +12,7 @@ import UnifiedStatsDisplay from "@/components/UnifiedStatsDisplay";
 import { UnifiedUserStats } from "@/lib/unifiedStats";
 import { getGameImage } from "@/lib/gameImages";
 import MatchCard, { Match } from "@/components/MatchCard";
+import GlobalChatWidget from "@/components/GlobalChatWidget";
 
 // Games list for Create Game slider
 const games = [
@@ -364,6 +365,11 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
             stats={unifiedStats}
             isOwnProfile={true}
           />
+      </div>
+
+      {/* Global Chat Widget */}
+      <div className="w-full mb-4 sm:mb-6">
+        <GlobalChatWidget />
       </div>
 
         {/* Create a Game Section */}
