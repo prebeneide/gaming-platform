@@ -9,6 +9,7 @@ interface AdminStats {
   totalUsers: number;
   totalMatches: number;
   totalTransactions: number;
+  activeDisputes: number;
   recentActivity: Array<{
     id: string;
     action: string;
@@ -82,17 +83,22 @@ export default function AdminDashboard() {
               </a>
               <a
                 href="/admin/disputes"
-                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                className="relative flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
               >
                 <FiAlertTriangle className="text-lg" />
                 Disputes
+                {stats && stats.activeDisputes > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                    {stats.activeDisputes}
+                  </span>
+                )}
               </a>
             </div>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
             <div className="flex items-center justify-between">
               <div>
@@ -120,6 +126,16 @@ export default function AdminDashboard() {
                 <p className="text-2xl font-bold text-blue-400">{stats?.totalTransactions || 0}</p>
               </div>
               <FiDollarSign className="text-2xl text-blue-400" />
+            </div>
+          </div>
+
+          <div className="bg-neutral-800 rounded-lg p-6 border border-neutral-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-neutral-400 text-sm">Active Disputes</p>
+                <p className="text-2xl font-bold text-red-400">{stats?.activeDisputes || 0}</p>
+              </div>
+              <FiAlertTriangle className="text-2xl text-red-400" />
             </div>
           </div>
 

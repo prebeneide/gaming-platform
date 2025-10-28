@@ -13,10 +13,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Get basic statistics
-    const [totalUsers, totalMatches, totalTransactions, recentActivity] = await Promise.all([
+    const [totalUsers, totalMatches, totalTransactions, activeDisputes, recentActivity] = await Promise.all([
       prisma.user.count(),
       prisma.match.count(),
       prisma.transaction.count(),
+      prisma.matchResult.count({
+        where: {
+          status: 'disputed'
+        }
+      }),
       prisma.activityLog.findMany({
         take: 10,
         orderBy: { createdAt: "desc" },
@@ -34,6 +39,7 @@ export async function GET(request: NextRequest) {
       totalUsers,
       totalMatches,
       totalTransactions,
+      activeDisputes,
       recentActivity
     });
 
