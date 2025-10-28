@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { getDefaultPreferences } from '@/lib/formatting';
+import { logActivity, ActivityTypes } from '@/lib/activityLogger';
 
 // GET user preferences
 export async function GET(request: NextRequest) {
@@ -99,6 +100,18 @@ export async function PUT(request: NextRequest) {
         ...getDefaultPreferences(),
         ...newPreferences,
       },
+    });
+
+    // Log activity
+    await logActivity({
+      userId: userId,
+      action: ActivityTypes.PREFERENCES_UPDATED,
+      entityType: 'UserPreferences',
+      entityId: preferences.id,
+      details: {
+        updatedFields: Object.keys(newPreferences),
+        newPreferences
+      }
     });
 
     return NextResponse.json({ preferences });

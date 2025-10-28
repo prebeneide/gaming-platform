@@ -36,11 +36,11 @@ export const ActivityTypes = {
   USER_LOGIN: "user_login",
   USER_LOGOUT: "user_logout",
   PROFILE_UPDATED: "profile_updated",
+  PREFERENCES_UPDATED: "preferences_updated",
   PASSWORD_CHANGED: "password_changed",
   EMAIL_CHANGED: "email_changed",
   USERNAME_CHANGED: "username_changed",
   AVATAR_UPDATED: "avatar_updated",
-  PREFERENCES_UPDATED: "preferences_updated",
   
   // Match Activities
   MATCH_CREATED: "match_created",
@@ -93,6 +93,7 @@ export const ActivityTypes = {
   ADMIN_USER_ROLE_CHANGED: "admin_user_role_changed",
   ADMIN_MATCH_MODERATED: "admin_match_moderated",
   ADMIN_TRANSACTION_MODERATED: "admin_transaction_moderated",
+  ADMIN_DISPUTE_RESOLVED: "admin_dispute_resolved",
   
   // System Events
   HEARTBEAT: "heartbeat",

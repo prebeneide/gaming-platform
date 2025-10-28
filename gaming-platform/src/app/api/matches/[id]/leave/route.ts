@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 const prisma = new PrismaClient();
 
@@ -120,6 +121,19 @@ export async function POST(request: NextRequest, context: { params: { id: string
       });
 
       return { updatedMatch, updatedWallet };
+    });
+
+    // Log activity
+    await logActivity({
+      userId: user.id,
+      action: ActivityTypes.MATCH_LEFT,
+      entityType: 'Match',
+      entityId: match.id,
+      details: { 
+        matchName: match.name,
+        gameName: match.gameName,
+        refundAmount: match.buyIn
+      }
     });
 
     return NextResponse.json({ 

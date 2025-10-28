@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FiUsers, FiActivity, FiDollarSign, FiAward, FiClock } from "react-icons/fi";
+import { FiUsers, FiActivity, FiDollarSign, FiAward, FiClock, FiAlertTriangle } from "react-icons/fi";
 
 interface AdminStats {
   totalUsers: number;
@@ -72,13 +72,22 @@ export default function AdminDashboard() {
               <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
               <p className="text-neutral-400">Overview of platform activity and statistics</p>
             </div>
-            <a
-              href="/admin/users"
-              className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-            >
-              <FiUsers className="text-lg" />
-              User Management
-            </a>
+            <div className="flex gap-3">
+              <a
+                href="/admin/users"
+                className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                <FiUsers className="text-lg" />
+                User Management
+              </a>
+              <a
+                href="/admin/disputes"
+                className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                <FiAlertTriangle className="text-lg" />
+                Disputes
+              </a>
+            </div>
           </div>
         </div>
 

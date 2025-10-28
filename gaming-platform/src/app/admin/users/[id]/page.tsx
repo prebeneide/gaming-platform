@@ -342,31 +342,70 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                   </select>
                 </div>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredActivities.map((activity) => (
-                    <div key={activity.id} className="bg-neutral-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{activity.action.replace(/_/g, ' ')}</p>
-                          {activity.entityType && (
-                            <p className="text-sm text-neutral-400">
-                              {activity.entityType} {activity.entityId && `#${activity.entityId}`}
-                            </p>
-                          )}
-                          {activity.details && (
-                            <p className="text-xs text-neutral-500 mt-1">
-                              {JSON.stringify(activity.details)}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <TimeFormatter date={activity.createdAt} format="time" />
-                          <p className="text-xs text-neutral-500">
-                            <TimeFormatter date={activity.createdAt} format="relative" />
-                          </p>
+                  {filteredActivities.map((activity) => {
+                    const actionType = activity.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    const iconMap: Record<string, string> = {
+                      'Match Created': 'text-green-500',
+                      'Match Joined': 'text-blue-500',
+                      'Match Left': 'text-red-500',
+                      'Match Ready Status Changed': 'text-yellow-500',
+                      'Match Result Reported': 'text-purple-500',
+                      'Friend Request Sent': 'text-blue-500',
+                      'Follow User': 'text-green-500',
+                      'Unfollow User': 'text-red-500',
+                      'Profile Updated': 'text-blue-500',
+                      'Preferences Updated': 'text-purple-500',
+                      'Deposit Initiated': 'text-green-500',
+                      'Withdrawal Initiated': 'text-red-500',
+                      'Buy In Paid': 'text-orange-500',
+                      'Global Chat Message': 'text-blue-500',
+                      'Match Chat Message': 'text-purple-500',
+                    };
+                    const iconColor = iconMap[actionType] || 'text-neutral-400';
+
+                    return (
+                      <div key={activity.id} className="bg-neutral-700 rounded-lg p-4 hover:bg-neutral-650 border border-transparent hover:border-neutral-600 transition-colors">
+                        <div className="flex items-start gap-4">
+                          <div className={`mt-1 ${iconColor}`}>
+                            <FiActivity className="text-lg" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-white">{actionType}</p>
+                                {activity.entityType && (
+                                  <p className="text-sm text-neutral-400">
+                                    {activity.entityType} {activity.entityId && `#${activity.entityId.slice(0, 8)}`}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <TimeFormatter date={activity.createdAt} format="time" />
+                                <p className="text-xs text-neutral-500">
+                                  <TimeFormatter date={activity.createdAt} format="relative" />
+                                </p>
+                              </div>
+                            </div>
+                            {activity.details && typeof activity.details === 'object' && (
+                              <div className="mt-3 bg-neutral-800 rounded p-3 text-xs">
+                                <div className="grid grid-cols-2 gap-2">
+                                  {Object.entries(activity.details as Record<string, any>).map(([key, value]) => {
+                                    if (typeof value === 'object') return null;
+                                    return (
+                                      <div key={key}>
+                                        <span className="text-neutral-400 capitalize">{key.replace(/([A-Z])/g, ' $1')}:</span>{' '}
+                                        <span className="text-neutral-200">{String(value)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

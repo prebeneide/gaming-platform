@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { v2 as cloudinary } from 'cloudinary';
 import { updateStatsForMatchParticipants } from "@/lib/userStats";
 import { createMatchResultNotification } from "@/lib/notifications";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 const prisma = new PrismaClient();
 
@@ -128,6 +129,21 @@ export async function POST(request: NextRequest, context: { params: { id: string
         proofImageUrl: proofImageUrl,
         proofUploadedAt: new Date(),
       },
+    });
+
+    // Log activity
+    await logActivity({
+      userId: user.id,
+      action: ActivityTypes.MATCH_RESULT_REPORTED,
+      entityType: 'Match',
+      entityId: match.id,
+      details: { 
+        matchName: match.name,
+        gameName: match.gameName,
+        resultType,
+        winnerId,
+        proofImageUrl
+      }
     });
 
     // Hent OPPDATERT match med alle deltagere etter oppdatering

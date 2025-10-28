@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 const prisma = new PrismaClient();
 
@@ -112,6 +113,20 @@ export async function POST(request: NextRequest) {
         amount,
         status: 'pending',
         description
+      }
+    });
+
+    // Log activity
+    await logActivity({
+      userId: user.id,
+      action: type === 'deposit' ? ActivityTypes.DEPOSIT_INITIATED : ActivityTypes.WITHDRAWAL_INITIATED,
+      entityType: 'Transaction',
+      entityId: transaction.id,
+      details: {
+        type,
+        amount,
+        description,
+        status: 'pending'
       }
     });
 

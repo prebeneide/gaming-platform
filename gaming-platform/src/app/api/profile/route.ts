@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -75,6 +76,28 @@ export async function POST(req: NextRequest) {
         customGames: true,
       },
     });
+
+    // Log activity
+    await logActivity({
+      userId: userId,
+      action: ActivityTypes.PROFILE_UPDATED,
+      entityType: 'User',
+      entityId: userId,
+      details: {
+        updatedFields: Object.keys(data).filter(key => data[key] !== undefined),
+        displayName: data.displayName,
+        bio: data.bio,
+        socialLinks: {
+          discord: data.discord,
+          twitter: data.twitter,
+          twitch: data.twitch,
+          steam: data.steam,
+          psn: data.psn,
+          xbox: data.xbox
+        }
+      }
+    });
+
     return NextResponse.json({ user: updatedUser });
   } catch (error) {
     console.error('Profile update error:', error);
