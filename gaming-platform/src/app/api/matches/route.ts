@@ -113,18 +113,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 2. Create match_payment transaction
-      const matchPaymentTx = await tx.transaction.create({
-        data: {
-          userId: user.id,
-          type: 'match_payment',
-          amount: buyIn,
-          status: 'completed',
-          description: `Buy-in for match`,
-        },
-      });
-
-      // 3. Create the match and mark creator as paid
+      // 3. Create the match first to get the match ID
       const match = await tx.match.create({
         data: {
           name,
@@ -143,36 +132,28 @@ export async function POST(request: NextRequest) {
           mediaUrl,
           mediaType,
           creatorId: user.id,
-          participants: {
-            create: {
-              userId: user.id,
-              status: 'joined',
-              buyInPaid: true,
-              buyInTransactionId: matchPaymentTx.id,
-            },
-          },
         },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              image: true,
-            },
-          },
-          participants: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  displayName: true,
-                  image: true,
-                },
-              },
-            },
-          },
+      });
+
+      // 4. Create match_payment transaction with match ID
+      const matchPaymentTx = await tx.transaction.create({
+        data: {
+          userId: user.id,
+          type: 'match_payment',
+          amount: buyIn,
+          status: 'completed',
+          description: `Buy-in for match ${match.id}`,
+        },
+      });
+
+      // 5. Add creator as participant
+      await tx.matchParticipant.create({
+        data: {
+          matchId: match.id,
+          userId: user.id,
+          status: 'joined',
+          buyInPaid: true,
+          buyInTransactionId: matchPaymentTx.id,
         },
       });
 

@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, context: { params: { id: string
             type: 'match_refund',
             amount: match.buyIn,
             status: 'completed',
-            description: `Refund for match timeout`,
+            description: `Refund for match timeout ${match.id}`,
           },
         });
       });

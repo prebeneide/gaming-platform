@@ -123,7 +123,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           type: 'match_payment',
           amount: match.buyIn,
           status: 'completed',
-          description: `Buy-in for match`,
+          description: `Buy-in for match ${match.id}`,
         },
       });
       const updatedMatch = await tx.match.update({

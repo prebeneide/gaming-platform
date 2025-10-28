@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, context: { params: { id: string
           type: 'match_refund',
           amount: match.buyIn,
           status: 'completed',
-          description: `Refund for leaving match`,
+          description: `Refund for leaving match ${match.id}`,
         },
       });
 
