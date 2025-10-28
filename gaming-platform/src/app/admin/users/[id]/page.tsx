@@ -214,6 +214,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     return null;
   }
 
+  const filteredActivities = activities.filter(activity => {
+    if (activityFilter === "all") return true;
+    return activity.action.includes(activityFilter);
+  });
+
   const tabs = [
     { id: "overview", label: "Overview", icon: FiUser },
     { id: "activities", label: "Activities", icon: FiActivity },
