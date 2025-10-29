@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { FiGlobe, FiPlus, FiTrash2, FiX, FiCheck, FiAlertCircle } from "react-icons/fi";
+import { FiGlobe, FiPlus, FiTrash2, FiCheck, FiAlertCircle } from "react-icons/fi";
 
 interface AllowedCountry {
   id: string;
@@ -20,7 +20,7 @@ interface BlockedCountry {
   countryCode: string;
   countryName: string;
   isActive: boolean;
-  reason?: string;
+  reason?: string | null;
 }
 
 export default function AdminGeolocationPage() {
@@ -99,10 +99,12 @@ export default function AdminGeolocationPage() {
         await fetchCountries();
       } else {
         const data = await response.json();
-        setError(data.error || "Failed to add allowed country");
+        setError(data.error || data.details || "Failed to add allowed country");
+        console.error("Error response:", data);
       }
-    } catch (error) {
-      setError("Failed to add allowed country");
+    } catch (err) {
+      console.error("Error adding allowed country:", err);
+      setError("Network error. Please check your connection and try again.");
     }
   };
 
@@ -141,10 +143,12 @@ export default function AdminGeolocationPage() {
         await fetchCountries();
       } else {
         const data = await response.json();
-        setError(data.error || "Failed to add blocked country");
+        setError(data.error || data.details || "Failed to add blocked country");
+        console.error("Error response:", data);
       }
-    } catch (error) {
-      setError("Failed to add blocked country");
+    } catch (err) {
+      console.error("Error adding blocked country:", err);
+      setError("Network error. Please check your connection and try again.");
     }
   };
 
@@ -590,7 +594,7 @@ export default function AdminGeolocationPage() {
             <li>If <strong>blocked countries</strong> are configured, those countries are blocked regardless of allowed list</li>
             <li>If <strong>allowed countries</strong> are configured (and no blocked countries), only listed countries are allowed</li>
             <li>If neither list exists, all countries are allowed by default</li>
-            <li>Users' locations are automatically detected via IP geolocation on first deposit/match action</li>
+            <li>Users&apos; locations are automatically detected via IP geolocation on first deposit/match action</li>
             <li>Admin can override individual user restrictions from the user detail page</li>
           </ul>
         </div>

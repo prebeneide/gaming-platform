@@ -14,7 +14,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { countryCode, countryName, reason } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+
+    const { countryCode, countryName, reason } = body;
 
     if (!countryCode || !countryName) {
       return NextResponse.json(
@@ -44,19 +54,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(country);
     }
 
+    console.log("Creating blocked country with data:", {
+      countryCode: upperCountryCode,
+      countryName,
+      reason,
+    });
+
     const country = await prisma.blockedCountry.create({
       data: {
         countryCode: upperCountryCode,
         countryName,
-        reason,
+        reason: reason || null,
       },
     });
 
+    console.log("Successfully created blocked country:", country);
     return NextResponse.json(country);
   } catch (error) {
     console.error("Error adding blocked country:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // More detailed error response
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Internal server error",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined,
+        type: error instanceof Error ? error.constructor.name : typeof error
+      },
       { status: 500 }
     );
   }
