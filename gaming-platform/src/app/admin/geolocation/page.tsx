@@ -12,7 +12,10 @@ interface AllowedCountry {
   countryName: string;
   isActive: boolean;
   minAge: number;
-  restrictions?: any;
+  restrictions?: {
+    blockedStates?: string[]; // e.g., ["NV", "NJ", "DE"] for USA
+    allowedStates?: string[]; // e.g., ["CA", "NY", "FL"] for USA
+  } | null;
 }
 
 interface BlockedCountry {
@@ -37,6 +40,11 @@ export default function AdminGeolocationPage() {
   const [newReason, setNewReason] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // State-level restrictions (for USA)
+  const [blockedStates, setBlockedStates] = useState<string>(""); // Comma-separated
+  const [allowedStates, setAllowedStates] = useState<string>(""); // Comma-separated
+  const [showStateRestrictions, setShowStateRestrictions] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -80,6 +88,21 @@ export default function AdminGeolocationPage() {
     }
 
     try {
+      // Build restrictions object if states are provided
+      let restrictions: { blockedStates?: string[]; allowedStates?: string[] } | null = null;
+      if (showStateRestrictions && (blockedStates.trim() || allowedStates.trim())) {
+        restrictions = {};
+        if (blockedStates.trim()) {
+          restrictions.blockedStates = blockedStates.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+        }
+        if (allowedStates.trim()) {
+          restrictions.allowedStates = allowedStates.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
+        }
+        if (Object.keys(restrictions).length === 0) {
+          restrictions = null;
+        }
+      }
+
       const response = await fetch("/api/admin/geolocation/countries/allowed", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,6 +110,7 @@ export default function AdminGeolocationPage() {
           countryCode: newCountryCode.toUpperCase(),
           countryName: newCountryName,
           minAge: newMinAge,
+          restrictions: restrictions,
         }),
       });
 
@@ -95,6 +119,9 @@ export default function AdminGeolocationPage() {
         setNewCountryCode("");
         setNewCountryName("");
         setNewMinAge(18);
+        setBlockedStates("");
+        setAllowedStates("");
+        setShowStateRestrictions(false);
         setShowAddAllowed(false);
         await fetchCountries();
       } else {
@@ -353,6 +380,59 @@ export default function AdminGeolocationPage() {
                     className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
+                
+                {/* State-level restrictions (especially for USA) */}
+                {newCountryCode.toUpperCase() === "US" && (
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={showStateRestrictions}
+                        onChange={(e) => setShowStateRestrictions(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm font-medium text-white">
+                        Add state-level restrictions (for USA)
+                      </span>
+                    </label>
+                    
+                    {showStateRestrictions && (
+                      <div className="space-y-2 pl-6 border-l-2 border-purple-500">
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-white">
+                            Blocked States (comma-separated, e.g., NV,NJ,DE)
+                          </label>
+                          <input
+                            type="text"
+                            value={blockedStates}
+                            onChange={(e) => setBlockedStates(e.target.value)}
+                            placeholder="NV, NJ, DE"
+                            className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm"
+                          />
+                          <p className="text-xs text-neutral-400 mt-1">
+                            States where users will be blocked even if country is allowed
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-white">
+                            Allowed States (comma-separated, e.g., CA,NY,FL)
+                          </label>
+                          <input
+                            type="text"
+                            value={allowedStates}
+                            onChange={(e) => setAllowedStates(e.target.value)}
+                            placeholder="CA, NY, FL"
+                            className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm"
+                          />
+                          <p className="text-xs text-neutral-400 mt-1">
+                            Only these states will be allowed (all others blocked)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 <div className="flex gap-3">
                   <button
                     type="submit"
@@ -408,6 +488,20 @@ export default function AdminGeolocationPage() {
                     <p className="text-sm text-neutral-400 mt-1">
                       Minimum age: {country.minAge}
                     </p>
+                    {country.restrictions && (
+                      <div className="text-xs text-neutral-500 mt-1">
+                        {country.restrictions.blockedStates && (
+                          <span className="block">
+                            Blocked states: {country.restrictions.blockedStates.join(', ')}
+                          </span>
+                        )}
+                        {country.restrictions.allowedStates && (
+                          <span className="block">
+                            Allowed states: {country.restrictions.allowedStates.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button

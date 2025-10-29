@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
-import { getClientIP, getCountryFromIP } from "@/lib/geolocation";
+import { getClientIP, getCountryFromIP, getGeolocationFromIP } from "@/lib/geolocation";
 import { checkCountryAllowed, setUserLocation } from "@/lib/geofencing";
 import { prisma } from "@/lib/prisma";
 
@@ -25,29 +25,33 @@ export async function GET(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get country from IP
-    const countryCode = await getCountryFromIP(clientIP);
+    // Get full geolocation data from IP (country + region/state)
+    const geoData = await getGeolocationFromIP(clientIP);
     
-    if (!countryCode) {
+    if (!geoData.countryCode) {
       return NextResponse.json({ 
         error: "Could not determine country from IP",
         isAllowed: false 
       }, { status: 400 });
     }
 
-    // Check if country is allowed
-    const countryCheck = await checkCountryAllowed(countryCode);
+    // Check if country/region is allowed
+    const countryCheck = await checkCountryAllowed(geoData.countryCode, geoData.region || null);
 
     // Update user's geographic restriction record
     await setUserLocation(
       session.user.id,
-      countryCode,
+      geoData.countryCode,
       clientIP,
-      'ip_geolocation'
+      'ip_geolocation',
+      geoData.region || null
     );
 
     return NextResponse.json({
-      country: countryCode,
+      country: geoData.countryCode,
+      countryName: geoData.countryName,
+      region: geoData.region || null,
+      regionName: geoData.regionName || null,
       isAllowed: countryCheck.isAllowed,
       restrictionLevel: countryCheck.restrictionLevel,
       reason: countryCheck.reason,

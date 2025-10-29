@@ -1,15 +1,19 @@
 /**
- * Geofencing service - checks if a country is allowed or blocked
+ * Geofencing service - checks if a country/region is allowed or blocked
  */
 
 import { prisma } from "./prisma";
 
 /**
- * Check if a country is allowed (not blocked)
+ * Check if a country/region is allowed (not blocked)
  * @param countryCode - ISO 3166-1 alpha-2 country code
+ * @param regionCode - Optional region/state code (e.g., "CA" for California)
  * @returns Object with isAllowed, reason, and restriction level
  */
-export async function checkCountryAllowed(countryCode: string): Promise<{
+export async function checkCountryAllowed(
+  countryCode: string,
+  regionCode?: string | null
+): Promise<{
   isAllowed: boolean;
   reason?: string;
   restrictionLevel: 'allowed' | 'restricted' | 'blocked';
@@ -28,6 +32,45 @@ export async function checkCountryAllowed(countryCode: string): Promise<{
   });
 
   if (blockedCountry && blockedCountry.isActive) {
+    // If country is blocked, check if specific states might be allowed
+    // (via allowed countries list with state restrictions)
+    if (regionCode && countryCode.toUpperCase() === 'US') {
+      // Check if there's an allowed country entry with state exceptions
+      const allowedCountry = await prisma.allowedCountry.findUnique({
+        where: { countryCode: countryCode.toUpperCase() },
+        select: { restrictions: true, isActive: true }
+      });
+
+      if (allowedCountry && allowedCountry.isActive && allowedCountry.restrictions) {
+        const restrictions = allowedCountry.restrictions as { blockedStates?: string[]; allowedStates?: string[] };
+        
+        // If specific states are allowed, check if this state is in the list
+        if (restrictions.allowedStates && restrictions.allowedStates.length > 0) {
+          const allowedStates = restrictions.allowedStates.map(s => s.toUpperCase());
+          if (allowedStates.includes(regionCode.toUpperCase())) {
+            // This specific state is allowed despite country being blocked
+            return {
+              isAllowed: true,
+              restrictionLevel: 'allowed'
+            };
+          }
+        }
+
+        // If specific states are blocked, check if this state is in the blocked list
+        if (restrictions.blockedStates) {
+          const blockedStates = restrictions.blockedStates.map(s => s.toUpperCase());
+          if (blockedStates.includes(regionCode.toUpperCase())) {
+            return {
+              isAllowed: false,
+              reason: `State ${regionCode} is explicitly blocked in ${blockedCountry.countryName}`,
+              restrictionLevel: 'blocked'
+            };
+          }
+        }
+      }
+    }
+
+    // Country is blocked (no state-level override)
     return {
       isAllowed: false,
       reason: blockedCountry.reason || 'Country is blocked by administrator',
@@ -71,6 +114,7 @@ export async function checkUserLocation(userId: string): Promise<{
   isAllowed: boolean;
   reason?: string;
   country?: string;
+  region?: string;
   restrictionLevel: 'allowed' | 'restricted' | 'blocked';
 }> {
   // Get user's geographic restriction record
@@ -86,21 +130,37 @@ export async function checkUserLocation(userId: string): Promise<{
     };
   }
 
+  // Re-check country/region in case rules have changed
+  const currentCheck = await checkCountryAllowed(restriction.country, restriction.region || null);
+  
+  // If restriction level has changed, update it
+  if (currentCheck.restrictionLevel !== restriction.restrictionLevel) {
+    await prisma.geographicRestriction.update({
+      where: { userId },
+      data: {
+        restrictionLevel: currentCheck.restrictionLevel,
+        reason: currentCheck.reason || restriction.reason || undefined,
+      }
+    });
+  }
+
   // Check based on restriction level
-  if (restriction.restrictionLevel === 'blocked') {
+  if (currentCheck.restrictionLevel === 'blocked') {
     return {
       isAllowed: false,
-      reason: restriction.reason || 'Your location is not allowed',
+      reason: currentCheck.reason || restriction.reason || 'Your location is not allowed',
       country: restriction.country,
+      region: restriction.region || undefined,
       restrictionLevel: 'blocked'
     };
   }
 
-  if (restriction.restrictionLevel === 'restricted') {
+  if (currentCheck.restrictionLevel === 'restricted') {
     return {
       isAllowed: false,
-      reason: restriction.reason || 'Limited access from your location',
+      reason: currentCheck.reason || restriction.reason || 'Limited access from your location',
       country: restriction.country,
+      region: restriction.region || undefined,
       restrictionLevel: 'restricted'
     };
   }
@@ -109,6 +169,7 @@ export async function checkUserLocation(userId: string): Promise<{
   return {
     isAllowed: true,
     country: restriction.country,
+    region: restriction.region || undefined,
     restrictionLevel: 'allowed'
   };
 }
@@ -124,16 +185,18 @@ export async function setUserLocation(
   userId: string,
   countryCode: string,
   ipAddress: string | null,
-  detectedBy: 'ip_geolocation' | 'user_input' | 'payment_method' | 'admin_override' = 'ip_geolocation'
+  detectedBy: 'ip_geolocation' | 'user_input' | 'payment_method' | 'admin_override' = 'ip_geolocation',
+  regionCode?: string | null
 ): Promise<void> {
-  // Check if country is allowed
-  const countryCheck = await checkCountryAllowed(countryCode);
+  // Check if country/region is allowed
+  const countryCheck = await checkCountryAllowed(countryCode, regionCode);
 
   await prisma.geographicRestriction.upsert({
     where: { userId },
     create: {
       userId,
       country: countryCode.toUpperCase(),
+      region: regionCode || null,
       ipAddress: ipAddress || null,
       detectedBy,
       restrictionLevel: countryCheck.isAllowed ? 'allowed' : 'blocked',
@@ -141,6 +204,7 @@ export async function setUserLocation(
     },
     update: {
       country: countryCode.toUpperCase(),
+      region: regionCode || undefined,
       ipAddress: ipAddress || undefined,
       detectedBy,
       restrictionLevel: countryCheck.isAllowed ? 'allowed' : 'blocked',

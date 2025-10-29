@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from "@/lib/rate-limit";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
-import { getClientIP, getCountryFromIP } from "@/lib/geolocation";
+import { getClientIP, getGeolocationFromIP } from "@/lib/geolocation";
 import { setUserLocation } from "@/lib/geofencing";
 
 const prisma = new PrismaClient();
@@ -108,9 +108,15 @@ export async function POST(req: NextRequest) {
     try {
       const clientIP = getClientIP(req) || req.headers.get("x-forwarded-for")?.split(',')[0]?.trim() || null;
       if (clientIP) {
-        const countryCode = await getCountryFromIP(clientIP);
-        if (countryCode) {
-          await setUserLocation(user.id, countryCode, clientIP, 'ip_geolocation');
+        const geoData = await getGeolocationFromIP(clientIP);
+        if (geoData.countryCode) {
+          await setUserLocation(
+            user.id,
+            geoData.countryCode,
+            clientIP,
+            'ip_geolocation',
+            geoData.region || null
+          );
         }
       }
     } catch (geoError) {
