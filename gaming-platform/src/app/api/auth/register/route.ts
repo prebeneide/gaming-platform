@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from "@/lib/rate-limit";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
+import { getClientIP, getCountryFromIP } from "@/lib/geolocation";
+import { setUserLocation } from "@/lib/geofencing";
 
 const prisma = new PrismaClient();
 
@@ -101,6 +103,20 @@ export async function POST(req: NextRequest) {
       ipAddress: req.headers.get("x-forwarded-for") || "unknown",
       userAgent: req.headers.get("user-agent") || "unknown"
     });
+
+    // Automatically detect and set user's geographic location (non-blocking)
+    try {
+      const clientIP = getClientIP(req) || req.headers.get("x-forwarded-for")?.split(',')[0]?.trim() || null;
+      if (clientIP) {
+        const countryCode = await getCountryFromIP(clientIP);
+        if (countryCode) {
+          await setUserLocation(user.id, countryCode, clientIP, 'ip_geolocation');
+        }
+      }
+    } catch (geoError) {
+      // Don't fail registration if geolocation fails
+      console.error("Error detecting user location during registration:", geoError);
+    }
 
     return NextResponse.json(
       { message: "User created successfully" },

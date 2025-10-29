@@ -14,7 +14,8 @@ import {
   FiSettings,
   FiMenu,
   FiX,
-  FiMessageCircle
+  FiMessageCircle,
+  FiGlobe
 } from "react-icons/fi";
 
 interface AdminLayoutProps {
@@ -26,6 +27,7 @@ const navigationItems = [
   { id: "users", label: "User Management", icon: FiUsers, href: "/admin/users" },
   { id: "support", label: "Support", icon: FiMessageCircle, href: "/admin/support" },
   { id: "disputes", label: "Disputes", icon: FiAlertTriangle, href: "/admin/disputes" },
+  { id: "geolocation", label: "Geolocation", icon: FiGlobe, href: "/admin/geolocation" },
   { id: "activity", label: "All Activity", icon: FiActivity, href: "/admin/activity" },
   { id: "transactions", label: "All Transactions", icon: FiDollarSign, href: "/admin/transactions" },
   { id: "matches", label: "All Matches", icon: FiAward, href: "/admin/matches" },
