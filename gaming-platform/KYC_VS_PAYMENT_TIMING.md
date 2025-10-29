@@ -123,7 +123,7 @@ Du har allerede en grunnleggende wallet-struktur, men ingen faktisk betalingsint
 ✅ Blokker deposits/joining hvis ikke tillatt land
 ✅ Admin-oversikt for geolocation
 ⏱️ Tid: 1-2 uker
-💰 Kostnad: ~$99-200/mnd (MaxMind)
+💰 Kostnad: GRATIS til ~$99/mnd (se alternativer under)
 ⚠️ Risiko: Lav (kan alltid overstyre)
 ```
 
@@ -227,6 +227,171 @@ Du har allerede en grunnleggende wallet-struktur, men ingen faktisk betalingsint
 4. ⏸️ **Full KYC-integrasjon med tredjepart**
 5. ⏸️ **Spesifikk compliance-rapportering**
 6. ⏸️ **Avansert dokumentlagring**
+
+---
+
+## 💰 **GEOFENCING KOSTNADSANALYSE - Billige alternativer**
+
+### **GRATIS Tier (Start her!)**
+
+#### 1. **ipapi.co** (Anbefalt for start)
+```
+✅ GRATIS tier: 1,000 requests/dag
+✅ Ingen kredittkort påkrevd
+✅ Nøyaktig nok for start/fase
+✅ Enkelt REST API
+💰 Pris: Gratis opp til 1K/dag, $10/mnd for 50K/dag
+⚠️ Begrensning: Rate limits på gratis tier
+```
+
+#### 2. **ip-api.com**
+```
+✅ GRATIS tier: 45 requests/minutt
+✅ Ingen kredittkort påkrevd
+✅ God nøyaktighet
+✅ Enkelt API
+💰 Pris: Gratis opp til 45/min, $15/mnd for unlimited
+⚠️ Begrensning: Rate limit, noen ganger treg ved høy belastning
+```
+
+#### 3. **Cloudflare Geolocation** (Hvis du bruker Cloudflare)
+```
+✅ GRATIS hvis du bruker Cloudflare
+✅ Nøyaktig (land-nivå)
+✅ Ingen API-kall nødvendig - kommer i headers
+💰 Pris: Inkludert i Cloudflare-abonnement
+⚠️ Begrensning: Kun land, ikke region/state
+```
+
+#### 4. **Client-side geolocation (HTML5 Geolocation API)**
+```
+✅ GRATIS - ingen API
+✅ Brukeren deler sin lokasjon
+✅ Meget nøyaktig
+💰 Pris: Gratis
+⚠️ Begrensning: 
+  - Krever brukerens tillatelse
+  - Kan ikke stoles på 100% (bruker kan lyve)
+  - Fungerer bare i browser (ikke server-side)
+  - Kombiner med IP for best sikkerhet
+```
+
+### **Billige Premium-alternativer**
+
+#### 5. **ipapi.co Pro**
+```
+✅ 50,000 requests/dag for $10/mnd
+✅ Meget nøyaktig (land + region)
+✅ Rask og pålitelig
+💰 Pris: $10/mnd (50K/dag) eller $20/mnd (200K/dag)
+✅ Best for: Vekst-fase
+```
+
+#### 6. **ip-api.com Pro**
+```
+✅ Unlimited requests for $15/mnd
+✅ Gode features
+✅ Pålitelig
+💰 Pris: $15/mnd unlimited
+✅ Best for: Medium volum
+```
+
+#### 7. **ipify + ipgeolocation.io**
+```
+✅ Gratis tier: 1,000/mnd
+✅ Billig Pro: $20/mnd for 100K requests
+💰 Pris: Gratis (små volum) eller $20/mnd
+```
+
+### **Lokal Database-løsning (En gang til innkjøp)**
+
+#### 8. **MaxMind GeoLite2 (GRATIS)**
+```
+✅ GRATIS database fra MaxMind
+✅ Oppdateres månedlig
+✅ 100% lokal (ingen API-kall)
+✅ Ingen rate limits
+💰 Pris: GRATIS
+⚠️ Begrensning: 
+  - Må laste ned og oppdatere database månedlig
+  - Litt mer komplisert å sette opp
+  - Mindre nøyaktig enn GeoIP2 (men godt nok)
+✅ Best for: Lange løp, høy volum, kostnadseffektiv
+```
+
+#### 9. **MaxMind GeoIP2 Precision (Premium)**
+```
+✅ Mest nøyaktig
+✅ Ingen API-kall
+✅ Ingen rate limits
+💰 Pris: $99-500/mnd (avhengig av volum)
+✅ Best for: Enterprise, høy volum, kritisk nøyaktighet
+```
+
+---
+
+## 🎯 **ANBEFALING FOR GEOFENCING**
+
+### **Start med:**
+**Gratis tier: ipapi.co eller ip-api.com**
+- ✅ Gratis for oppstart
+- ✅ Enkelt å implementere
+- ✅ Kan skaleres opp når behovet vokser
+- ⏱️ Implementering: 1-2 timer (ikke 1-2 uker!)
+
+### **Ved vekst (50K+ requests/mnd):**
+**Oppgradere til ipapi.co Pro ($10/mnd) eller MaxMind GeoLite2 (gratis, litt mer jobb)**
+
+### **Ved enterprise-nivå:**
+**MaxMind GeoIP2 Precision ($99+)**
+
+---
+
+## 💡 **KONKRET IMPLEMENTASJON - Gratis løsning**
+
+### Eksempel med ipapi.co (GRATIS):
+
+```typescript
+// lib/geolocation.ts
+export async function getCountryFromIP(ip: string): Promise<string | null> {
+  try {
+    // Gratis tier: 1,000 requests/dag
+    const response = await fetch(`http://ipapi.co/${ip}/country_code/`, {
+      headers: {
+        'User-Agent': 'YourApp/1.0'
+      }
+    });
+    
+    if (response.ok) {
+      const countryCode = await response.text();
+      return countryCode.trim();
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Geolocation error:', error);
+    return null;
+  }
+}
+
+// API route: /api/geolocation/check
+export async function GET(req: NextRequest) {
+  const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+                   req.headers.get('x-real-ip') || 
+                   'unknown';
+  
+  const country = await getCountryFromIP(clientIP);
+  
+  // Sjekk om landet er tillatt
+  const isAllowed = await checkCountryAllowed(country);
+  
+  return NextResponse.json({ country, isAllowed });
+}
+```
+
+**Implementeringstid: 2-4 timer** (ikke 1-2 uker!)
+
+**Kostnad: $0/mnd** inntil du overstiger 1K requests/dag
 
 ---
 
