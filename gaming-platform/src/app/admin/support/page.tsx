@@ -173,8 +173,10 @@ export default function AdminSupportPage() {
   if (status === "loading" || loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-white text-xl">Loading support conversations...</div>
+        <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)]">
+          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-white text-xl font-medium">Loading support conversations...</p>
+          <p className="text-neutral-400 text-sm mt-2">Please wait</p>
         </div>
       </AdminLayout>
     );
@@ -228,8 +230,23 @@ export default function AdminSupportPage() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {filteredConversations.length === 0 ? (
-                <div className="p-6 text-center text-neutral-400">
-                  No support conversations
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mb-4 opacity-50">
+                    <FiMessageCircle className="text-4xl text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">No Support Conversations</h3>
+                  <p className="text-neutral-400 max-w-xs">
+                    {searchTerm 
+                      ? `No conversations match "${searchTerm}"`
+                      : "When users contact support, their conversations will appear here"}
+                  </p>
+                  {!searchTerm && (
+                    <div className="mt-6 p-4 bg-neutral-700 rounded-lg max-w-xs">
+                      <p className="text-sm text-neutral-300">
+                        <span className="font-semibold text-purple-400">Tip:</span> Users can reach out via the support button in the bottom left corner of the app.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 filteredConversations.map((conv) => (
@@ -375,10 +392,25 @@ export default function AdminSupportPage() {
                 </form>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center text-neutral-400">
-                  <FiMessageCircle className="text-4xl mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Select a conversation to start chatting</p>
+              <div className="flex-1 flex items-center justify-center p-8">
+                <div className="text-center max-w-md">
+                  <div className="w-32 h-32 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 opacity-20">
+                    <FiMessageCircle className="text-6xl text-white" />
+                  </div>
+                  <h3 className="text-2xl font-semibold text-white mb-3">Select a Conversation</h3>
+                  <p className="text-neutral-400 mb-6">
+                    Choose a support conversation from the list to view messages and respond to users.
+                  </p>
+                  <div className="bg-neutral-700 rounded-lg p-4 text-left">
+                    <p className="text-sm text-neutral-300 mb-2">
+                      <span className="font-semibold text-purple-400">Quick Actions:</span>
+                    </p>
+                    <ul className="text-sm text-neutral-400 space-y-1 list-disc list-inside">
+                      <li>Click on any conversation to view messages</li>
+                      <li>Use search to find specific users</li>
+                      <li>Unread messages are marked with a red badge</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
