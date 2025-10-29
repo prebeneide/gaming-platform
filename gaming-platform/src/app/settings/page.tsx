@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import BackButton from "@/components/BackButton";
 import { usePopup } from "@/components/PopupProvider";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -13,6 +14,20 @@ export default function SettingsPage() {
   const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
   const [timezone, setTimezone] = useState("UTC");
   const [saving, setSaving] = useState(false);
+  
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<{
+    current?: string;
+    new?: string;
+    confirm?: string;
+  }>({});
   
   // Load preferences from API
   useEffect(() => {
@@ -66,6 +81,80 @@ export default function SettingsPage() {
     }
   };
 
+  const validatePassword = () => {
+    const errors: {
+      current?: string;
+      new?: string;
+      confirm?: string;
+    } = {};
+
+    if (!currentPassword) {
+      errors.current = "Current password is required";
+    }
+
+    if (!newPassword) {
+      errors.new = "New password is required";
+    } else if (newPassword.length < 8) {
+      errors.new = "Password must be at least 8 characters long";
+    }
+
+    if (!confirmPassword) {
+      errors.confirm = "Please confirm your new password";
+    } else if (newPassword !== confirmPassword) {
+      errors.confirm = "Passwords do not match";
+    }
+
+    setPasswordErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validatePassword()) {
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showPopup({ type: 'success', message: 'Password changed successfully!' });
+        // Clear form
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordErrors({});
+      } else {
+        const errorMessage = data.error || 'Failed to change password';
+        showPopup({ type: 'error', message: errorMessage });
+        
+        // Set specific error messages if available
+        if (errorMessage.includes("Current password")) {
+          setPasswordErrors({ current: errorMessage });
+        } else if (errorMessage.includes("must be at least")) {
+          setPasswordErrors({ new: errorMessage });
+        }
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      showPopup({ type: 'error', message: 'Failed to change password' });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center py-10 px-2">
       <div className={
@@ -91,8 +180,117 @@ export default function SettingsPage() {
         </section>
         
         
+        {/* Change Password */}
+        <section className="border-t border-gray-800 pt-6">
+          <h2 className="text-lg font-semibold mb-4 text-white">Change Password</h2>
+          
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            {/* Current Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Current Password</label>
+              <div className="relative">
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    setPasswordErrors({ ...passwordErrors, current: undefined });
+                  }}
+                  className={`w-full bg-neutral-900 text-white px-4 py-2 rounded-lg pr-10 ${
+                    passwordErrors.current ? "border border-red-500" : ""
+                  }`}
+                  placeholder="Enter current password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showCurrentPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+              {passwordErrors.current && (
+                <p className="text-red-400 text-sm mt-1">{passwordErrors.current}</p>
+              )}
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">New Password</label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPasswordErrors({ ...passwordErrors, new: undefined });
+                  }}
+                  className={`w-full bg-neutral-900 text-white px-4 py-2 rounded-lg pr-10 ${
+                    passwordErrors.new ? "border border-red-500" : ""
+                  }`}
+                  placeholder="Enter new password (min. 8 characters)"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+              {passwordErrors.new && (
+                <p className="text-red-400 text-sm mt-1">{passwordErrors.new}</p>
+              )}
+              {newPassword && newPassword.length < 8 && !passwordErrors.new && (
+                <p className="text-yellow-400 text-sm mt-1">Password must be at least 8 characters</p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setPasswordErrors({ ...passwordErrors, confirm: undefined });
+                  }}
+                  className={`w-full bg-neutral-900 text-white px-4 py-2 rounded-lg pr-10 ${
+                    passwordErrors.confirm ? "border border-red-500" : ""
+                  }`}
+                  placeholder="Confirm new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+              {passwordErrors.confirm && (
+                <p className="text-red-400 text-sm mt-1">{passwordErrors.confirm}</p>
+              )}
+              {confirmPassword && newPassword !== confirmPassword && !passwordErrors.confirm && (
+                <p className="text-yellow-400 text-sm mt-1">Passwords do not match</p>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={changingPassword}
+              className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {changingPassword ? 'Changing Password...' : 'Change Password'}
+            </button>
+          </form>
+        </section>
+
         {/* Display Preferences */}
-        <section>
+        <section className="border-t border-gray-800 pt-6">
           <h2 className="text-lg font-semibold mb-4 text-white">Display Preferences</h2>
           
           {/* Time Format */}
