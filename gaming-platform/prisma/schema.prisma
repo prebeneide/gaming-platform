@@ -153,10 +153,14 @@ model Message {
   content    String
   createdAt  DateTime @default(now())
   isRead     Boolean  @default(false)
+  isSupport  Boolean  @default(false) // True if this is a support message
   senderId   String
   receiverId String
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
   sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  @@index([isSupport])
+  @@index([isSupport, isRead])
 }
 
 model Match {

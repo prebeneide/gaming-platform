@@ -10,6 +10,7 @@ import { FiCreditCard, FiMenu, FiMessageSquare, FiActivity, FiCompass } from "re
 import { FaGamepad } from "react-icons/fa";
 import io from "socket.io-client";
 import GlobalChat from "@/components/GlobalChat";
+import SupportButton from "@/components/SupportButton";
 
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -159,6 +160,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       </div>
       {!isChatPage && <BottomNavigation onOpenMenu={() => setMenuOpen(true)} />}
       {session?.user && <GlobalChat />}
+      {session?.user && <SupportButton />}
     </>
   );
 } 

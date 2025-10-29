@@ -72,10 +72,32 @@ io.on("connection", (socket) => {
           content: msg.content,
           senderId: msg.senderId,
           receiverId: msg.receiverId,
+          isSupport: msg.isSupport || false,
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              username: true,
+              image: true,
+              displayName: true,
+            }
+          },
+          receiver: {
+            select: {
+              id: true,
+              username: true,
+              image: true,
+            }
+          },
         },
       });
-      // Send til mottaker
-      io.emit("chat message", savedMessage);
+      // Send til mottaker - use support message event if it's a support message
+      if (msg.isSupport) {
+        io.emit("support message", savedMessage);
+      } else {
+        io.emit("chat message", savedMessage);
+      }
     } catch (error) {
       console.error("Error saving message:", error);
     }

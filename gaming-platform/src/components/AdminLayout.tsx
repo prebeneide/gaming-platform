@@ -13,7 +13,8 @@ import {
   FiAward, 
   FiSettings,
   FiMenu,
-  FiX
+  FiX,
+  FiMessageCircle
 } from "react-icons/fi";
 
 interface AdminLayoutProps {
@@ -23,6 +24,7 @@ interface AdminLayoutProps {
 const navigationItems = [
   { id: "dashboard", label: "Dashboard", icon: FiHome, href: "/admin" },
   { id: "users", label: "User Management", icon: FiUsers, href: "/admin/users" },
+  { id: "support", label: "Support", icon: FiMessageCircle, href: "/admin/support" },
   { id: "disputes", label: "Disputes", icon: FiAlertTriangle, href: "/admin/disputes" },
   { id: "activity", label: "All Activity", icon: FiActivity, href: "/admin/activity" },
   { id: "transactions", label: "All Transactions", icon: FiDollarSign, href: "/admin/transactions" },
