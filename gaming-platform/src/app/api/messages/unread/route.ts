@@ -10,11 +10,16 @@ export async function GET() {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Hent antall uleste meldinger
+    // For admin users: exclude support messages (they should only see them in admin panel)
+    const isAdmin = session.user.role === "admin";
+    
+    // Hent antall uleste meldinger (ekskluder support-meldinger for admin)
     const unreadCount = await prisma.message.count({
       where: {
         receiverId: session.user.id,
-        isRead: false
+        isRead: false,
+        // Exclude support messages for admin users
+        ...(isAdmin ? { isSupport: false } : {})
       }
     });
 

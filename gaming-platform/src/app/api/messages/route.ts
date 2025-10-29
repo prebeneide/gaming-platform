@@ -16,12 +16,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing userId" }, { status: 400 });
   }
 
+  // For admin users: exclude support messages (they should only see them in admin panel)
+  const isAdmin = session.user.role === "admin";
+  
   const messages = await prisma.message.findMany({
     where: {
       OR: [
         { senderId: session.user.id, receiverId: otherUserId },
         { senderId: otherUserId, receiverId: session.user.id },
       ],
+      // Exclude support messages for admin users
+      ...(isAdmin ? { isSupport: false } : {})
     },
     orderBy: { createdAt: "asc" },
     include: {

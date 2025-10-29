@@ -65,14 +65,18 @@ io.on("connection", (socket) => {
 
   socket.on("chat message", async (msg) => {
     console.log("[Socket] Received chat message:", msg);
-    // Lagre meldingen i databasen
+    
+    // Check if message already exists (to prevent duplicates when sent via API first)
+    // Only create if message doesn't exist (based on recent timestamp, sender, receiver, content)
     try {
-      const savedMessage = await prisma.message.create({
-        data: {
-          content: msg.content,
+      const recentMessage = await prisma.message.findFirst({
+        where: {
           senderId: msg.senderId,
           receiverId: msg.receiverId,
-          isSupport: msg.isSupport || false,
+          content: msg.content,
+          createdAt: {
+            gte: new Date(Date.now() - 5000) // Within last 5 seconds
+          }
         },
         include: {
           sender: {
@@ -91,15 +95,53 @@ io.on("connection", (socket) => {
             }
           },
         },
+        orderBy: {
+          createdAt: 'desc'
+        }
       });
-      // Send til mottaker - use support message event if it's a support message
+
+      let savedMessage;
+
+      if (recentMessage) {
+        // Message already exists, use it
+        savedMessage = recentMessage;
+      } else {
+        // Create new message
+        savedMessage = await prisma.message.create({
+          data: {
+            content: msg.content,
+            senderId: msg.senderId,
+            receiverId: msg.receiverId,
+            isSupport: msg.isSupport || false,
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                image: true,
+                displayName: true,
+              }
+            },
+            receiver: {
+              select: {
+                id: true,
+                username: true,
+                image: true,
+              }
+            },
+          },
+        });
+      }
+
+      // Broadcast to all clients (but duplicates will be filtered client-side)
       if (msg.isSupport) {
         io.emit("support message", savedMessage);
       } else {
         io.emit("chat message", savedMessage);
       }
     } catch (error) {
-      console.error("Error saving message:", error);
+      console.error("Error processing message:", error);
     }
   });
 

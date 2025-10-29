@@ -32,6 +32,8 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingAdmin, setLoadingAdmin] = useState(true);
+  const [sending, setSending] = useState(false);
   const socketRef = useRef<ReturnType<typeof io> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,13 +45,22 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
         if (response.ok) {
           const data = await response.json();
           setAdminId(data.adminId);
+        } else {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          console.error("Error fetching admin ID:", errorData);
+          alert("Unable to load support system. Please try again later.");
         }
       } catch (error) {
         console.error("Error fetching admin ID:", error);
+        alert("Network error. Please check your connection.");
+      } finally {
+        setLoadingAdmin(false);
       }
     }
-    fetchAdminId();
-  }, []);
+    if (isOpen) {
+      fetchAdminId();
+    }
+  }, [isOpen]);
 
   // Fetch messages and setup socket
   useEffect(() => {
@@ -81,7 +92,19 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
 
     socket.on("support message", (msg: Message) => {
       setMessages((prev) => {
+        // Prevent duplicates by checking ID
         if (prev.some((m) => m.id === msg.id)) return prev;
+        
+        // Also check if it's a duplicate by content + sender + timestamp (within 2 seconds)
+        const isDuplicate = prev.some((m) => 
+          m.content === msg.content &&
+          m.senderId === msg.senderId &&
+          m.receiverId === msg.receiverId &&
+          Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 2000
+        );
+        
+        if (isDuplicate) return prev;
+        
         return [...prev, msg].sort((a, b) => 
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
@@ -100,7 +123,26 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !session?.user?.id || !adminId || !socketRef.current) return;
+    if (!input.trim() || sending) return;
+    
+    if (!session?.user?.id) {
+      alert("You must be logged in to send a message");
+      return;
+    }
+    
+    if (!adminId) {
+      alert("Loading admin information. Please wait a moment and try again.");
+      return;
+    }
+    
+    if (!socketRef.current) {
+      alert("Connection error. Please refresh the page.");
+      return;
+    }
+
+    const messageContent = input.trim();
+    setInput(""); // Clear input immediately for better UX
+    setSending(true);
 
     try {
       const response = await fetch("/api/support/send", {
@@ -108,25 +150,34 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           receiverId: adminId,
-          content: input.trim(),
+          content: messageContent,
         }),
       });
 
-      if (response.ok) {
-        const newMessage = await response.json();
-        setMessages((prev) => [...prev, newMessage]);
-        setInput("");
-        
-        // Emit via socket
-        socketRef.current.emit("chat message", {
-          senderId: session.user.id,
-          receiverId: adminId,
-          content: newMessage.content,
-          isSupport: true,
-        });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Error sending message:", errorData);
+        alert(`Failed to send message: ${errorData.error || "Unknown error"}`);
+        setInput(messageContent); // Restore input on error
+        return;
       }
+
+      const newMessage = await response.json();
+      
+      // Add message from API response (optimistic update)
+      setMessages((prev) => {
+        // Check if message already exists to prevent duplicates
+        if (prev.some((m) => m.id === newMessage.id)) return prev;
+        return [...prev, newMessage].sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      });
     } catch (error) {
       console.error("Error sending message:", error);
+      alert("Network error. Please check your connection and try again.");
+      setInput(messageContent); // Restore input on error
+    } finally {
+      setSending(false);
     }
   };
 
@@ -155,8 +206,16 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {loading ? (
-          <div className="text-center text-neutral-400 py-8">Loading messages...</div>
+        {loadingAdmin ? (
+          <div className="text-center text-neutral-400 py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto mb-2"></div>
+            <p>Connecting to support...</p>
+          </div>
+        ) : loading ? (
+          <div className="text-center text-neutral-400 py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto mb-2"></div>
+            <p>Loading messages...</p>
+          </div>
         ) : messages.length === 0 ? (
           <div className="text-center text-neutral-400 py-8">
             <p className="mb-2">No messages yet</p>
@@ -215,10 +274,20 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
           />
           <button
             type="submit"
-            disabled={!input.trim()}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-neutral-700 disabled:text-neutral-500 text-white rounded-lg transition-colors"
+            disabled={!input.trim() || sending || !adminId}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-neutral-700 disabled:text-neutral-500 text-white rounded-lg transition-colors flex items-center gap-2"
           >
-            <FiSend />
+            {sending ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Sending...
+              </>
+            ) : (
+              <>
+                <FiSend />
+                Send
+              </>
+            )}
           </button>
         </div>
       </form>

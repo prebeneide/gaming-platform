@@ -34,7 +34,8 @@ export default function SupportButton() {
     return () => clearInterval(interval);
   }, [session]);
 
-  if (!session?.user) return null;
+  // Don't show support button for admins - they use admin panel instead
+  if (!session?.user || session.user.role === "admin") return null;
 
   return (
     <>

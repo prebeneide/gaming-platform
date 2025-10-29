@@ -79,7 +79,19 @@ export default function AdminSupportPage() {
       if (selectedConversation && 
           (msg.senderId === selectedConversation.userId || msg.receiverId === selectedConversation.userId)) {
         setMessages((prev) => {
+          // Prevent duplicates by checking ID
           if (prev.some((m) => m.id === msg.id)) return prev;
+          
+          // Also check if it's a duplicate by content + sender + timestamp (within 2 seconds)
+          const isDuplicate = prev.some((m) => 
+            m.content === msg.content &&
+            m.senderId === msg.senderId &&
+            m.receiverId === msg.receiverId &&
+            Math.abs(new Date(m.createdAt).getTime() - new Date(msg.createdAt).getTime()) < 2000
+          );
+          
+          if (isDuplicate) return prev;
+          
           return [...prev, msg].sort((a, b) => 
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
@@ -141,19 +153,21 @@ export default function AdminSupportPage() {
 
       if (response.ok) {
         const newMessage = await response.json();
-        setMessages((prev) => [...prev, newMessage]);
+        
+        // Add message from API response (optimistic update)
+        setMessages((prev) => {
+          // Check if message already exists to prevent duplicates
+          if (prev.some((m) => m.id === newMessage.id)) return prev;
+          return [...prev, newMessage].sort((a, b) => 
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+        
         setInput("");
         fetchConversations(); // Refresh to update last message
         
-        // Emit via socket
-        if (socketRef.current) {
-          socketRef.current.emit("chat message", {
-            senderId: session.user.id,
-            receiverId: selectedConversation.userId,
-            content: newMessage.content,
-            isSupport: true,
-          });
-        }
+        // Don't emit via socket - message is already saved via API
+        // Socket will broadcast it for other clients if needed
       }
     } catch (error) {
       console.error("Error sending message:", error);
