@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, use } from "react";
-import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiRefreshCw, FiPlus, FiMinus, FiTrendingUp, FiTrendingDown, FiCreditCard, FiGift, FiXCircle, FiCheckCircle, FiAlertCircle, FiSearch } from "react-icons/fi";
+import { FiUser, FiActivity, FiMessageSquare, FiDollarSign, FiAward, FiClock, FiRefreshCw, FiPlus, FiMinus, FiTrendingUp, FiTrendingDown, FiCreditCard, FiGift, FiXCircle, FiCheckCircle, FiAlertCircle, FiSearch, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import TimeFormatter from "@/components/TimeFormatter";
 import AdminLayout from "@/components/AdminLayout";
 
@@ -107,6 +107,15 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [transferType, setTransferType] = useState<"deposit" | "withdraw">("deposit");
   const [transferReason, setTransferReason] = useState("");
   
+  // Password change modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [transactionFilter, setTransactionFilter] = useState("all");
@@ -192,6 +201,60 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     } catch (error) {
       console.error("Error processing transfer:", error);
       alert("Failed to process transfer");
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    
+    // Validation
+    if (!newPassword || !confirmPassword) {
+      setPasswordError("All fields are required");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters long");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const response = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: resolvedParams.id,
+          newPassword,
+          confirmPassword,
+          isAdminAction: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setShowPasswordModal(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordError("");
+        await fetchUserDetails(); // Refresh data
+        alert("Password changed successfully!");
+      } else {
+        setPasswordError(data.error || "Failed to change password");
+      }
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setPasswordError("Failed to change password");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -316,6 +379,18 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
             >
               <FiMinus className="text-sm" />
               Remove Money
+            </button>
+            <button
+              onClick={() => {
+                setShowPasswordModal(true);
+                setPasswordError("");
+                setNewPassword("");
+                setConfirmPassword("");
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              <FiLock className="text-sm" />
+              Change Password
             </button>
           </div>
         </div>
@@ -807,6 +882,106 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                       setShowTransferModal(false);
                       setTransferAmount("");
                       setTransferReason("");
+                    }}
+                    className="px-4 py-2 bg-neutral-600 hover:bg-neutral-700 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Password Change Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-neutral-800 rounded-lg p-6 w-full max-w-md border border-neutral-700">
+              <h3 className="text-xl font-bold mb-4 text-white">
+                Change Password for {user.displayName || user.username}
+              </h3>
+              
+              <div className="space-y-4">
+                <p className="text-sm text-neutral-400 mb-4">
+                  As admin, you can reset this user's password. They will need to log in with the new password.
+                </p>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-white">New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        setPasswordError("");
+                      }}
+                      className={`w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 pr-10 ${
+                        passwordError ? "border-red-500" : ""
+                      }`}
+                      placeholder="Enter new password (min. 8 characters)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showNewPassword ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                  {newPassword && newPassword.length < 8 && (
+                    <p className="text-yellow-400 text-xs mt-1">Password must be at least 8 characters</p>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-white">Confirm New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        setPasswordError("");
+                      }}
+                      className={`w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 pr-10 ${
+                        passwordError ? "border-red-500" : ""
+                      }`}
+                      placeholder="Confirm new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-yellow-400 text-xs mt-1">Passwords do not match</p>
+                  )}
+                </div>
+
+                {passwordError && (
+                  <div className="bg-red-900/50 border border-red-700 rounded-lg p-3">
+                    <p className="text-red-400 text-sm">{passwordError}</p>
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={changingPassword}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {changingPassword ? "Changing..." : "Change Password"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setPasswordError("");
                     }}
                     className="px-4 py-2 bg-neutral-600 hover:bg-neutral-700 rounded-lg transition-colors"
                   >

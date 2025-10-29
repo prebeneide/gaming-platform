@@ -12,14 +12,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { currentPassword, newPassword, confirmPassword } = await req.json();
-
-    // Validering
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      return NextResponse.json(
-        { error: "All fields are required" },
-        { status: 400 }
-      );
+    const { userId, currentPassword, newPassword, confirmPassword, isAdminAction } = await req.json();
+    
+    // Determine target user ID
+    const targetUserId = userId || session.user.id;
+    const isAdmin = session.user.role === "admin";
+    const isChangingOwnPassword = targetUserId === session.user.id;
+    
+    // Admin can change any user's password without current password
+    // Regular users must provide current password when changing their own
+    if (isAdminAction && isAdmin) {
+      // Admin changing another user's password
+      if (!newPassword || !confirmPassword) {
+        return NextResponse.json(
+          { error: "New password and confirmation are required" },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Regular user changing their own password
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return NextResponse.json(
+          { error: "All fields are required" },
+          { status: 400 }
+        );
+      }
     }
 
     // Sjekk at nytt passord og bekreftelse matcher
@@ -38,10 +55,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if user is trying to change another user's password without admin role
+    if (targetUserId !== session.user.id && !isAdmin) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only change your own password" },
+        { status: 403 }
+      );
+    }
+
     // Hent bruker med passord
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, password: true },
+      where: { id: targetUserId },
+      select: { id: true, password: true, username: true },
     });
 
     if (!user || !user.password) {
@@ -51,13 +76,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verifiser gjeldende passord
-    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
-    if (!isValidPassword) {
-      return NextResponse.json(
-        { error: "Current password is incorrect" },
-        { status: 401 }
-      );
+    // Verifiser gjeldende passord (only for regular users changing their own password)
+    if (!isAdminAction || isChangingOwnPassword) {
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        return NextResponse.json(
+          { error: "Current password is incorrect" },
+          { status: 401 }
+        );
+      }
     }
 
     // Sjekk at nytt passord ikke er det samme som gammelt passord
@@ -74,18 +101,20 @@ export async function POST(req: NextRequest) {
 
     // Oppdater passord
     await prisma.user.update({
-      where: { id: session.user.id },
+      where: { id: targetUserId },
       data: { password: hashedPassword },
     });
 
     // Log aktivitet
     await logActivity({
-      userId: session.user.id,
+      userId: targetUserId,
       action: ActivityTypes.PASSWORD_CHANGED,
       entityType: "User",
-      entityId: session.user.id,
+      entityId: targetUserId,
       details: {
         passwordChanged: true,
+        changedByAdmin: isAdmin && !isChangingOwnPassword,
+        changedBy: isAdmin && !isChangingOwnPassword ? session.user.id : targetUserId,
       },
       ipAddress: req.headers.get("x-forwarded-for") || "unknown",
       userAgent: req.headers.get("user-agent") || "unknown",
