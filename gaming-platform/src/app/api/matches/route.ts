@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { createMatchInviteNotification } from "@/lib/notifications";
 import { getMatches } from "@/lib/matchService";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
+import { checkUserLocation } from "@/lib/geofencing";
 
 const prisma = new PrismaClient();
 
@@ -76,6 +77,18 @@ export async function POST(request: NextRequest) {
     // 4.5. Check if user has enough balance for buy-in
     if (wallet.balance < buyIn) {
       return NextResponse.json({ error: "Insufficient wallet balance for buy-in." }, { status: 402 });
+    }
+
+    // 4.6. Geofencing check (for matches with buy-in)
+    if (buyIn > 0) {
+      const locationCheck = await checkUserLocation(user.id);
+      if (!locationCheck.isAllowed) {
+        return NextResponse.json({
+          error: locationCheck.reason || "Creating matches with buy-in is not allowed from your location",
+          country: locationCheck.country,
+          restrictionLevel: locationCheck.restrictionLevel,
+        }, { status: 403 });
+      }
     }
 
     // 5. Calculate match details

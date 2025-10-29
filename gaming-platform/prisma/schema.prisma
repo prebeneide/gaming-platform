@@ -8,9 +8,9 @@ datasource db {
 }
 
 model User {
-  id                     String             @id @default(cuid())
-  email                  String             @unique
-  username               String             @unique
+  id                     String                 @id @default(cuid())
+  email                  String                 @unique
+  username               String                 @unique
   password               String
   displayName            String?
   bio                    String?
@@ -22,28 +22,29 @@ model User {
   psn                    String?
   xbox                   String?
   customGames            Json?
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
   lastActiveAt           DateTime?
-  role                  String             @default("user")
-  followers              Follower[]         @relation("UserFollowers")
-  following              Follower[]         @relation("UserFollowing")
-  friendRequestsSent     FriendRequest[]    @relation("FriendRequestFrom")
-  friendRequestsReceived FriendRequest[]    @relation("FriendRequestTo")
-  createdMatches         Match[]            @relation("CreatedMatches")
-  matchParticipations    MatchParticipant[] @relation("MatchParticipations")
-  receivedMessages       Message[]          @relation("ReceivedMessages")
-  sentMessages           Message[]          @relation("SentMessages")
+  role                   String                 @default("user")
+  followers              Follower[]             @relation("UserFollowers")
+  following              Follower[]             @relation("UserFollowing")
+  friendRequestsSent     FriendRequest[]        @relation("FriendRequestFrom")
+  friendRequestsReceived FriendRequest[]        @relation("FriendRequestTo")
+  createdMatches         Match[]                @relation("CreatedMatches")
+  matchParticipations    MatchParticipant[]     @relation("MatchParticipations")
+  receivedMessages       Message[]              @relation("ReceivedMessages")
+  sentMessages           Message[]              @relation("SentMessages")
   notifications          Notification[]
   transactions           Transaction[]
   UserGameRating         UserGameRating[]
   stats                  UserStats?
   wallet                 UserWallet?
   preferences            UserPreferences?
-  activityLogs          ActivityLog[]
-  matchInvitations      MatchInvitation[]
-  globalMessages        GlobalMessage[]
-  matchMessages         MatchMessage[]
+  activityLogs           ActivityLog[]
+  matchInvitations       MatchInvitation[]
+  globalMessages         GlobalMessage[]
+  matchMessages          MatchMessage[]
+  geographicRestriction  GeographicRestriction?
 }
 
 model UserStats {
@@ -158,7 +159,7 @@ model Message {
   receiverId String
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
   sender     User     @relation("SentMessages", fields: [senderId], references: [id])
-  
+
   @@index([isSupport])
   @@index([isSupport, isRead])
 }
@@ -262,19 +263,19 @@ model UserGameRating {
 }
 
 model ActivityLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  action      String   // e.g., "user_registered", "match_created", "rating_updated"
-  entityType  String?  // e.g., "User", "Match", "Rating"
-  entityId    String?  // ID of the affected entity
-  details     Json?    // Additional details about the action
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String // e.g., "user_registered", "match_created", "rating_updated"
+  entityType String? // e.g., "User", "Match", "Rating"
+  entityId   String? // ID of the affected entity
+  details    Json? // Additional details about the action
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
   // Optional relation to User (if action was performed by a user)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@index([action])
   @@index([entityType])
   @@index([createdAt])
@@ -286,7 +287,7 @@ model GlobalMessage {
   senderId  String
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  
+
   @@index([createdAt])
 }
 
@@ -298,7 +299,49 @@ model MatchMessage {
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  
+
   @@index([matchId])
   @@index([createdAt])
+}
+
+model GeographicRestriction {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  country          String // ISO 3166-1 alpha-2 country code (e.g., "NO", "US")
+  region           String? // Optional region/state code
+  ipAddress        String?
+  detectedBy       String   @default("ip_geolocation") // ip_geolocation, user_input, payment_method, admin_override
+  restrictionLevel String   @default("blocked") // allowed, restricted, blocked
+  reason           String? // Hvorfor brukeren er blokkert/tillatt
+  verifiedAt       DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([country])
+  @@index([restrictionLevel])
+}
+
+model AllowedCountry {
+  id           String   @id @default(cuid())
+  countryCode  String   @unique // ISO 3166-1 alpha-2
+  countryName  String
+  isActive     Boolean  @default(true)
+  minAge       Int      @default(18) // Minimum alder for det landet
+  restrictions Json? // Spesifikke restriksjoner per land (kan inkludere regions/blokkerte stater)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model BlockedCountry {
+  id          String   @id @default(cuid())
+  countryCode String   @unique // ISO 3166-1 alpha-2
+  countryName String
+  reason      String? // Hvorfor landet er blokkert (juridisk, compliance, etc.)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
 }

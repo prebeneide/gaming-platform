@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
+import { checkUserLocation } from "@/lib/geofencing";
 
 const prisma = new PrismaClient();
 
@@ -84,6 +85,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Geofencing check for deposits
+    if (type === 'deposit') {
+      const locationCheck = await checkUserLocation(user.id);
+      if (!locationCheck.isAllowed) {
+        return NextResponse.json({
+          error: locationCheck.reason || "Deposits are not allowed from your location",
+          country: locationCheck.country,
+          restrictionLevel: locationCheck.restrictionLevel,
+        }, { status: 403 });
+      }
     }
 
     // Create wallet if it doesn't exist

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
+import { checkUserLocation } from "@/lib/geofencing";
 
 const prisma = new PrismaClient();
 
@@ -103,6 +104,18 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         }, { status: 403 });
       }
     }
+    // Geofencing check (for matches with buy-in)
+    if (match.buyIn > 0) {
+      const locationCheck = await checkUserLocation(user.id);
+      if (!locationCheck.isAllowed) {
+        return NextResponse.json({
+          error: locationCheck.reason || "Joining matches with buy-in is not allowed from your location",
+          country: locationCheck.country,
+          restrictionLevel: locationCheck.restrictionLevel,
+        }, { status: 403 });
+      }
+    }
+
     // Wallet
     const wallet = await prisma.userWallet.findUnique({ where: { userId: user.id } });
     if (!wallet) {
