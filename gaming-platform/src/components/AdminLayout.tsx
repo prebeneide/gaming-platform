@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white">
+    <div className="min-h-screen bg-neutral-900 text-white relative">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -68,10 +68,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+      <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-neutral-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <div className="flex items-center justify-between h-16 px-6 border-b border-neutral-700">
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between h-16 px-6 border-b border-neutral-700 flex-shrink-0">
           <h1 className="text-xl font-bold text-white">Admin Panel</h1>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -81,7 +82,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </button>
         </div>
 
-        <nav className="mt-6 px-3">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 overflow-y-auto mt-6 px-3 pb-4">
           <div className="space-y-1">
             {navigationItems.map((item) => {
               const isActive = pathname === item.href;
@@ -98,7 +100,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <Icon className="text-lg" />
+                  <Icon className="text-lg flex-shrink-0" />
                   <span className="font-medium">{item.label}</span>
                 </Link>
               );
@@ -106,10 +108,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </nav>
 
-        {/* User info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-neutral-700">
+        {/* User info - Fixed at bottom */}
+        <div className="border-t border-neutral-700 p-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-sm font-bold text-white">
                 {session.user.email?.charAt(0).toUpperCase()}
               </span>
@@ -125,9 +127,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
+      <div className="lg:ml-64 relative z-10">
         {/* Top bar */}
-        <div className="h-16 bg-neutral-800 border-b border-neutral-700 flex items-center justify-between px-6">
+        <div className="h-16 bg-neutral-800 border-b border-neutral-700 flex items-center justify-between px-6 sticky top-0 z-20">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-neutral-400 hover:text-white"
@@ -146,7 +148,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Page content */}
-        <div className="p-6">
+        <div className="p-6 relative z-10">
           {children}
         </div>
       </div>

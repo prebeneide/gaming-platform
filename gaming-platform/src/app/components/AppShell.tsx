@@ -132,6 +132,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/signup");
   const isChatPage = pathname.startsWith("/chat/");
+  const isAdminPage = pathname.startsWith("/admin");
   const { data: session, status } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -140,6 +141,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthPage) {
+    return <>{children}</>;
+  }
+
+  // Don't render AppShell components on admin pages (they use AdminLayout)
+  if (isAdminPage) {
     return <>{children}</>;
   }
 
