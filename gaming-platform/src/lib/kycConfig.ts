@@ -24,4 +24,12 @@ export function isKycEnabled(): boolean {
   return getKycSettings().enabled && getKycSettings().provider !== 'disabled';
 }
 
+export function isKycReviewer(user: { role?: string; email?: string | null }): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  const allow = (process.env.KYC_REVIEWER_EMAILS || '').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  if (user.email && allow.includes(user.email.toLowerCase())) return true;
+  return false;
+}
+
 

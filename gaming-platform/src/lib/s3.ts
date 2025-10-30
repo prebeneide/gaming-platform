@@ -5,6 +5,7 @@ let s3Client: any;
 let fromIni: any;
 let PutObjectCommand: any;
 let GetObjectCommand: any;
+let DeleteObjectCommand: any;
 let S3Client: any;
 let getSignedUrl: any;
 
@@ -17,6 +18,7 @@ async function ensureAws() {
   S3Client = sdk.S3Client;
   PutObjectCommand = sdk.PutObjectCommand;
   GetObjectCommand = sdk.GetObjectCommand;
+  DeleteObjectCommand = sdk.DeleteObjectCommand;
   getSignedUrl = presigner.getSignedUrl;
 
   s3Client = new S3Client({
@@ -49,6 +51,13 @@ export async function getPresignedGetUrl(key: string, expiresSeconds = 300) {
   });
   const url = await getSignedUrl(s3Client, command, { expiresIn: expiresSeconds });
   return url;
+}
+
+export async function deleteObject(key: string) {
+  await ensureAws();
+  if (!s3Client) throw new Error('S3 not configured');
+  const command = new DeleteObjectCommand({ Bucket: process.env.S3_BUCKET, Key: key });
+  await s3Client.send(command);
 }
 
 
