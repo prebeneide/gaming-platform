@@ -120,6 +120,36 @@ export default function AdminKycPage() {
             <button onClick={runCleanup} className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg">
               <FiTrash2 /> Run cleanup
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const r = await fetch('/api/admin/kyc/test-s3');
+                  const d = await r.json();
+                  if (!r.ok || !d.ok) throw new Error(d.error || d.reason || 'S3 test failed');
+                  alert('S3 presign test OK');
+                } catch (e: any) {
+                  alert(e?.message || 'S3 test failed');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
+            >
+              Test S3
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const r = await fetch('/api/admin/kyc/env-template');
+                  const d = await r.json();
+                  await navigator.clipboard.writeText(d.template);
+                  alert('Copied .env template to clipboard');
+                } catch {
+                  alert('Failed to copy template');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg"
+            >
+              Copy .env template
+            </button>
           </div>
         </div>
 
