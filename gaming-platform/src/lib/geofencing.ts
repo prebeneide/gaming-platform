@@ -123,10 +123,12 @@ export async function checkUserLocation(userId: string): Promise<{
   });
 
   if (!restriction) {
-    // No restriction record - allow by default but log for future check
+    // No restriction record - this means location has not been verified
+    // Block access until location can be verified
     return {
-      isAllowed: true,
-      restrictionLevel: 'allowed'
+      isAllowed: false,
+      reason: 'Location verification required. Please ensure your location can be detected.',
+      restrictionLevel: 'blocked'
     };
   }
 

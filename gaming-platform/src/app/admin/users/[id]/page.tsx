@@ -120,6 +120,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const [searchTerm, setSearchTerm] = useState("");
   const [transactionFilter, setTransactionFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  // Admin location override UI
+  const [manualCountry, setManualCountry] = useState("");
+  const [manualRegion, setManualRegion] = useState("");
 
   useEffect(() => {
     if (status === "loading") return;
@@ -392,6 +395,25 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
               <FiLock className="text-sm" />
               Change Password
             </button>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/admin/users/${user.id}/location/from-ip`, { method: 'POST' });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    alert(data.error || 'Failed to set location from IP');
+                    return;
+                  }
+                  alert(`Location set: ${data.country}${data.region ? `-${data.region}` : ''}`);
+                } catch (e) {
+                  alert('Failed to set location from IP');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+            >
+              <FiRefreshCw className="text-sm" />
+              Set Location From IP
+            </button>
           </div>
         </div>
 
@@ -443,6 +465,61 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
                     <p className="text-2xl font-bold text-white">{user._count.sentMessages + user._count.receivedMessages}</p>
                   </div>
                 </div>
+              </div>
+              {/* Admin: manual location override */}
+              <div className="mt-6 p-4 bg-neutral-700 rounded-lg">
+                <h4 className="font-semibold mb-2">Set Location Manually (Admin)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-neutral-300 mb-1">Country (ISO-2)</label>
+                    <input
+                      value={manualCountry}
+                      onChange={(e) => setManualCountry(e.target.value.toUpperCase())}
+                      placeholder="NO, US, GB ..."
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-300 mb-1">Region/State (optional)</label>
+                    <input
+                      value={manualRegion}
+                      onChange={(e) => setManualRegion(e.target.value.toUpperCase())}
+                      placeholder="CA, NY ..."
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={async () => {
+                        try {
+                          if (!manualCountry || manualCountry.length !== 2) {
+                            alert('Please enter a valid 2-letter country code');
+                            return;
+                          }
+                          const res = await fetch(`/api/admin/users/${user.id}/location/set`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ countryCode: manualCountry, region: manualRegion || undefined })
+                          });
+                          const data = await res.json();
+                          if (!res.ok) {
+                            alert(data.error || 'Failed to set location');
+                            return;
+                          }
+                          alert(`Location set: ${data.country}${data.region ? `-${data.region}` : ''}`);
+                          setManualCountry("");
+                          setManualRegion("");
+                        } catch (e) {
+                          alert('Failed to set location');
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
+                    >
+                      Save Location
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-neutral-300 mt-2">This overrides location for geofencing tests.</p>
               </div>
             </div>
           </div>

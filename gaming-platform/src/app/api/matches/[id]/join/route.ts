@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { PrismaClient } from "@prisma/client";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
-import { checkUserLocation } from "@/lib/geofencing";
+import { checkUserLocation, setUserLocation } from "@/lib/geofencing";
+import { getClientIP, getGeolocationFromIP } from "@/lib/geolocation";
 
 const prisma = new PrismaClient();
 
@@ -104,8 +105,41 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         }, { status: 403 });
       }
     }
-    // Geofencing check (for matches with buy-in)
-    if (match.buyIn > 0) {
+    // Geofencing check (for matches with buy-in) - admins bypass
+    if (match.buyIn > 0 && session.user.role !== 'admin') {
+      // Ensure user's location is set (if missing) based on IP
+      try {
+        const existingRestriction = await (prisma as any).geographicRestriction.findUnique({ where: { userId: user.id } });
+        if (!existingRestriction) {
+          const clientIP = getClientIP(request) || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+          if (clientIP) {
+            const geo = await getGeolocationFromIP(clientIP);
+            if (geo.countryCode) {
+              await setUserLocation(user.id, geo.countryCode, clientIP, 'ip_geolocation', geo.region || null);
+            } else {
+              // If we can't detect location, block the transaction
+              return NextResponse.json({
+                error: "Unable to verify your location. Please contact support if you believe this is an error.",
+                restrictionLevel: 'blocked',
+              }, { status: 403 });
+            }
+          } else {
+            // If we can't get IP, block the transaction
+            return NextResponse.json({
+              error: "Unable to verify your location. Please contact support if you believe this is an error.",
+              restrictionLevel: 'blocked',
+            }, { status: 403 });
+          }
+        }
+      } catch (e) {
+        console.error('[Geofencing] Failed to auto-detect user location (join match):', e);
+        return NextResponse.json({
+          error: "Unable to verify your location. Please contact support if you believe this is an error.",
+          restrictionLevel: 'blocked',
+        }, { status: 403 });
+      }
+
+      // Now check location after ensuring it's set
       const locationCheck = await checkUserLocation(user.id);
       if (!locationCheck.isAllowed) {
         return NextResponse.json({

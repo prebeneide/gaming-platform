@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FiUsers, FiActivity, FiDollarSign, FiAward, FiClock, FiAlertTriangle } from "react-icons/fi";
 import AdminLayout from "@/components/AdminLayout";
+import TimeFormatter from "@/components/TimeFormatter";
 
 interface AdminStats {
   totalUsers: number;
@@ -157,7 +158,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-neutral-400">
                     <FiClock className="text-xs" />
-                    {new Date(activity.createdAt).toLocaleDateString()}
+                    <TimeFormatter date={activity.createdAt} format="date" />
                   </div>
                 </div>
               ))}
