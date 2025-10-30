@@ -142,17 +142,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Link>
               );
             })}
-            {kycEnabled && (
-              <Link
-                href="/admin/kyc"
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  pathname === '/admin/kyc' ? 'bg-purple-600 text-white' : 'text-neutral-300 hover:bg-neutral-700 hover:text-white'
-                }`}
-              >
-                <FiActivity className="text-lg flex-shrink-0" />
-                <span className="font-medium">KYC</span>
-              </Link>
-            )}
+            <Link
+              href="/admin/kyc"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/admin/kyc' ? 'bg-purple-600 text-white' : 'text-neutral-300 hover:bg-neutral-700 hover:text-white'
+              }`}
+              title={kycEnabled ? 'KYC Queue' : 'KYC is currently disabled (click to view)'}
+            >
+              <FiActivity className={`text-lg flex-shrink-0 ${kycEnabled ? '' : 'opacity-60'}`} />
+              <span className="font-medium">KYC</span>
+              {!kycEnabled && (
+                <span className="ml-auto text-[10px] px-2 py-0.5 rounded bg-neutral-700 text-neutral-300 border border-neutral-600">disabled</span>
+              )}
+            </Link>
           </div>
         </nav>
 
