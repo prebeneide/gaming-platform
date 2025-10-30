@@ -8,6 +8,7 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 export default function SettingsPage() {
   const { data: session } = useSession();
   const { showPopup } = usePopup();
+  const [kycEnabled, setKycEnabled] = useState(false);
   
   // Display preferences
   const [timeFormat, setTimeFormat] = useState("12");
@@ -35,6 +36,19 @@ export default function SettingsPage() {
       fetchUserPreferences();
     }
   }, [session]);
+
+  // Detect if KYC is enabled
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/kyc/providers');
+        const data = await res.json();
+        setKycEnabled(!!data?.enabled);
+      } catch {
+        setKycEnabled(false);
+      }
+    })();
+  }, []);
 
   const fetchUserPreferences = async () => {
     try {
@@ -178,6 +192,14 @@ export default function SettingsPage() {
             <div><b>Registered:</b> 2024-05-01</div>
           </div>
         </section>
+
+        {kycEnabled && (
+          <section className="border-t border-gray-800 pt-6">
+            <h2 className="text-lg font-semibold mb-2 text-white">Identity Verification</h2>
+            <p className="text-sm text-gray-400 mb-3">Verify your identity to unlock deposits, withdrawals and buy-ins where required.</p>
+            <a href="/kyc" className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition">Verify identity</a>
+          </section>
+        )}
         
         
         {/* Change Password */}

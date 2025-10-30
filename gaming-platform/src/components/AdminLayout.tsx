@@ -128,6 +128,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </Link>
               );
             })}
+            {/* KYC link (visible when feature flag is on; hide link harmlessly otherwise) */}
+            <Link
+              href="/admin/kyc"
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/admin/kyc' ? 'bg-purple-600 text-white' : 'text-neutral-300 hover:bg-neutral-700 hover:text-white'
+              }`}
+            >
+              <FiActivity className="text-lg flex-shrink-0" />
+              <span className="font-medium">KYC</span>
+            </Link>
           </div>
         </nav>
 

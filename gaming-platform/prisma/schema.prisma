@@ -45,6 +45,7 @@ model User {
   globalMessages         GlobalMessage[]
   matchMessages          MatchMessage[]
   geographicRestriction  GeographicRestriction?
+  kycVerifications       KycVerification[]
 }
 
 model UserStats {
@@ -344,4 +345,37 @@ model BlockedCountry {
   updatedAt   DateTime @updatedAt
 
   @@index([isActive])
+}
+
+/// KYC: Verification request per user
+model KycVerification {
+  id           String   @id @default(cuid())
+  userId       String
+  status       String   @default("pending") // pending, approved, rejected
+  provider     String   @default("manual")
+  dob          DateTime?
+  country      String?
+  reason       String?   // reviewer reason on reject
+  reviewerId   String?
+  decidedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  evidences    KycEvidence[]
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+}
+
+/// KYC: Evidence files (front/back/selfie) metadata only
+model KycEvidence {
+  id              String   @id @default(cuid())
+  kycId           String
+  kind            String   // front, back, selfie, other
+  storageProvider String   @default("local") // local|s3|external
+  storageKey      String   // opaque key to retrieve via signed URL
+  createdAt       DateTime @default(now())
+  kyc             KycVerification @relation(fields: [kycId], references: [id], onDelete: Cascade)
+
+  @@index([kycId])
 }
