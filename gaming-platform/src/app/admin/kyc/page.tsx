@@ -21,10 +21,12 @@ export default function AdminKycPage() {
   const [items, setItems] = useState<KycItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [diag, setDiag] = useState<any>(null);
 
   useEffect(() => {
     if (status === "loading") return;
     fetchItems();
+    fetchDiagnostics();
   }, [status]);
 
   const fetchItems = async () => {
@@ -40,6 +42,7 @@ export default function AdminKycPage() {
 
   const runCleanup = async () => {
     try {
+      if (!confirm('Run cleanup now? This will delete stale evidences from storage.')) return;
       const res = await fetch('/api/admin/kyc/cleanup', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed cleanup');
@@ -50,9 +53,16 @@ export default function AdminKycPage() {
   };
 
   const decide = async (id: string, action: 'approve'|'reject') => {
+    if (!confirm(`Are you sure you want to ${action} this verification?`)) return;
     const reason = action === 'reject' ? prompt('Reason (optional)') || '' : '';
     const res = await fetch(`/api/admin/kyc/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, reason }) });
     if (res.ok) fetchItems(); else alert('Failed');
+  };
+
+  const fetchDiagnostics = async () => {
+    const r = await fetch('/api/admin/kyc/diagnostics');
+    const d = await r.json();
+    setDiag(d);
   };
 
   if (status === "loading" || loading) {
@@ -76,6 +86,31 @@ export default function AdminKycPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {diag && (
+          <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
+            <h2 className="text-xl font-semibold text-white mb-2">KYC Diagnostics</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-1">
+                <div>Feature enabled: <span className={`font-semibold ${diag.enabled ? 'text-green-400' : 'text-red-400'}`}>{String(diag.enabled)}</span></div>
+                <div>Provider: <span className="font-semibold">{diag.settings?.provider}</span></div>
+                <div>Storage: <span className="font-semibold">{diag.settings?.storage}</span></div>
+                <div>Retention days: <span className="font-semibold">{diag.settings?.retentionDays}</span></div>
+                <div>AWS SDK installed: <span className={`font-semibold ${diag.awsInstalled ? 'text-green-400' : 'text-red-400'}`}>{String(diag.awsInstalled)}</span></div>
+              </div>
+              <div className="space-y-1">
+                <div>Env FEATURE_KYC: <span className="font-mono">{String(diag.env?.FEATURE_KYC)}</span></div>
+                <div>Env KYC_PROVIDER: <span className="font-mono">{String(diag.env?.KYC_PROVIDER)}</span></div>
+                <div>Env KYC_STORAGE: <span className="font-mono">{String(diag.env?.KYC_STORAGE)}</span></div>
+                <div>S3 vars present: <span className={`font-semibold ${diag.env?.S3_BUCKET && diag.env?.S3_REGION && diag.env?.S3_ACCESS_KEY_ID && diag.env?.S3_SECRET_ACCESS_KEY ? 'text-green-400' : 'text-red-400'}`}>{String(!!(diag.env?.S3_BUCKET && diag.env?.S3_REGION && diag.env?.S3_ACCESS_KEY_ID && diag.env?.S3_SECRET_ACCESS_KEY))}</span></div>
+              </div>
+            </div>
+            {!diag.enabled && (
+              <div className="mt-3 text-xs text-neutral-300 bg-neutral-700 rounded p-3">
+                To enable KYC, set FEATURE_KYC=true and KYC_PROVIDER=manual in your environment and restart the server.
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">KYC Queue</h1>
           <div className="flex items-center gap-2">
