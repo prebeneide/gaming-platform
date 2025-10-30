@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import AdminLayout from "@/components/AdminLayout";
 import TimeFormatter from "@/components/TimeFormatter";
-import { FiCheck, FiX, FiSearch, FiRefreshCw } from "react-icons/fi";
+import { FiCheck, FiX, FiSearch, FiRefreshCw, FiTrash2 } from "react-icons/fi";
 
 interface KycItem {
   id: string;
@@ -38,6 +38,17 @@ export default function AdminKycPage() {
     }
   };
 
+  const runCleanup = async () => {
+    try {
+      const res = await fetch('/api/admin/kyc/cleanup', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed cleanup');
+      alert(`Cleanup complete. Deleted evidences: ${data.cleaned}. Retention: ${data.retentionDays} days.`);
+    } catch (e: any) {
+      alert(e?.message || 'Cleanup failed');
+    }
+  };
+
   const decide = async (id: string, action: 'approve'|'reject') => {
     const reason = action === 'reject' ? prompt('Reason (optional)') || '' : '';
     const res = await fetch(`/api/admin/kyc/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, reason }) });
@@ -67,9 +78,14 @@ export default function AdminKycPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">KYC Queue</h1>
-          <button onClick={fetchItems} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
-            <FiRefreshCw /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={fetchItems} className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg">
+              <FiRefreshCw /> Refresh
+            </button>
+            <button onClick={runCleanup} className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg">
+              <FiTrash2 /> Run cleanup
+            </button>
+          </div>
         </div>
 
         <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
