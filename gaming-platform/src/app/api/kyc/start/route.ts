@@ -85,23 +85,28 @@ export async function POST(req: NextRequest) {
     // Check if user already has a pending verification
     console.log('[KYC START] Checking for existing verification...');
     
+    // Use Prisma client with proper type casting
+    const kycVerificationModel = (prisma as any).kycVerification;
+    
     // Check if Prisma client has KycVerification model
-    if (!(prisma as any).kycVerification) {
+    if (!kycVerificationModel || typeof kycVerificationModel.findFirst !== 'function') {
       console.error('[KYC START] KycVerification model not found in Prisma client');
       console.error('[KYC START] Available models:', Object.keys(prisma).filter(k => !k.startsWith('$')));
+      console.error('[KYC START] kycVerification type:', typeof kycVerificationModel);
       return NextResponse.json({ 
         error: 'Database configuration error',
-        message: 'KYC database model is not available. Please run "npx prisma generate" and restart the server.',
+        message: 'KYC database model is not available. Please restart the server after running "npx prisma generate".',
         details: process.env.NODE_ENV === 'development' ? {
           availableModels: Object.keys(prisma).filter(k => !k.startsWith('$')),
-          hint: 'Run: npx prisma generate && npx prisma migrate dev'
+          kycVerificationExists: !!kycVerificationModel,
+          hint: 'Run: npx prisma generate && restart the server'
         } : undefined
       }, { status: 500 });
     }
     
     let existingVerification;
     try {
-      existingVerification = await (prisma as any).kycVerification.findFirst({
+      existingVerification = await kycVerificationModel.findFirst({
         where: { 
           userId: session.user.id,
           status: 'pending'
@@ -162,7 +167,7 @@ export async function POST(req: NextRequest) {
       };
       console.log('[KYC START] Verification data:', { ...verificationData, userId: '***' });
       
-      verification = await (prisma as any).kycVerification.create({
+      verification = await kycVerificationModel.create({
         data: verificationData
       });
       console.log('[KYC START] Verification created successfully:', verification?.id);
