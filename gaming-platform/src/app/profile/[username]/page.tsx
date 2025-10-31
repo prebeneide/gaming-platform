@@ -13,8 +13,10 @@ import BackButton from "@/components/BackButton";
 import { getUnifiedUserStats } from "@/lib/unifiedStats";
 import UserAvatar from "@/components/UserAvatar";
 import UnifiedStatsDisplay from "@/components/UnifiedStatsDisplay";
+import { isKycEnabled } from "@/lib/kycConfig";
+import { FiCheck, FiX, FiClock } from "react-icons/fi";
 
-function presenceFrom(lastActiveAt?: Date | null): PresenceStatus {
+function presenceFrom(lastActiveAt?: Date | null): "online" | "recent" | "offline" {
   if (!lastActiveAt) return "offline";
   const diff = Date.now() - new Date(lastActiveAt).getTime();
   if (diff <= 5 * 60 * 1000) return "online";
@@ -48,6 +50,24 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   // Get unified user statistics (calculated from Match table)
   const unifiedStats = await getUnifiedUserStats(user.id);
+
+  // Get KYC status if enabled
+  let kycStatus = null;
+  const kycEnabled = isKycEnabled();
+  if (kycEnabled) {
+    const kycVerification = await (prisma as any).kycVerification.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (kycVerification) {
+      kycStatus = {
+        status: kycVerification.status,
+        reason: kycVerification.reason || null,
+        createdAt: kycVerification.createdAt,
+        decidedAt: kycVerification.decidedAt || null,
+      };
+    }
+  }
 
   // Hent antall følgere og følger
   const followersCount = await prisma.follower.count({ where: { following: { username } } });
@@ -100,7 +120,38 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             presenceStatus={presenceFrom(user.lastActiveAt)}
           />
           <h1 className="text-2xl font-bold mt-2">{user.displayName || user.username}</h1>
-          <div className="text-gray-400">@{user.username}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-gray-400">@{user.username}</div>
+            {/* KYC Status Badge */}
+            {kycEnabled && kycStatus && (
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                kycStatus.status === 'approved'
+                  ? 'bg-green-900/30 text-green-400 border border-green-700'
+                  : kycStatus.status === 'pending'
+                  ? 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'
+                  : kycStatus.status === 'rejected'
+                  ? 'bg-red-900/30 text-red-400 border border-red-700'
+                  : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+              }`}>
+                {kycStatus.status === 'approved' ? (
+                  <>
+                    <FiCheck className="text-xs" />
+                    <span>Verified</span>
+                  </>
+                ) : kycStatus.status === 'pending' ? (
+                  <>
+                    <FiClock className="text-xs" />
+                    <span>Pending</span>
+                  </>
+                ) : kycStatus.status === 'rejected' ? (
+                  <>
+                    <FiX className="text-xs" />
+                    <span>Not Verified</span>
+                  </>
+                ) : null}
+              </div>
+            )}
+          </div>
         </div>
         {user.bio && <div className="text-center text-lg text-gray-300">{user.bio}</div>}
         <div>
