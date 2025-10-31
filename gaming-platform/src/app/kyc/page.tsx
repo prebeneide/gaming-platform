@@ -131,58 +131,174 @@ export default function KycWizardPage() {
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ dob, country: country.toUpperCase() }) 
       });
-      const data = await res.json();
+
+      // Check if response is OK
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to start verification');
+        // Try to parse error message
+        let errorMessage = 'Failed to start verification';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // If JSON parsing fails, use status text
+          errorMessage = res.status === 403 
+            ? 'Identity verification is currently disabled. Please contact support if you believe this is an error.'
+            : res.status === 401
+            ? 'You must be logged in to start verification. Please refresh the page and try again.'
+            : res.status === 500
+            ? 'A server error occurred. Please try again in a few moments. If the problem persists, contact support.'
+            : `Failed to start verification (${res.status}). Please try again or contact support.`;
+        }
+        throw new Error(errorMessage);
       }
+
+      // Parse response JSON
+      let data;
+      try {
+        const text = await res.text();
+        if (!text) {
+          throw new Error('Server returned an empty response. Please try again or contact support if the problem persists.');
+        }
+        data = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error('Server returned an invalid response. Please try again or contact support if the problem persists.');
+      }
+
+      // Validate response structure
+      if (!data || !data.verification || !data.verification.id) {
+        throw new Error('Invalid response from server. Please try again or contact support if the problem persists.');
+      }
+
+      // Handle existing verification message
+      if (data.message && data.message.includes('already have a pending')) {
+        showPopup({ 
+          type: 'info', 
+          message: 'You already have a pending verification. Continuing with your existing submission...' 
+        });
+      }
+
       setKycId(data.verification.id);
       setStep('upload');
-      showPopup({ type: 'success', message: 'Verification started! Please upload your ID documents.' });
+      showPopup({ 
+        type: 'success', 
+        message: data.message || 'Verification started successfully! Please upload your ID documents.' 
+      });
     } catch (e: any) {
+      const errorMessage = e?.message || 'An unexpected error occurred. Please try again or contact support if the problem persists.';
       showPopup({ 
         type: 'error', 
-        message: e?.message || 'Failed to start verification. Please try again.' 
+        message: errorMessage
       });
+      console.error('KYC start error:', e);
     } finally {
       setSubmitting(false);
     }
   };
 
   const uploadOne = async (file: File, kind: string) => {
-    if (!kycId) return;
+    if (!kycId) {
+      throw new Error('Verification session expired. Please refresh the page and try again.');
+    }
     
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
-      throw new Error('Please upload an image file (JPG, PNG, etc.)');
+      throw new Error('Please upload an image file (JPG, PNG, etc.). Other file types are not supported.');
     }
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      throw new Error('File size must be less than 10MB');
+      throw new Error(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit. Please compress or choose a smaller image.`);
     }
 
     // Request presigned URL
-    const pres = await fetch('/api/kyc/upload-url', { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ kycId, kind, contentType: file.type || 'application/octet-stream' }) 
-    });
-    const pdata = await pres.json();
-    if (!pres.ok) throw new Error(pdata.error || 'Failed to get upload URL');
+    let pres, pdata;
+    try {
+      pres = await fetch('/api/kyc/upload-url', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ kycId, kind, contentType: file.type || 'application/octet-stream' }) 
+      });
+
+      if (!pres.ok) {
+        let errorMsg = 'Failed to prepare upload';
+        try {
+          const errorData = await pres.json();
+          errorMsg = errorData.error || errorData.message || errorMsg;
+        } catch {
+          errorMsg = pres.status === 401 
+            ? 'Your session expired. Please refresh the page and try again.'
+            : pres.status === 403
+            ? 'You do not have permission to upload documents. Please contact support.'
+            : pres.status === 404
+            ? 'Verification not found. Please start a new verification.'
+            : `Failed to prepare upload (${pres.status}). Please try again.`;
+        }
+        throw new Error(errorMsg);
+      }
+
+      // Parse response
+      try {
+        const text = await pres.text();
+        if (!text) {
+          throw new Error('Server returned an empty response');
+        }
+        pdata = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error('Server returned an invalid response. Please try again.');
+      }
+
+      if (!pdata || !pdata.url || !pdata.key) {
+        throw new Error('Invalid upload configuration received. Please try again or contact support.');
+      }
+    } catch (e: any) {
+      throw new Error(e?.message || 'Failed to prepare document upload. Please try again or contact support.');
+    }
     
     // PUT to S3
-    const put = await fetch(pdata.url, { 
-      method: 'PUT', 
-      headers: { 'Content-Type': file.type || 'application/octet-stream' }, 
-      body: file 
-    });
-    if (!put.ok) throw new Error('Upload failed. Please try again.');
+    try {
+      const put = await fetch(pdata.url, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': file.type || 'application/octet-stream' }, 
+        body: file 
+      });
+      
+      if (!put.ok) {
+        const statusText = put.status === 403 
+          ? 'Upload permission denied. Please try again or contact support.'
+          : put.status === 413
+          ? 'File is too large. Please compress the image and try again.'
+          : 'Failed to upload file to storage. Please check your internet connection and try again.';
+        throw new Error(statusText);
+      }
+    } catch (e: any) {
+      if (e?.message) throw e;
+      throw new Error('Failed to upload file. Please check your internet connection and try again.');
+    }
     
     // Register evidence
-    const ev = await fetch('/api/kyc/evidence', { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ kycId, kind, storageKey: pdata.key, storageProvider: pdata.storageProvider }) 
-    });
-    if (!ev.ok) throw new Error('Failed to register document. Please try again.');
+    try {
+      const ev = await fetch('/api/kyc/evidence', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ kycId, kind, storageKey: pdata.key, storageProvider: pdata.storageProvider }) 
+      });
+
+      if (!ev.ok) {
+        let errorMsg = 'Failed to register document';
+        try {
+          const errorData = await ev.json();
+          errorMsg = errorData.error || errorData.message || errorMsg;
+        } catch {
+          errorMsg = ev.status === 400
+            ? 'Document registration failed. Please try uploading again.'
+            : ev.status === 404
+            ? 'Verification not found. Please refresh the page and try again.'
+            : `Failed to register document (${ev.status}). Please try again.`;
+        }
+        throw new Error(errorMsg);
+      }
+    } catch (e: any) {
+      if (e?.message) throw e;
+      throw new Error('Failed to register document. Please try again or contact support.');
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, kind: string) => {
@@ -191,42 +307,110 @@ export default function KycWizardPage() {
 
     // Validate file
     if (!file.type.startsWith('image/')) {
-      showPopup({ type: 'error', message: 'Please upload an image file (JPG, PNG, etc.)' });
+      showPopup({ 
+        type: 'error', 
+        message: 'Please upload an image file (JPG, PNG, WebP, etc.). Other file types are not supported.' 
+      });
       e.target.value = '';
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      showPopup({ type: 'error', message: 'File size must be less than 10MB' });
+      const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+      showPopup({ 
+        type: 'error', 
+        message: `File size (${fileSizeMB}MB) exceeds the 10MB limit. Please compress the image or choose a smaller file.` 
+      });
       e.target.value = '';
       return;
     }
 
-    // Create preview
+    // Create preview with error handling
     const reader = new FileReader();
+    reader.onerror = () => {
+      showPopup({ 
+        type: 'error', 
+        message: 'Failed to read the file. Please try selecting the file again.' 
+      });
+      e.target.value = '';
+    };
     reader.onloadend = () => {
-      setUploadedFiles(prev => ({
-        ...prev,
-        [kind]: { file, preview: reader.result as string }
-      }));
+      if (reader.result) {
+        setUploadedFiles(prev => ({
+          ...prev,
+          [kind]: { file, preview: reader.result as string }
+        }));
+      } else {
+        showPopup({ 
+          type: 'error', 
+          message: 'Failed to create preview. Please try selecting the file again.' 
+        });
+        e.target.value = '';
+      }
     };
     reader.readAsDataURL(file);
   };
 
   const handleFileUpload = async (kind: string) => {
-    if (!kycId || !uploadedFiles[kind]) return;
+    if (!kycId) {
+      showPopup({ 
+        type: 'error', 
+        message: 'Verification session expired. Please refresh the page and start over.' 
+      });
+      return;
+    }
+
+    if (!uploadedFiles[kind]) {
+      showPopup({ 
+        type: 'error', 
+        message: 'Please select a file before uploading.' 
+      });
+      return;
+    }
     
     setSubmitting(true);
     try {
       await uploadOne(uploadedFiles[kind].file, kind);
-      const st = await fetch('/api/kyc/status');
-      const data = await st.json();
-      setStatus(data.verification);
-      showPopup({ type: 'success', message: 'Document uploaded successfully!' });
+      
+      // Fetch updated status
+      try {
+        const st = await fetch('/api/kyc/status');
+        if (st.ok) {
+          try {
+            const text = await st.text();
+            if (text) {
+              const data = JSON.parse(text);
+              setStatus(data.verification);
+            }
+          } catch (parseError) {
+            console.error('Failed to parse status response:', parseError);
+          }
+        }
+      } catch (statusError) {
+        // Status fetch failure is non-critical, just log it
+        console.error('Failed to fetch status after upload:', statusError);
+      }
+
+      // Show success with document type
+      const docType = kind === 'front' ? 'Front of ID' : kind === 'back' ? 'Back of ID' : 'Selfie';
+      showPopup({ 
+        type: 'success', 
+        message: `${docType} uploaded successfully! You can continue uploading other documents or finish when ready.` 
+      });
+      
+      // Remove the file from preview since it's uploaded
+      setUploadedFiles(prev => {
+        const next = { ...prev };
+        delete next[kind];
+        return next;
+      });
     } catch (err: any) {
+      // Error messages from uploadOne are already detailed
+      const errorMessage = err?.message || 'Document upload failed. Please check your internet connection and try again.';
       showPopup({ 
         type: 'error', 
-        message: err?.message || 'Upload failed. Please try again.' 
+        message: errorMessage
       });
+      console.error('Upload error:', err);
     } finally {
       setSubmitting(false);
     }
