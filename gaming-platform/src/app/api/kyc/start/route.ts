@@ -124,11 +124,11 @@ export async function POST(req: NextRequest) {
       const code = dbError?.code || dbError?.meta?.code;
       let message = 'Failed to check for existing verification. Please try again or contact support if the problem persists.';
       
-      if (dbError?.message?.includes('findFirst') || dbError?.message?.includes('undefined')) {
-        message = 'Database model not found. Please run "npx prisma generate" and restart the server.';
-      } else if (code === 'P2021') {
+      if (code === 'P2021' || dbError?.message?.includes('does not exist in the current database') || dbError?.message?.includes('KycVerification')) {
         // Table does not exist (migrations not applied)
-        message = 'KYC database tables are missing. Please run "npx prisma migrate dev" to create the tables.';
+        message = 'KYC database tables are missing. Please run "npx prisma db push" or "npx prisma migrate dev" to create the tables.';
+      } else if (dbError?.message?.includes('findFirst') || dbError?.message?.includes('undefined')) {
+        message = 'Database model not found. Please run "npx prisma generate" and restart the server.';
       } else if (code === 'P1001') {
         message = 'Cannot connect to the database. Please check your database connection settings.';
       } else if (code === 'P1003') {
