@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const settings = getKycSettings();
     console.log('[KYC START] Settings:', settings);
 
     // Check if user already has a pending verification
