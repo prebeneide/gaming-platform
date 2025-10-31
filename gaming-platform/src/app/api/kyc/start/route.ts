@@ -84,6 +84,21 @@ export async function POST(req: NextRequest) {
 
     // Check if user already has a pending verification
     console.log('[KYC START] Checking for existing verification...');
+    
+    // Check if Prisma client has KycVerification model
+    if (!(prisma as any).kycVerification) {
+      console.error('[KYC START] KycVerification model not found in Prisma client');
+      console.error('[KYC START] Available models:', Object.keys(prisma).filter(k => !k.startsWith('$')));
+      return NextResponse.json({ 
+        error: 'Database configuration error',
+        message: 'KYC database model is not available. Please run "npx prisma generate" and restart the server.',
+        details: process.env.NODE_ENV === 'development' ? {
+          availableModels: Object.keys(prisma).filter(k => !k.startsWith('$')),
+          hint: 'Run: npx prisma generate && npx prisma migrate dev'
+        } : undefined
+      }, { status: 500 });
+    }
+    
     let existingVerification;
     try {
       existingVerification = await (prisma as any).kycVerification.findFirst({
@@ -96,24 +111,33 @@ export async function POST(req: NextRequest) {
       console.log('[KYC START] Existing verification:', existingVerification ? 'found' : 'not found');
     } catch (dbError: any) {
       console.error('[KYC START] Database error checking existing verification:', dbError);
+      console.error('[KYC START] Error code:', dbError?.code);
+      console.error('[KYC START] Error message:', dbError?.message);
       console.error('[KYC START] Error stack:', dbError?.stack);
 
       // Map common Prisma errors to clearer messages
       const code = dbError?.code || dbError?.meta?.code;
       let message = 'Failed to check for existing verification. Please try again or contact support if the problem persists.';
-      if (code === 'P2021') {
+      
+      if (dbError?.message?.includes('findFirst') || dbError?.message?.includes('undefined')) {
+        message = 'Database model not found. Please run "npx prisma generate" and restart the server.';
+      } else if (code === 'P2021') {
         // Table does not exist (migrations not applied)
-        message = 'KYC database tables are missing. Please run database migrations and try again.';
+        message = 'KYC database tables are missing. Please run "npx prisma migrate dev" to create the tables.';
       } else if (code === 'P1001') {
-        message = 'Cannot connect to the database. Please check the database connection and try again.';
+        message = 'Cannot connect to the database. Please check your database connection settings.';
       } else if (code === 'P1003') {
-        message = 'The database does not exist. Please run migrations first.';
+        message = 'The database does not exist. Please create the database and run migrations.';
       }
 
       return NextResponse.json({ 
         error: 'Database error',
         message,
-        details: process.env.NODE_ENV === 'development' ? { code, raw: dbError?.message } : undefined
+        details: process.env.NODE_ENV === 'development' ? { 
+          code, 
+          message: dbError?.message,
+          stack: dbError?.stack
+        } : undefined
       }, { status: 500 });
     }
 
