@@ -5,14 +5,25 @@ import * as path from 'path';
 
 export async function GET() {
   const settings = getKycSettings();
+  // Check if S3 credentials are actually configured (not placeholders)
+  const bucket = process.env.S3_BUCKET || '';
+  const access = process.env.S3_ACCESS_KEY_ID || '';
+  const secret = process.env.S3_SECRET_ACCESS_KEY || '';
+  const region = process.env.S3_REGION || '';
+  const s3Configured = bucket && access && secret && region && 
+    bucket !== 'din-s3-bucket' && 
+    access !== 'DIN_AWS_ACCESS_KEY' && 
+    secret !== 'DIN_AWS_SECRET';
+
   const env = {
     FEATURE_KYC: process.env.FEATURE_KYC || null,
     KYC_PROVIDER: process.env.KYC_PROVIDER || null,
     KYC_STORAGE: process.env.KYC_STORAGE || null,
-    S3_BUCKET: !!process.env.S3_BUCKET,
-    S3_REGION: !!process.env.S3_REGION,
-    S3_ACCESS_KEY_ID: !!process.env.S3_ACCESS_KEY_ID,
-    S3_SECRET_ACCESS_KEY: !!process.env.S3_SECRET_ACCESS_KEY,
+    S3_BUCKET: bucket || null,
+    S3_REGION: region || null,
+    S3_ACCESS_KEY_ID: access || null,
+    S3_SECRET_ACCESS_KEY: secret ? '***' : null, // Don't expose secret, just indicate if present
+    S3_CONFIGURED: s3Configured, // Flag indicating if real credentials are set (not placeholders)
     KYC_RETENTION_DAYS: process.env.KYC_RETENTION_DAYS || null,
     KYC_REVIEWER_EMAILS: process.env.KYC_REVIEWER_EMAILS || '',
   };

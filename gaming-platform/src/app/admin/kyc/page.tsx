@@ -117,7 +117,7 @@ export default function AdminKycPage() {
                 <div>Env FEATURE_KYC: <span className="font-mono">{String(diag.env?.FEATURE_KYC)}</span></div>
                 <div>Env KYC_PROVIDER: <span className="font-mono">{String(diag.env?.KYC_PROVIDER)}</span></div>
                 <div>Env KYC_STORAGE: <span className="font-mono">{String(diag.env?.KYC_STORAGE)}</span></div>
-                <div>S3 vars present: <span className={`font-semibold ${diag.env?.S3_BUCKET && diag.env?.S3_REGION && diag.env?.S3_ACCESS_KEY_ID && diag.env?.S3_SECRET_ACCESS_KEY ? 'text-green-400' : 'text-red-400'}`}>{String(!!(diag.env?.S3_BUCKET && diag.env?.S3_REGION && diag.env?.S3_ACCESS_KEY_ID && diag.env?.S3_SECRET_ACCESS_KEY))}</span></div>
+                <div>S3 credentials configured: <span className={`font-semibold ${diag.env?.S3_CONFIGURED ? 'text-green-400' : 'text-red-400'}`}>{String(diag.env?.S3_CONFIGURED || false)}</span></div>
               </div>
             </div>
             <div className="mt-3 space-y-2">
@@ -247,7 +247,7 @@ export default function AdminKycPage() {
                     <li className={diag?.env?.FEATURE_KYC === 'true' ? 'text-green-400' : 'text-red-400'}>FEATURE_KYC=true {diag?.env?.FEATURE_KYC === 'true' ? '✓' : '✗'}</li>
                     <li className={diag?.env?.KYC_PROVIDER === 'manual' ? 'text-green-400' : 'text-red-400'}>KYC_PROVIDER=manual {diag?.env?.KYC_PROVIDER === 'manual' ? '✓' : '✗'}</li>
                     <li className={diag?.env?.KYC_STORAGE === 's3' ? 'text-green-400' : 'text-red-400'}>KYC_STORAGE=s3 {diag?.env?.KYC_STORAGE === 's3' ? '✓' : '✗'}</li>
-                    <li className={diag?.env?.S3_BUCKET ? 'text-green-400' : 'text-red-400'}>S3 credentials configured {diag?.env?.S3_BUCKET ? '✓' : '✗'}</li>
+                    <li className={diag?.env?.S3_CONFIGURED ? 'text-green-400' : 'text-red-400'}>S3 credentials configured {diag?.env?.S3_CONFIGURED ? '✓' : '✗'}</li>
                     <li className={diag?.awsInstalled ? 'text-green-400' : 'text-red-400'}>AWS SDK installed {diag?.awsInstalled ? '✓' : '✗'}</li>
                   </ul>
                 </div>
