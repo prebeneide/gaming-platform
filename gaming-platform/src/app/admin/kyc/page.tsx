@@ -212,20 +212,34 @@ export default function AdminKycPage() {
                               <div className="text-green-400">✓ File exists</div>
                               <div className="text-neutral-400 text-[10px] mt-1 break-all">Path: {diag.envFileInfo.path}</div>
                               <div className="text-neutral-400 text-[10px]">CWD: {diag.envFileInfo.cwd}</div>
+                              {diag.envFileInfo.featureKycRaw && (
+                                <div className="mt-2 p-2 bg-neutral-800 rounded">
+                                  <div className="text-xs font-semibold text-white mb-1">FEATURE_KYC line found:</div>
+                                  <code className="text-xs font-mono text-neutral-300 bg-neutral-900 px-2 py-1 rounded block break-all">
+                                    {diag.envFileInfo.featureKycRaw}
+                                  </code>
+                                  {diag.envFileInfo.formatIssue && (
+                                    <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded text-xs text-red-200">
+                                      ⚠️ Format issue detected: {diag.envFileInfo.formatIssue}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                               {diag.envFileInfo.preview && diag.envFileInfo.preview.length > 0 && (
-                                <div className="mt-1 p-2 bg-neutral-800 rounded text-[10px] font-mono">
-                                  Found in file:
+                                <div className="mt-2 p-2 bg-neutral-800 rounded text-[10px] font-mono">
+                                  <div className="font-semibold text-white mb-1">KYC-related lines in file:</div>
                                   {diag.envFileInfo.preview.map((line: string, i: number) => (
-                                    <div key={i} className="text-neutral-300">{line.trim()}</div>
+                                    <div key={i} className="text-neutral-300 break-all">{line.trim() || '(empty line)'}</div>
                                   ))}
                                 </div>
                               )}
                               {diag.env?.FEATURE_KYC !== 'true' && (
                                 <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded text-xs text-red-200">
-                                  ⚠️ File exists but FEATURE_KYC is not loaded. Make sure:<br />
-                                  1. Line reads exactly: <code className="bg-neutral-800 px-1 rounded">FEATURE_KYC=true</code> (no quotes, no spaces)<br />
-                                  2. File is saved<br />
-                                  3. Server was restarted after saving
+                                  ⚠️ File exists but FEATURE_KYC is not loaded. Common fixes:<br />
+                                  1. Make sure line reads exactly: <code className="bg-neutral-800 px-1 rounded">FEATURE_KYC=true</code> (no quotes, no spaces around =)<br />
+                                  2. Save the file<br />
+                                  3. Restart server completely (Ctrl+C, then npm run dev)<br />
+                                  4. Check that server is running from: <code className="bg-neutral-800 px-1 rounded text-[10px]">{diag.envFileInfo?.cwd || 'project root'}</code>
                                 </div>
                               )}
                             </>

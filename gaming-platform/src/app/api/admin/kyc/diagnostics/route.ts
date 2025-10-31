@@ -31,12 +31,41 @@ export async function GET() {
     const exists = fs.existsSync(envPath);
     if (exists) {
       const content = fs.readFileSync(envPath, 'utf-8');
-      const lines = content.split('\n').slice(0, 10); // First 10 lines only
+      const allLines = content.split('\n');
+      // Show lines that contain KYC-related vars, or first 20 lines if none found
+      const kycLines = allLines.filter(l => 
+        l.trim().toUpperCase().startsWith('FEATURE_KYC') || 
+        l.trim().toUpperCase().startsWith('KYC_PROVIDER') || 
+        l.trim().toUpperCase().startsWith('KYC_STORAGE') ||
+        l.trim().toUpperCase().startsWith('S3_BUCKET') ||
+        l.trim().toUpperCase().startsWith('S3_REGION')
+      );
+      const previewLines = kycLines.length > 0 ? kycLines : allLines.slice(0, 20);
+      
+      // Also check for common formatting issues
+      const featureKycLine = allLines.find(l => l.trim().toUpperCase().startsWith('FEATURE_KYC'));
+      let formatIssue = null;
+      if (featureKycLine) {
+        const trimmed = featureKycLine.trim();
+        if (trimmed.includes('"') || trimmed.includes("'")) {
+          formatIssue = 'Contains quotes (remove quotes)';
+        } else if (!trimmed.includes('=')) {
+          formatIssue = 'Missing equals sign';
+        } else {
+          const parts = trimmed.split('=');
+          if (parts.length > 1 && parts[1].trim() !== 'true') {
+            formatIssue = `Value is "${parts[1].trim()}" but should be "true" (no quotes)`;
+          }
+        }
+      }
+      
       envFileInfo = {
         exists: true,
         path: envPath,
         cwd: projectRoot,
-        preview: lines.filter(l => l.includes('FEATURE_KYC') || l.includes('KYC_PROVIDER') || l.includes('KYC_STORAGE')).slice(0, 5),
+        preview: previewLines,
+        featureKycRaw: featureKycLine?.trim() || null,
+        formatIssue,
       };
     } else {
       envFileInfo = {
