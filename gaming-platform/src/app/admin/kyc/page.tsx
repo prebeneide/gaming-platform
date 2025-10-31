@@ -204,6 +204,39 @@ export default function AdminKycPage() {
                       <div>Server time: <span className="font-mono text-neutral-300">{diag.serverTime ? new Date(diag.serverTime).toLocaleString() : 'N/A'}</span></div>
                       <div>Process ID: <span className="font-mono text-neutral-300">{diag.pid || 'N/A'}</span></div>
                       <div>Uptime: <span className="font-mono text-neutral-300">{diag.uptimeSec !== undefined ? `${diag.uptimeSec}s` : 'N/A'}</span></div>
+                      {diag.envFileInfo && (
+                        <div className="mt-2 pt-2 border-t border-neutral-700">
+                          <div className="font-semibold text-white mb-1">.env.local file check:</div>
+                          {diag.envFileInfo.exists ? (
+                            <>
+                              <div className="text-green-400">✓ File exists</div>
+                              <div className="text-neutral-400 text-[10px] mt-1 break-all">Path: {diag.envFileInfo.path}</div>
+                              <div className="text-neutral-400 text-[10px]">CWD: {diag.envFileInfo.cwd}</div>
+                              {diag.envFileInfo.preview && diag.envFileInfo.preview.length > 0 && (
+                                <div className="mt-1 p-2 bg-neutral-800 rounded text-[10px] font-mono">
+                                  Found in file:
+                                  {diag.envFileInfo.preview.map((line: string, i: number) => (
+                                    <div key={i} className="text-neutral-300">{line.trim()}</div>
+                                  ))}
+                                </div>
+                              )}
+                              {diag.env?.FEATURE_KYC !== 'true' && (
+                                <div className="mt-2 p-2 bg-red-900/30 border border-red-700 rounded text-xs text-red-200">
+                                  ⚠️ File exists but FEATURE_KYC is not loaded. Make sure:<br />
+                                  1. Line reads exactly: <code className="bg-neutral-800 px-1 rounded">FEATURE_KYC=true</code> (no quotes, no spaces)<br />
+                                  2. File is saved<br />
+                                  3. Server was restarted after saving
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-red-400">
+                              ✗ File not found at: {diag.envFileInfo.expectedPath || diag.envFileInfo.path}
+                              <div className="text-neutral-400 text-[10px] mt-1">CWD: {diag.envFileInfo.cwd || diag.envFileInfo.expectedPath?.replace('/.env.local', '')}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {previousDiag && previousDiag.pid && diag.pid && previousDiag.pid !== diag.pid && (
                         <div className="mt-2 p-2 bg-green-900/30 border border-green-700 rounded text-xs text-green-200">
                           ✓ Server appears to have restarted (new process ID detected)
