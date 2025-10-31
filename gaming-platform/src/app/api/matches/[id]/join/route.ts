@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { logActivity, ActivityTypes } from "@/lib/activityLogger";
 import { checkUserLocation, setUserLocation } from "@/lib/geofencing";
 import { getClientIP, getGeolocationFromIP } from "@/lib/geolocation";
+import { isKycEnabled, getKycSettings } from "@/lib/kycConfig";
 
 const prisma = new PrismaClient();
 
@@ -147,6 +148,67 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
           country: locationCheck.country,
           restrictionLevel: locationCheck.restrictionLevel,
         }, { status: 403 });
+      }
+    }
+
+    // KYC verification check for matches with buy-in (admins bypass KYC)
+    if (match.buyIn > 0 && session.user.role !== 'admin') {
+      const kycEnabled = isKycEnabled();
+      
+      if (kycEnabled) {
+        // Check if user has approved KYC verification
+        const kycVerification = await (prisma as any).kycVerification.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        if (!kycVerification) {
+          // User hasn't started KYC verification
+          return NextResponse.json({
+            error: "Identity verification required",
+            message: "To join matches with buy-in, you must complete identity verification. This helps us comply with regulations and keep your account secure.",
+            action: "verify_identity",
+            redirectTo: "/kyc",
+            status: 'not_started',
+          }, { status: 403 });
+        }
+
+        if (kycVerification.status === 'pending') {
+          // KYC is pending review
+          return NextResponse.json({
+            error: "Identity verification pending",
+            message: "Your identity verification is currently under review. We'll notify you once it's been processed, which typically takes 1-2 business days. You cannot join matches with buy-in until your verification is approved.",
+            action: "pending_review",
+            redirectTo: "/kyc",
+            status: 'pending',
+            submittedAt: kycVerification.createdAt,
+          }, { status: 403 });
+        }
+
+        if (kycVerification.status === 'rejected') {
+          // KYC was rejected
+          return NextResponse.json({
+            error: "Identity verification required",
+            message: kycVerification.reason 
+              ? `Your previous identity verification was rejected: ${kycVerification.reason}. Please submit a new verification with corrected documents to join matches with buy-in.`
+              : "Your previous identity verification was rejected. Please submit a new verification with correct documents to join matches with buy-in.",
+            action: "rejected",
+            redirectTo: "/kyc",
+            status: 'rejected',
+            reason: kycVerification.reason || null,
+          }, { status: 403 });
+        }
+
+        if (kycVerification.status !== 'approved') {
+          // Unknown status
+          return NextResponse.json({
+            error: "Identity verification required",
+            message: "Your identity verification status could not be determined. Please verify your identity to join matches with buy-in.",
+            action: "verify_identity",
+            redirectTo: "/kyc",
+            status: 'unknown',
+          }, { status: 403 });
+        }
       }
     }
 
