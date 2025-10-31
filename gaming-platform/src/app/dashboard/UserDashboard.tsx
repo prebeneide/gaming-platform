@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { FaSun, FaMoon } from "react-icons/fa";
-import { FiDollarSign, FiPlus } from "react-icons/fi";
+import { FiDollarSign, FiPlus, FiCheck, FiClock, FiX } from "react-icons/fi";
 import Link from "next/link";
 import SocialCounts from "@/components/SocialCounts";
 import UserAvatar from "@/components/UserAvatar";
@@ -201,6 +201,13 @@ function FriendsMatchesReadyToJoin({ currentUserId, friendIds }: { currentUserId
   );
 }
 
+interface KycStatus {
+  status: 'not_started' | 'pending' | 'approved' | 'rejected';
+  reason?: string | null;
+  createdAt?: string | null;
+  decidedAt?: string | null;
+}
+
 export default function UserDashboard({ user, walletBalance, unifiedStats, socialStats, friends = [], recentMatches = [], preferences }: { 
   user: {
     email?: string | null;
@@ -255,6 +262,36 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
 }) {
   const router = useRouter();
   const [lightMode, setLightMode] = useState(false);
+  const [kycStatus, setKycStatus] = useState<KycStatus | null>(null);
+  const [kycEnabled, setKycEnabled] = useState(false);
+  const [kycLoading, setKycLoading] = useState(true);
+
+  // Fetch KYC status
+  useEffect(() => {
+    async function fetchKycStatus() {
+      try {
+        // Get KYC status from wallet API (which includes KYC info)
+        const res = await fetch('/api/wallet');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.kycEnabled && data.kycStatus) {
+            setKycEnabled(true);
+            setKycStatus(data.kycStatus);
+          } else {
+            setKycEnabled(false);
+            setKycStatus(null);
+          }
+        }
+      } catch (err) {
+        // Silently fail - KYC status is optional
+        setKycEnabled(false);
+        setKycStatus(null);
+      } finally {
+        setKycLoading(false);
+      }
+    }
+    fetchKycStatus();
+  }, []);
 
   // Use real statistics if available, otherwise fallback to mock data
   const stats = unifiedStats ? {
@@ -416,6 +453,69 @@ export default function UserDashboard({ user, walletBalance, unifiedStats, socia
           </div>
         </div>
       </div>
+
+      {/* KYC Status Banner */}
+      {!kycLoading && kycEnabled && kycStatus && kycStatus.status !== 'approved' && (
+        <div className={`w-full mb-4 sm:mb-6 rounded-xl p-4 ${
+          kycStatus.status === 'pending'
+            ? 'bg-yellow-900/30 border border-yellow-700'
+            : kycStatus.status === 'rejected'
+            ? 'bg-red-900/30 border border-red-700'
+            : 'bg-blue-900/30 border border-blue-700'
+        }`}>
+          <div className="flex items-start gap-3">
+            <div className={`mt-0.5 ${
+              kycStatus.status === 'pending'
+                ? 'text-yellow-400'
+                : kycStatus.status === 'rejected'
+                ? 'text-red-400'
+                : 'text-blue-400'
+            }`}>
+              {kycStatus.status === 'pending' ? (
+                <FiClock className="text-xl" />
+              ) : kycStatus.status === 'rejected' ? (
+                <FiX className="text-xl" />
+              ) : (
+                <FiClock className="text-xl" />
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className={`font-semibold mb-1 ${
+                lightMode ? 'text-gray-900' : 'text-white'
+              }`}>
+                {kycStatus.status === 'pending'
+                  ? 'Identity Verification Pending'
+                  : kycStatus.status === 'rejected'
+                  ? 'Identity Verification Required'
+                  : 'Identity Verification Required'}
+              </h3>
+              <p className={`text-sm mb-2 ${
+                lightMode ? 'text-gray-700' : 'text-gray-300'
+              }`}>
+                {kycStatus.status === 'pending'
+                  ? 'Your identity verification is under review. We\'ll notify you once it\'s been processed, typically within 1-2 business days.'
+                  : kycStatus.status === 'rejected'
+                  ? kycStatus.reason
+                    ? `Your verification was rejected: ${kycStatus.reason}. Please submit a new verification with corrected documents.`
+                    : 'Your verification was rejected. Please submit a new verification with correct documents.'
+                  : 'To make deposits or withdrawals, you must complete identity verification. This helps us comply with regulations and keep your account secure.'}
+              </p>
+              <button
+                onClick={() => router.push('/kyc')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                  kycStatus.status === 'rejected'
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : kycStatus.status === 'pending'
+                    ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {kycStatus.status === 'pending' ? 'View Status' : 'Verify Identity'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         
         {/* Unified Statistics Display */}
         <div className="w-full mb-4 sm:mb-6">
