@@ -23,6 +23,7 @@ export default function AdminKycPage() {
   const [search, setSearch] = useState("");
   const [diag, setDiag] = useState<any>(null);
   const [showEnableModal, setShowEnableModal] = useState(false);
+  const [showDisableModal, setShowDisableModal] = useState(false);
   const [previousDiag, setPreviousDiag] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
 
@@ -166,6 +167,17 @@ export default function AdminKycPage() {
                   >
                     <span>✨</span> Fix .env.local automatically
                   </button>
+                </div>
+              )}
+              {diag.enabled && (
+                <div className="mt-3 pt-3 border-t border-neutral-700">
+                  <button 
+                    onClick={() => setShowDisableModal(true)}
+                    className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded flex items-center justify-center gap-2 font-medium text-white text-sm"
+                  >
+                    <FiX /> Disable KYC
+                  </button>
+                  <p className="text-xs text-neutral-400 mt-2 text-center">Need to disable KYC? Click here for instructions</p>
                 </div>
               )}
             </div>
@@ -368,6 +380,83 @@ export default function AdminKycPage() {
             </div>
           </div>
         )}
+        {showDisableModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="bg-neutral-800 rounded-lg border border-neutral-700 max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">How to Disable KYC</h2>
+                <button onClick={() => setShowDisableModal(false)} className="text-neutral-400 hover:text-white text-2xl">✕</button>
+              </div>
+              <div className="space-y-4 text-sm text-neutral-300">
+                <div className="bg-yellow-900/30 border border-yellow-700 rounded p-4">
+                  <p className="font-semibold text-yellow-200 mb-2">⚠️ Warning</p>
+                  <p className="text-yellow-200">Disabling KYC will hide the KYC menu and prevent new verifications. Existing KYC data will remain in the database but will not be accessible through the UI.</p>
+                </div>
+                
+                <div className="bg-neutral-900 rounded p-4 space-y-2">
+                  <p className="font-semibold text-white">Option 1: Automatic Disable (Recommended)</p>
+                  <button 
+                    onClick={async () => {
+                      if (!confirm('This will set FEATURE_KYC=false in your .env.local file. Continue?')) return;
+                      try {
+                        const r = await fetch('/api/admin/kyc/disable', { method: 'POST' });
+                        const d = await r.json();
+                        if (!r.ok) throw new Error(d.error || 'Failed to disable KYC');
+                        alert(`✓ KYC has been disabled!\n\nPlease restart your server for changes to take effect.\n\nPath: ${d.path || '.env.local'}`);
+                        // Refresh diagnostics
+                        const r2 = await fetch(`/api/admin/kyc/diagnostics?t=${Date.now()}`, { cache: 'no-store' as RequestCache });
+                        const d2 = await r2.json();
+                        setDiag(d2);
+                        setShowDisableModal(false);
+                      } catch (e: any) {
+                        alert(`Error: ${e?.message || 'Failed to disable KYC'}`);
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded flex items-center justify-center gap-2 font-medium text-white"
+                  >
+                    <span>🔧</span> Disable KYC automatically
+                  </button>
+                  <p className="text-xs text-neutral-400 mt-2">This will automatically set FEATURE_KYC=false in your .env.local file</p>
+                </div>
+
+                <div className="bg-neutral-900 rounded p-4 space-y-2">
+                  <p className="font-semibold text-white">Option 2: Manual Disable</p>
+                  <p className="text-neutral-300">To disable KYC manually:</p>
+                  <ol className="list-decimal list-inside space-y-2 text-neutral-300">
+                    <li>Open your <code className="bg-neutral-800 px-2 py-1 rounded">.env.local</code> file</li>
+                    <li>Find the line: <code className="bg-neutral-800 px-2 py-1 rounded">FEATURE_KYC=true</code></li>
+                    <li>Change it to: <code className="bg-neutral-800 px-2 py-1 rounded">FEATURE_KYC=false</code></li>
+                    <li>Save the file</li>
+                    <li>Restart your dev server (<code className="bg-neutral-800 px-2 py-1 rounded">Ctrl+C</code>, then <code className="bg-neutral-800 px-2 py-1 rounded">npm run dev</code>)</li>
+                  </ol>
+                  <div className="flex items-center gap-2 mt-3">
+                    <code className="flex-1 bg-neutral-800 px-3 py-2 rounded font-mono text-xs break-all">/Users/preben/Documents/Cursor/gaming-platform/.env.local</code>
+                    <button onClick={() => { navigator.clipboard.writeText('/Users/preben/Documents/Cursor/gaming-platform/.env.local'); alert('Path copied!'); }} className="px-3 py-2 bg-neutral-700 hover:bg-neutral-600 rounded flex items-center gap-1">
+                      <FiCopy className="text-xs" /> Copy path
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-neutral-900 rounded p-4">
+                  <p className="font-semibold text-white mb-2">What happens when disabled?</p>
+                  <ul className="space-y-1 text-xs list-disc list-inside text-neutral-300">
+                    <li>KYC menu item will still be visible but marked as "Disabled"</li>
+                    <li>New KYC verifications cannot be started</li>
+                    <li>Existing KYC data remains in database</li>
+                    <li>All KYC APIs return empty/disabled responses</li>
+                    <li>You can re-enable anytime by setting FEATURE_KYC=true again</li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowDisableModal(false)} className="flex-1 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">KYC Queue</h1>
           <div className="flex items-center gap-2">
@@ -413,6 +502,14 @@ export default function AdminKycPage() {
             >
               <FiSettings /> How to Enable
             </button>
+            {diag?.enabled && (
+              <button
+                onClick={() => setShowDisableModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg"
+              >
+                <FiX /> Disable KYC
+              </button>
+            )}
           </div>
         </div>
 
