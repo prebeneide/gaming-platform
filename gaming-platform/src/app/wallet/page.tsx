@@ -25,10 +25,19 @@ const isDebit = (type: string): boolean => {
   return ['withdrawal', 'match_payment', 'admin_withdrawal'].includes(type);
 };
 
+interface KycStatus {
+  status: 'not_started' | 'pending' | 'approved' | 'rejected';
+  reason?: string | null;
+  createdAt?: string | null;
+  decidedAt?: string | null;
+}
+
 interface WalletData {
   balance: number;
   currency: string;
   transactions: Transaction[];
+  kycStatus?: KycStatus | null;
+  kycEnabled?: boolean;
 }
 
 export default function WalletPage() {
@@ -102,7 +111,24 @@ export default function WalletPage() {
         setShowDepositModal(false);
         setDepositAmount("");
       } else {
-        showPopup({ type: 'error', message: data.error || 'Failed to process deposit' });
+        // Handle KYC-related errors with clear messages
+        if (data.status === 'not_started' || data.status === 'rejected' || data.action === 'verify_identity') {
+          showPopup({ 
+            type: 'error', 
+            message: `${data.message || data.error || 'Identity verification required'}\n\nRedirecting to verification page...`
+          });
+          // Redirect after showing popup
+          setTimeout(() => {
+            window.location.href = data.redirectTo || '/kyc';
+          }, 2000);
+        } else if (data.status === 'pending' || data.action === 'pending_review') {
+          showPopup({ 
+            type: 'error', 
+            message: `${data.message || 'Your identity verification is under review. We\'ll notify you once it\'s been processed.'}\n\nYou can check your status in Settings.`
+          });
+        } else {
+          showPopup({ type: 'error', message: data.message || data.error || 'Failed to process deposit' });
+        }
       }
     } catch (error) {
       console.error('Error processing deposit:', error);
@@ -137,7 +163,24 @@ export default function WalletPage() {
         setShowWithdrawModal(false);
         setWithdrawAmount("");
       } else {
-        showPopup({ type: 'error', message: data.error || 'Failed to process withdrawal' });
+        // Handle KYC-related errors with clear messages
+        if (data.status === 'not_started' || data.status === 'rejected' || data.action === 'verify_identity') {
+          showPopup({ 
+            type: 'error', 
+            message: `${data.message || data.error || 'Identity verification required'}\n\nRedirecting to verification page...`
+          });
+          // Redirect after showing popup
+          setTimeout(() => {
+            window.location.href = data.redirectTo || '/kyc';
+          }, 2000);
+        } else if (data.status === 'pending' || data.action === 'pending_review') {
+          showPopup({ 
+            type: 'error', 
+            message: `${data.message || 'Your identity verification is under review. We\'ll notify you once it\'s been processed.'}\n\nYou can check your status in Settings.`
+          });
+        } else {
+          showPopup({ type: 'error', message: data.message || data.error || 'Failed to process withdrawal' });
+        }
       }
     } catch (error) {
       console.error('Error processing withdrawal:', error);
@@ -233,6 +276,77 @@ export default function WalletPage() {
           <BackButton />
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold text-center mb-4 sm:mb-8">Wallet</h1>
+        
+        {/* KYC Status Banner */}
+        {walletData?.kycEnabled && walletData.kycStatus && (
+          <div className={`rounded-xl p-4 mb-4 sm:mb-6 ${
+            walletData.kycStatus.status === 'approved' 
+              ? 'bg-green-900/30 border border-green-700' 
+              : walletData.kycStatus.status === 'pending'
+              ? 'bg-yellow-900/30 border border-yellow-700'
+              : walletData.kycStatus.status === 'rejected'
+              ? 'bg-red-900/30 border border-red-700'
+              : 'bg-blue-900/30 border border-blue-700'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 ${
+                walletData.kycStatus.status === 'approved' 
+                  ? 'text-green-400' 
+                  : walletData.kycStatus.status === 'pending'
+                  ? 'text-yellow-400'
+                  : walletData.kycStatus.status === 'rejected'
+                  ? 'text-red-400'
+                  : 'text-blue-400'
+              }`}>
+                {walletData.kycStatus.status === 'approved' ? (
+                  <FiCheck className="text-xl" />
+                ) : walletData.kycStatus.status === 'pending' ? (
+                  <FiClock className="text-xl" />
+                ) : walletData.kycStatus.status === 'rejected' ? (
+                  <FiX className="text-xl" />
+                ) : (
+                  <FiClock className="text-xl" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-white mb-1">
+                  {walletData.kycStatus.status === 'approved' 
+                    ? 'Identity Verified' 
+                    : walletData.kycStatus.status === 'pending'
+                    ? 'Identity Verification Pending'
+                    : walletData.kycStatus.status === 'rejected'
+                    ? 'Identity Verification Required'
+                    : 'Identity Verification Required'}
+                </h3>
+                <p className="text-sm text-neutral-300 mb-2">
+                  {walletData.kycStatus.status === 'approved' 
+                    ? 'Your identity has been verified. You can make deposits and withdrawals.'
+                    : walletData.kycStatus.status === 'pending'
+                    ? 'Your identity verification is under review. We\'ll notify you once it\'s been processed, typically within 1-2 business days.'
+                    : walletData.kycStatus.status === 'rejected'
+                    ? walletData.kycStatus.reason 
+                      ? `Your verification was rejected: ${walletData.kycStatus.reason}. Please submit a new verification with corrected documents.`
+                      : 'Your verification was rejected. Please submit a new verification with correct documents.'
+                    : 'To make deposits or withdrawals, you must complete identity verification. This helps us comply with regulations and keep your account secure.'}
+                </p>
+                {walletData.kycStatus.status !== 'approved' && (
+                  <button
+                    onClick={() => window.location.href = '/kyc'}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                      walletData.kycStatus.status === 'rejected'
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : walletData.kycStatus.status === 'pending'
+                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {walletData.kycStatus.status === 'pending' ? 'View Status' : 'Verify Identity'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Balance Card */}
         <div className="bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl p-3 sm:p-6 mb-4 sm:mb-8">
