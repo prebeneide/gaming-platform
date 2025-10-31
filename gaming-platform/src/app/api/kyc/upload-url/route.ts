@@ -7,7 +7,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('[UPLOAD URL] Request received');
+    
     if (!isKycEnabled()) {
+      console.log('[UPLOAD URL] KYC disabled, returning 403');
       return NextResponse.json({ 
         error: 'KYC verification is currently disabled',
         message: 'Identity verification is temporarily unavailable. Please contact support if you need assistance.'
@@ -16,6 +19,7 @@ export async function POST(req: NextRequest) {
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
+      console.log('[UPLOAD URL] No session, returning 401');
       return NextResponse.json({ 
         error: 'Unauthorized',
         message: 'You must be logged in to upload documents. Please refresh the page and try again.'
@@ -26,7 +30,9 @@ export async function POST(req: NextRequest) {
     let body;
     try {
       body = await req.json();
-    } catch (parseError) {
+      console.log('[UPLOAD URL] Body parsed:', { kycId: body?.kycId ? 'present' : 'missing', kind: body?.kind, contentType: body?.contentType });
+    } catch (parseError: any) {
+      console.error('[UPLOAD URL] Body parse error:', parseError);
       return NextResponse.json({ 
         error: 'Invalid request',
         message: 'The request data was invalid. Please try selecting the file again.'
@@ -37,6 +43,7 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!kycId) {
+      console.log('[UPLOAD URL] Missing kycId');
       return NextResponse.json({ 
         error: 'Verification ID required',
         message: 'Verification session not found. Please refresh the page and start a new verification.'
@@ -44,6 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!kind) {
+      console.log('[UPLOAD URL] Missing kind');
       return NextResponse.json({ 
         error: 'Document type required',
         message: 'Please specify which document you are uploading (front, back, or selfie).'
@@ -51,6 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!contentType || !contentType.startsWith('image/')) {
+      console.log('[UPLOAD URL] Invalid contentType:', contentType);
       return NextResponse.json({ 
         error: 'Invalid file type',
         message: 'Please upload an image file (JPG, PNG, WebP, etc.). Other file types are not supported.'
@@ -58,16 +67,22 @@ export async function POST(req: NextRequest) {
     }
 
     const settings = getKycSettings();
+    console.log('[UPLOAD URL] Settings:', { storage: settings.storage, enabled: settings.enabled });
+    
     if (settings.storage !== 's3') {
+      console.error('[UPLOAD URL] S3 storage not configured, storage is:', settings.storage);
       return NextResponse.json({ 
         error: 'S3 storage not configured',
-        message: 'Document storage is not properly configured. Please contact support.'
+        message: 'Document storage is not properly configured. Please contact support.',
+        details: process.env.NODE_ENV === 'development' ? `Storage is set to: ${settings.storage}` : undefined
       }, { status: 500 });
     }
 
     // Verify the verification belongs to the user
+    console.log('[UPLOAD URL] Checking verification:', kycId);
     const verification = await (prisma as any).kycVerification.findUnique({ where: { id: kycId } });
     if (!verification) {
+      console.log('[UPLOAD URL] Verification not found:', kycId);
       return NextResponse.json({ 
         error: 'Verification not found',
         message: 'Verification session not found. Please refresh the page and start a new verification.'
@@ -75,6 +90,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (verification.userId !== session.user.id) {
+      console.log('[UPLOAD URL] User mismatch:', { verificationUserId: verification.userId, sessionUserId: session.user.id });
       return NextResponse.json({ 
         error: 'Unauthorized',
         message: 'You do not have permission to upload documents for this verification.'
@@ -83,24 +99,35 @@ export async function POST(req: NextRequest) {
 
     const uuid = (global as any).crypto?.randomUUID ? (global as any).crypto.randomUUID() : Math.random().toString(36).slice(2);
     const key = `kyc/${session.user.id}/${kycId}/${kind}-${uuid}`;
+    console.log('[UPLOAD URL] Generating presigned URL for key:', key);
     
     try {
       const url = await getPresignedPutUrl(key, contentType, 300);
+      console.log('[UPLOAD URL] Presigned URL generated successfully');
       return NextResponse.json({ key, url, storageProvider: 's3' });
     } catch (e: any) {
-      console.error('Presign error', e);
+      console.error('[UPLOAD URL] Presign error:', e);
+      console.error('[UPLOAD URL] Error stack:', e?.stack);
       return NextResponse.json({ 
         error: 'Failed to create upload URL',
-        message: 'Failed to prepare document upload. Please try again or contact support if the problem persists.',
-        details: process.env.NODE_ENV === 'development' ? e?.message : undefined
+        message: 'Failed to prepare document upload. Please check your S3 configuration or contact support.',
+        details: process.env.NODE_ENV === 'development' ? {
+          message: e?.message,
+          stack: e?.stack,
+          hint: 'Check S3 credentials in .env.local'
+        } : undefined
       }, { status: 500 });
     }
   } catch (error: any) {
-    console.error('Upload URL error:', error);
+    console.error('[UPLOAD URL] Outer catch error:', error);
+    console.error('[UPLOAD URL] Error stack:', error?.stack);
     return NextResponse.json({ 
       error: 'Internal server error',
       message: 'An error occurred while preparing document upload. Please try again or contact support.',
-      details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      details: process.env.NODE_ENV === 'development' ? {
+        message: error?.message,
+        stack: error?.stack
+      } : undefined
     }, { status: 500 });
   }
 }

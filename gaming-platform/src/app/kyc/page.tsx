@@ -228,24 +228,42 @@ export default function KycWizardPage() {
     // Request presigned URL
     let pres, pdata;
     try {
+      console.log('[KYC Upload] Requesting presigned URL for:', { kycId, kind, contentType: file.type });
+      
       pres = await fetch('/api/kyc/upload-url', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ kycId, kind, contentType: file.type || 'application/octet-stream' }) 
+      }).catch((fetchError) => {
+        console.error('[KYC Upload] Network error requesting upload URL:', fetchError);
+        throw new Error('Network error: Could not connect to server. Please check your internet connection and try again.');
       });
+
+      console.log('[KYC Upload] Upload URL response status:', pres.status, pres.ok);
 
       if (!pres.ok) {
         let errorMsg = 'Failed to prepare upload';
         try {
-          const errorData = await pres.json();
-          errorMsg = errorData.error || errorData.message || errorMsg;
-        } catch {
-          errorMsg = pres.status === 401 
-            ? 'Your session expired. Please refresh the page and try again.'
-            : pres.status === 403
-            ? 'You do not have permission to upload documents. Please contact support.'
-            : pres.status === 404
-            ? 'Verification not found. Please start a new verification.'
+          const responseText = await pres.text();
+          if (responseText) {
+            const errorData = JSON.parse(responseText);
+            errorMsg = errorData.message || errorData.error || errorMsg;
+            console.error('[KYC Upload] API error:', errorData);
+          } else {
+            errorMsg = pres.status === 401 
+              ? 'Your session expired. Please refresh the page and try again.'
+              : pres.status === 403
+              ? 'You do not have permission to upload documents. Please contact support.'
+              : pres.status === 404
+              ? 'Verification not found. Please start a new verification.'
+              : pres.status === 500
+              ? 'Server error occurred. Please try again in a moment.'
+              : `Failed to prepare upload (${pres.status}). Please try again.`;
+          }
+        } catch (parseError) {
+          console.error('[KYC Upload] Failed to parse error response:', parseError);
+          errorMsg = pres.status === 500
+            ? 'Server error occurred. Please try again in a moment.'
             : `Failed to prepare upload (${pres.status}). Please try again.`;
         }
         throw new Error(errorMsg);
@@ -258,61 +276,99 @@ export default function KycWizardPage() {
           throw new Error('Server returned an empty response');
         }
         pdata = JSON.parse(text);
+        console.log('[KYC Upload] Got presigned URL:', { hasUrl: !!pdata.url, hasKey: !!pdata.key });
       } catch (parseError) {
+        console.error('[KYC Upload] Failed to parse response:', parseError);
         throw new Error('Server returned an invalid response. Please try again.');
       }
 
       if (!pdata || !pdata.url || !pdata.key) {
+        console.error('[KYC Upload] Invalid upload configuration:', pdata);
         throw new Error('Invalid upload configuration received. Please try again or contact support.');
       }
     } catch (e: any) {
+      console.error('[KYC Upload] Error preparing upload:', e);
       throw new Error(e?.message || 'Failed to prepare document upload. Please try again or contact support.');
     }
     
     // PUT to S3
     try {
+      console.log('[KYC Upload] Uploading file to S3:', { url: pdata.url?.substring(0, 50) + '...', size: file.size });
+      
       const put = await fetch(pdata.url, { 
         method: 'PUT', 
         headers: { 'Content-Type': file.type || 'application/octet-stream' }, 
         body: file 
+      }).catch((fetchError) => {
+        console.error('[KYC Upload] Network error uploading to S3:', fetchError);
+        throw new Error('Network error: Could not upload file to storage. Please check your internet connection and try again.');
       });
+      
+      console.log('[KYC Upload] S3 upload response status:', put.status, put.ok);
       
       if (!put.ok) {
         const statusText = put.status === 403 
-          ? 'Upload permission denied. Please try again or contact support.'
+          ? 'Upload permission denied. The upload link may have expired. Please try uploading again.'
           : put.status === 413
           ? 'File is too large. Please compress the image and try again.'
+          : put.status === 400
+          ? 'Invalid upload request. Please try selecting the file again.'
           : 'Failed to upload file to storage. Please check your internet connection and try again.';
+        console.error('[KYC Upload] S3 upload failed:', put.status, statusText);
         throw new Error(statusText);
       }
+      
+      console.log('[KYC Upload] File uploaded to S3 successfully');
     } catch (e: any) {
+      console.error('[KYC Upload] Error uploading to S3:', e);
       if (e?.message) throw e;
       throw new Error('Failed to upload file. Please check your internet connection and try again.');
     }
     
     // Register evidence
     try {
+      console.log('[KYC Upload] Registering evidence:', { kycId, kind, storageKey: pdata.key });
+      
       const ev = await fetch('/api/kyc/evidence', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify({ kycId, kind, storageKey: pdata.key, storageProvider: pdata.storageProvider }) 
+      }).catch((fetchError) => {
+        console.error('[KYC Upload] Network error registering evidence:', fetchError);
+        throw new Error('Network error: Could not register document. Please try again.');
       });
+
+      console.log('[KYC Upload] Evidence registration response status:', ev.status, ev.ok);
 
       if (!ev.ok) {
         let errorMsg = 'Failed to register document';
         try {
-          const errorData = await ev.json();
-          errorMsg = errorData.error || errorData.message || errorMsg;
-        } catch {
-          errorMsg = ev.status === 400
-            ? 'Document registration failed. Please try uploading again.'
-            : ev.status === 404
-            ? 'Verification not found. Please refresh the page and try again.'
+          const responseText = await ev.text();
+          if (responseText) {
+            const errorData = JSON.parse(responseText);
+            errorMsg = errorData.message || errorData.error || errorMsg;
+            console.error('[KYC Upload] Evidence registration API error:', errorData);
+          } else {
+            errorMsg = ev.status === 400
+              ? 'Document registration failed. Please try uploading again.'
+              : ev.status === 404
+              ? 'Verification not found. Please refresh the page and try again.'
+              : ev.status === 500
+              ? 'Server error occurred. Please try again in a moment.'
+              : `Failed to register document (${ev.status}). Please try again.`;
+          }
+        } catch (parseError) {
+          console.error('[KYC Upload] Failed to parse evidence registration error:', parseError);
+          errorMsg = ev.status === 500
+            ? 'Server error occurred. Please try again in a moment.'
             : `Failed to register document (${ev.status}). Please try again.`;
         }
         throw new Error(errorMsg);
       }
+      
+      console.log('[KYC Upload] Evidence registered successfully');
     } catch (e: any) {
+      console.error('[KYC Upload] Error registering evidence:', e);
       if (e?.message) throw e;
       throw new Error('Failed to register document. Please try again or contact support.');
     }
