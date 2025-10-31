@@ -97,10 +97,23 @@ export async function POST(req: NextRequest) {
     } catch (dbError: any) {
       console.error('[KYC START] Database error checking existing verification:', dbError);
       console.error('[KYC START] Error stack:', dbError?.stack);
+
+      // Map common Prisma errors to clearer messages
+      const code = dbError?.code || dbError?.meta?.code;
+      let message = 'Failed to check for existing verification. Please try again or contact support if the problem persists.';
+      if (code === 'P2021') {
+        // Table does not exist (migrations not applied)
+        message = 'KYC database tables are missing. Please run database migrations and try again.';
+      } else if (code === 'P1001') {
+        message = 'Cannot connect to the database. Please check the database connection and try again.';
+      } else if (code === 'P1003') {
+        message = 'The database does not exist. Please run migrations first.';
+      }
+
       return NextResponse.json({ 
         error: 'Database error',
-        message: 'Failed to check for existing verification. Please try again or contact support if the problem persists.',
-        details: process.env.NODE_ENV === 'development' ? dbError?.message : undefined
+        message,
+        details: process.env.NODE_ENV === 'development' ? { code, raw: dbError?.message } : undefined
       }, { status: 500 });
     }
 
