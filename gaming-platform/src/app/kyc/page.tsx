@@ -293,28 +293,71 @@ export default function KycWizardPage() {
     
     // PUT to S3
     try {
-      console.log('[KYC Upload] Uploading file to S3:', { url: pdata.url?.substring(0, 50) + '...', size: file.size });
-      
-      const put = await fetch(pdata.url, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': file.type || 'application/octet-stream' }, 
-        body: file 
-      }).catch((fetchError) => {
-        console.error('[KYC Upload] Network error uploading to S3:', fetchError);
-        throw new Error('Network error: Could not upload file to storage. Please check your internet connection and try again.');
+      console.log('[KYC Upload] Uploading file to S3:', { 
+        urlPreview: pdata.url?.substring(0, 100) + '...', 
+        urlLength: pdata.url?.length,
+        fileSize: file.size,
+        fileType: file.type,
+        fileName: file.name
       });
       
-      console.log('[KYC Upload] S3 upload response status:', put.status, put.ok);
+      // Validate URL before attempting upload
+      if (!pdata.url || typeof pdata.url !== 'string' || !pdata.url.startsWith('http')) {
+        console.error('[KYC Upload] Invalid S3 URL:', pdata.url);
+        throw new Error('Invalid upload URL received from server. Please try again or contact support.');
+      }
+
+      const put = await fetch(pdata.url, { 
+        method: 'PUT', 
+        headers: { 
+          'Content-Type': file.type || 'application/octet-stream',
+        }, 
+        body: file,
+        mode: 'cors', // Explicitly allow CORS
+      }).catch((fetchError) => {
+        console.error('[KYC Upload] Network error uploading to S3:', fetchError);
+        console.error('[KYC Upload] Error details:', {
+          name: fetchError?.name,
+          message: fetchError?.message,
+          stack: fetchError?.stack
+        });
+        
+        // More specific error messages based on error type
+        if (fetchError?.message?.includes('CORS')) {
+          throw new Error('CORS error: S3 bucket CORS policy may not be configured correctly. Please contact support.');
+        } else if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('NetworkError')) {
+          throw new Error('Network error: Could not connect to storage server. Please check your internet connection and try again.');
+        } else {
+          throw new Error(`Upload failed: ${fetchError?.message || 'Unknown network error'}. Please try again.`);
+        }
+      });
+      
+      console.log('[KYC Upload] S3 upload response:', { 
+        status: put.status, 
+        ok: put.ok,
+        statusText: put.statusText,
+        headers: Object.fromEntries(put.headers.entries())
+      });
       
       if (!put.ok) {
+        let responseText = '';
+        try {
+          responseText = await put.text();
+          console.error('[KYC Upload] S3 error response body:', responseText);
+        } catch (e) {
+          // Ignore if we can't read response
+        }
+        
         const statusText = put.status === 403 
-          ? 'Upload permission denied. The upload link may have expired. Please try uploading again.'
+          ? 'Upload permission denied. The upload link may have expired or S3 permissions are incorrect. Please try uploading again.'
           : put.status === 413
           ? 'File is too large. Please compress the image and try again.'
           : put.status === 400
           ? 'Invalid upload request. Please try selecting the file again.'
-          : 'Failed to upload file to storage. Please check your internet connection and try again.';
-        console.error('[KYC Upload] S3 upload failed:', put.status, statusText);
+          : put.status === 404
+          ? 'Upload endpoint not found. Please contact support.'
+          : `Upload failed with status ${put.status}. ${responseText || 'Please try again or contact support.'}`;
+        console.error('[KYC Upload] S3 upload failed:', { status: put.status, statusText, responseText });
         throw new Error(statusText);
       }
       
