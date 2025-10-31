@@ -132,40 +132,57 @@ export default function KycWizardPage() {
         body: JSON.stringify({ dob, country: country.toUpperCase() }) 
       });
 
+      // Read response as text first
+      const responseText = await res.text();
+      
       // Check if response is OK
       if (!res.ok) {
         // Try to parse error message
         let errorMessage = 'Failed to start verification';
         try {
-          const errorData = await res.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch {
-          // If JSON parsing fails, use status text
-          errorMessage = res.status === 403 
-            ? 'Identity verification is currently disabled. Please contact support if you believe this is an error.'
-            : res.status === 401
-            ? 'You must be logged in to start verification. Please refresh the page and try again.'
-            : res.status === 500
+          if (responseText) {
+            const errorData = JSON.parse(responseText);
+            // Use the user-friendly message from API if available
+            errorMessage = errorData.message || errorData.error || errorMessage;
+            
+            // In development, log full error details
+            if (process.env.NODE_ENV === 'development' && errorData.details) {
+              console.error('API error details:', errorData.details);
+            }
+          } else {
+            // If no response text, use status-based messages
+            errorMessage = res.status === 403 
+              ? 'Identity verification is currently disabled. Please contact support if you believe this is an error.'
+              : res.status === 401
+              ? 'You must be logged in to start verification. Please refresh the page and try again.'
+              : res.status === 500
+              ? 'A server error occurred. Please try again in a few moments. If the problem persists, contact support.'
+              : `Failed to start verification (${res.status}). Please try again or contact support.`;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use status text or default message
+          errorMessage = responseText || (res.status === 500
             ? 'A server error occurred. Please try again in a few moments. If the problem persists, contact support.'
-            : `Failed to start verification (${res.status}). Please try again or contact support.`;
+            : `Failed to start verification (${res.status}). Please try again or contact support.`);
         }
         throw new Error(errorMessage);
       }
 
-      // Parse response JSON
+      // Parse response JSON (only if res.ok is true)
       let data;
       try {
-        const text = await res.text();
-        if (!text) {
+        if (!responseText) {
           throw new Error('Server returned an empty response. Please try again or contact support if the problem persists.');
         }
-        data = JSON.parse(text);
+        data = JSON.parse(responseText);
       } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
         throw new Error('Server returned an invalid response. Please try again or contact support if the problem persists.');
       }
 
       // Validate response structure
       if (!data || !data.verification || !data.verification.id) {
+        console.error('Invalid response structure:', data);
         throw new Error('Invalid response from server. Please try again or contact support if the problem persists.');
       }
 
