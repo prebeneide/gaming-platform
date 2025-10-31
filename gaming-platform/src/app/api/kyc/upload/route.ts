@@ -39,16 +39,37 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
+    console.log('[KYC UPLOAD] Parsing form data...');
     const formData = await req.formData();
+    
     const file = formData.get('file') as File;
-    const kycId = formData.get('kycId') as string;
-    const kind = formData.get('kind') as string;
-    const storageKey = formData.get('storageKey') as string;
+    const kycId = formData.get('kycId')?.toString() || '';
+    const kind = formData.get('kind')?.toString() || '';
+    const storageKey = formData.get('storageKey')?.toString() || '';
 
-    if (!file || !kycId || !kind || !storageKey) {
+    console.log('[KYC UPLOAD] Form data parsed:', {
+      hasFile: !!file,
+      fileSize: file?.size,
+      fileType: file?.type,
+      fileName: file?.name,
+      kycId,
+      kind,
+      storageKey
+    });
+
+    if (!file || file.size === 0) {
+      console.error('[KYC UPLOAD] Missing or empty file');
+      return NextResponse.json({ 
+        error: 'Missing file',
+        message: 'No file was uploaded. Please select a file and try again.'
+      }, { status: 400 });
+    }
+
+    if (!kycId || !kind || !storageKey) {
+      console.error('[KYC UPLOAD] Missing required fields:', { kycId: !!kycId, kind: !!kind, storageKey: !!storageKey });
       return NextResponse.json({ 
         error: 'Missing fields',
-        message: 'File, kycId, kind, and storageKey are required.'
+        message: 'Verification ID, document type, and storage key are required.'
       }, { status: 400 });
     }
 
@@ -66,18 +87,48 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Cloudinary
-    console.log('[KYC UPLOAD] Uploading to Cloudinary:', { kycId, kind, storageKey });
+    const folder = `kyc/${session.user.id}/${kycId}`;
+    const publicId = `${kind}-${storageKey.split('-').pop() || 'unknown'}`;
+    
+    console.log('[KYC UPLOAD] Uploading to Cloudinary:', { 
+      folder, 
+      publicId,
+      fileSize: buffer.length,
+      kycId, 
+      kind, 
+      storageKey,
+      cloudinaryConfigured: !!process.env.CLOUDINARY_CLOUD_NAME
+    });
+    
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('[KYC UPLOAD] Cloudinary not configured');
+      return NextResponse.json({ 
+        error: 'Cloudinary not configured',
+        message: 'Cloudinary credentials are missing. Please check your environment variables.'
+      }, { status: 500 });
+    }
     
     const uploadResult = await new Promise<any>((resolve, reject) => {
+      const uploadOptions = {
+        folder: folder,
+        public_id: publicId,
+        resource_type: 'image' as const,
+        overwrite: false,
+      };
+      
+      console.log('[KYC UPLOAD] Cloudinary upload options:', uploadOptions);
+      
       cloudinary.uploader.upload_stream(
-        { 
-          folder: `kyc/${session.user.id}/${kycId}`,
-          public_id: `${kind}-${storageKey.split('-').pop()}`,
-          resource_type: 'image',
-          type: 'private', // Keep images private in Cloudinary
-        },
+        uploadOptions,
         (error, result) => {
-          if (error) return reject(error);
+          if (error) {
+            console.error('[KYC UPLOAD] Cloudinary upload error:', error);
+            return reject(error);
+          }
+          console.log('[KYC UPLOAD] Cloudinary upload success:', { 
+            public_id: result?.public_id,
+            secure_url: result?.secure_url 
+          });
           resolve(result);
         }
       ).end(buffer);
