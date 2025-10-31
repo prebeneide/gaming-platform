@@ -110,9 +110,12 @@ export async function POST(req: NextRequest) {
 
       // For Cloudinary, we'll use direct upload via server
       const uuid = (global as any).crypto?.randomUUID ? (global as any).crypto.randomUUID() : Math.random().toString(36).slice(2);
-      const storageKey = `kyc/${session.user.id}/${kycId}/${kind}-${uuid}`;
+      const storageKey = `kyc-${session.user.id}-${kycId}-${kind}-${uuid}`;
       
-      console.log('[UPLOAD URL] Using Cloudinary storage (testing mode):', { storageKey });
+      console.log('[UPLOAD URL] Using Cloudinary storage (testing mode):', { 
+        storageKey,
+        cloudinaryConfigured: !!process.env.CLOUDINARY_CLOUD_NAME
+      });
       
       return NextResponse.json({ 
         key: storageKey, 

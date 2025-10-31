@@ -373,39 +373,82 @@ export default function KycWizardPage() {
         console.log('[KYC Upload] File uploaded to S3 successfully');
       } else {
         // Upload via server (Cloudinary or other)
-        console.log('[KYC Upload] Uploading file via server to Cloudinary');
+        console.log('[KYC Upload] Uploading file via server to Cloudinary', {
+          url: pdata.url,
+          kycId,
+          kind,
+          storageKey: pdata.key,
+          fileSize: file.size,
+          fileType: file.type
+        });
         
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('kycId', kycId);
-        formData.append('kind', kind);
-        formData.append('storageKey', pdata.key);
+        formData.append('kycId', kycId || '');
+        formData.append('kind', kind || '');
+        formData.append('storageKey', pdata.key || '');
+
+        console.log('[KYC Upload] FormData created, sending to:', pdata.url);
 
         const uploadRes = await fetch(pdata.url, {
           method: 'POST',
           body: formData,
         }).catch((fetchError) => {
           console.error('[KYC Upload] Network error uploading via server:', fetchError);
-          throw new Error('Network error: Could not upload file. Please check your internet connection and try again.');
+          console.error('[KYC Upload] Error details:', {
+            name: fetchError?.name,
+            message: fetchError?.message,
+            stack: fetchError?.stack
+          });
+          throw new Error(`Network error: Could not upload file. ${fetchError?.message || 'Please check your internet connection and try again.'}`);
+        });
+
+        console.log('[KYC Upload] Server response:', { 
+          status: uploadRes.status, 
+          ok: uploadRes.ok,
+          statusText: uploadRes.statusText
         });
 
         if (!uploadRes.ok) {
           let errorMsg = 'Upload failed';
           try {
-            const errorData = await uploadRes.json();
-            errorMsg = errorData.message || errorData.error || errorMsg;
-          } catch {
+            const responseText = await uploadRes.text();
+            console.error('[KYC Upload] Server error response:', responseText);
+            if (responseText) {
+              const errorData = JSON.parse(responseText);
+              errorMsg = errorData.message || errorData.error || errorMsg;
+              console.error('[KYC Upload] Parsed error:', errorData);
+            }
+          } catch (parseError) {
+            console.error('[KYC Upload] Failed to parse error response:', parseError);
             errorMsg = `Upload failed (${uploadRes.status}). Please try again.`;
           }
           console.error('[KYC Upload] Server upload failed:', errorMsg);
           throw new Error(errorMsg);
         }
 
-        const uploadData = await uploadRes.json();
-        console.log('[KYC Upload] File uploaded via server successfully:', { storageKey: uploadData.key });
+        let uploadData;
+        try {
+          const responseText = await uploadRes.text();
+          if (!responseText) {
+            throw new Error('Server returned empty response');
+          }
+          uploadData = JSON.parse(responseText);
+          console.log('[KYC Upload] File uploaded via server successfully:', { 
+            storageKey: uploadData.key,
+            url: uploadData.url,
+            storageProvider: uploadData.storageProvider
+          });
+        } catch (parseError) {
+          console.error('[KYC Upload] Failed to parse upload response:', parseError);
+          throw new Error('Server returned invalid response. Please try again.');
+        }
         
         // Update pdata with the actual storage key from server response
-        pdata.key = uploadData.key || pdata.key;
+        if (uploadData.key) {
+          pdata.key = uploadData.key;
+        }
+        console.log('[KYC Upload] Updated pdata.key to:', pdata.key);
       }
     } catch (e: any) {
       console.error('[KYC Upload] Error uploading file:', e);
