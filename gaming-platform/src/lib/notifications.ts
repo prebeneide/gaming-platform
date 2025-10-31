@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 export interface CreateNotificationData {
   userId: string;
-  type: 'match_invite' | 'friend_request' | 'match_result' | 'payment' | 'system';
+  type: 'match_invite' | 'friend_request' | 'match_result' | 'payment' | 'system' | 'kyc_approved' | 'kyc_rejected';
   title: string;
   message: string;
   data?: Record<string, any>;
@@ -113,5 +113,36 @@ export async function createSystemNotification(
     title,
     message,
     data
+  });
+}
+
+export async function createKycApprovedNotification(
+  userId: string,
+  kycVerificationId: string
+) {
+  return createNotification({
+    userId,
+    type: 'kyc_approved',
+    title: 'Identity Verification Approved',
+    message: 'Your identity verification has been approved! You can now make deposits, withdrawals, and join matches with buy-in.',
+    data: { kycVerificationId, status: 'approved' }
+  });
+}
+
+export async function createKycRejectedNotification(
+  userId: string,
+  kycVerificationId: string,
+  reason?: string | null
+) {
+  const reasonText = reason 
+    ? ` Reason: ${reason}.`
+    : ' Please submit a new verification with correct documents.';
+  
+  return createNotification({
+    userId,
+    type: 'kyc_rejected',
+    title: 'Identity Verification Rejected',
+    message: `Your identity verification was rejected.${reasonText}`,
+    data: { kycVerificationId, status: 'rejected', reason: reason || null }
   });
 } 

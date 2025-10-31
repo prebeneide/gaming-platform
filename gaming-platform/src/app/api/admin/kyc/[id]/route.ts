@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { isKycEnabled } from '@/lib/kycConfig';
 import { logActivity, ActivityTypes } from '@/lib/activityLogger';
+import { createKycApprovedNotification, createKycRejectedNotification } from '@/lib/notifications';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   if (!isKycEnabled()) return NextResponse.json({ error: 'KYC disabled' }, { status: 403 });
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     where: { id },
     data: { status, reason: reason || null, reviewerId: session.user.id, decidedAt: new Date() }
   });
+  
+  // Log activity
   await logActivity({
     userId: verification.userId,
     action: status === 'approved' ? ActivityTypes.KYC_APPROVED : ActivityTypes.KYC_REJECTED,
@@ -36,6 +39,19 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     entityId: id,
     details: { reviewerId: session.user.id, reason: reason || undefined },
   });
+
+  // Send notification to user
+  try {
+    if (status === 'approved') {
+      await createKycApprovedNotification(verification.userId, id);
+    } else {
+      await createKycRejectedNotification(verification.userId, id, reason || null);
+    }
+  } catch (notificationError) {
+    // Log error but don't fail the request
+    console.error('Failed to send KYC notification:', notificationError);
+  }
+
   return NextResponse.json({ item: updated });
 }
 
