@@ -106,11 +106,39 @@ export default function AdminKycPage() {
         {diag && (
           <div className="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
             <h2 className="text-xl font-semibold text-white mb-2">KYC Diagnostics</h2>
+            
+            {/* Production Warning for Cloudinary */}
+            {diag.settings?.storage === 'cloudinary' && (
+              <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <FiX className="text-yellow-400 text-xl mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-yellow-400 mb-2">⚠️ PRODUCTION SECURITY WARNING</h3>
+                <p className="text-sm text-yellow-200 mb-3">
+                  You are currently using <strong>Cloudinary</strong> for KYC document storage. This is <strong>ONLY suitable for testing/development</strong>.
+                </p>
+                <p className="text-sm text-yellow-200 mb-3">
+                  <strong>Before going live, you MUST switch to S3 storage</strong> for the following reasons:
+                </p>
+                <ul className="text-sm text-yellow-200 list-disc list-inside space-y-1 mb-3">
+                  <li><strong>Privacy & GDPR:</strong> KYC documents contain sensitive personal data. S3 provides private storage with strict access controls.</li>
+                  <li><strong>Security:</strong> S3 allows fine-grained access control (IAM policies), while Cloudinary is optimized for public image delivery.</li>
+                  <li><strong>Compliance:</strong> S3 provides better audit logs for regulatory compliance.</li>
+                  <li><strong>Data Retention:</strong> S3 supports automated lifecycle policies for auto-deletion based on retention requirements.</li>
+                </ul>
+                <p className="text-sm font-semibold text-yellow-300">
+                  To switch to S3: Set <code className="bg-yellow-900/50 px-1 rounded">KYC_STORAGE=s3</code> in your .env.local and configure S3 credentials.
+                </p>
+              </div>
+            </div>
+          </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-1">
                 <div>Feature enabled: <span className={`font-semibold ${diag.enabled ? 'text-green-400' : 'text-red-400'}`}>{String(diag.enabled)}</span></div>
                 <div>Provider: <span className="font-semibold">{diag.settings?.provider}</span></div>
-                <div>Storage: <span className="font-semibold">{diag.settings?.storage}</span></div>
+                <div>Storage: <span className={`font-semibold ${diag.settings?.storage === 'cloudinary' ? 'text-yellow-400' : diag.settings?.storage === 's3' ? 'text-green-400' : ''}`}>{diag.settings?.storage}{diag.settings?.storage === 'cloudinary' ? ' (TESTING ONLY)' : ''}</span></div>
                 <div>Retention days: <span className="font-semibold">{diag.settings?.retentionDays}</span></div>
                 <div>AWS SDK installed: <span className={`font-semibold ${diag.awsInstalled ? 'text-green-400' : 'text-red-400'}`}>{String(diag.awsInstalled)}</span></div>
               </div>
@@ -119,6 +147,9 @@ export default function AdminKycPage() {
                 <div>Env KYC_PROVIDER: <span className="font-mono">{String(diag.env?.KYC_PROVIDER)}</span></div>
                 <div>Env KYC_STORAGE: <span className="font-mono">{String(diag.env?.KYC_STORAGE)}</span></div>
                 <div>S3 credentials configured: <span className={`font-semibold ${diag.env?.S3_CONFIGURED ? 'text-green-400' : 'text-red-400'}`}>{String(diag.env?.S3_CONFIGURED || false)}</span></div>
+                {diag.settings?.storage === 'cloudinary' && (
+                  <div>Cloudinary configured: <span className={`font-semibold ${diag.env?.CLOUDINARY_CLOUD_NAME ? 'text-green-400' : 'text-red-400'}`}>{String(!!diag.env?.CLOUDINARY_CLOUD_NAME)}</span></div>
+                )}
               </div>
             </div>
             <div className="mt-3 space-y-2">
