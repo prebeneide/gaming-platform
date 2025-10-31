@@ -138,8 +138,34 @@ export default function AdminKycPage() {
                 </div>
               )}
               {!diag.enabled && (
-                <div className="text-xs text-neutral-300 bg-neutral-700 rounded p-3">
-                  <button onClick={() => setShowEnableModal(true)} className="underline hover:text-white">Click here for step-by-step guide</button>
+                <div className="space-y-2">
+                  <div className="text-xs text-neutral-300 bg-neutral-700 rounded p-3">
+                    <button onClick={() => setShowEnableModal(true)} className="underline hover:text-white">Click here for step-by-step guide</button>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if (!confirm('This will automatically add missing KYC lines to your .env.local file. Continue?')) return;
+                      try {
+                        const r = await fetch('/api/admin/kyc/fix-env', { method: 'POST' });
+                        const d = await r.json();
+                        if (!r.ok) throw new Error(d.error || 'Failed to fix .env.local');
+                        if (d.added && d.added.length > 0) {
+                          alert(`✓ Success! Added ${d.added.length} missing variable(s):\n${d.added.join(', ')}\n\nPlease restart your server to load the new variables.`);
+                          // Refresh diagnostics
+                          const r2 = await fetch(`/api/admin/kyc/diagnostics?t=${Date.now()}`, { cache: 'no-store' as RequestCache });
+                          const d2 = await r2.json();
+                          setDiag(d2);
+                        } else {
+                          alert('All required variables already exist in .env.local!');
+                        }
+                      } catch (e: any) {
+                        alert(`Error: ${e?.message || 'Failed to update .env.local'}`);
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded flex items-center justify-center gap-2 font-medium text-white text-sm"
+                  >
+                    <span>✨</span> Fix .env.local automatically
+                  </button>
                 </div>
               )}
             </div>
@@ -176,6 +202,34 @@ export default function AdminKycPage() {
                       ⚠️ AWS SDK packages need to be installed. Run: <code className="bg-neutral-800 px-2 py-1 rounded">npm i @aws-sdk/client-s3 @aws-sdk/s3-request-presigner</code>
                     </div>
                   )}
+                  <div className="mt-3 pt-3 border-t border-neutral-700">
+                    <p className="font-semibold text-white mb-2">Quick Fix:</p>
+                    <button 
+                      onClick={async () => {
+                        if (!confirm('This will automatically add missing KYC lines to your .env.local file. Continue?')) return;
+                        try {
+                          const r = await fetch('/api/admin/kyc/fix-env', { method: 'POST' });
+                          const d = await r.json();
+                          if (!r.ok) throw new Error(d.error || 'Failed to fix .env.local');
+                          if (d.added && d.added.length > 0) {
+                            alert(`✓ Success! Added ${d.added.length} missing variable(s):\n${d.added.join(', ')}\n\nPlease restart your server to load the new variables.`);
+                            // Refresh diagnostics
+                            const r2 = await fetch(`/api/admin/kyc/diagnostics?t=${Date.now()}`, { cache: 'no-store' as RequestCache });
+                            const d2 = await r2.json();
+                            setDiag(d2);
+                          } else {
+                            alert('All required variables already exist in .env.local!');
+                          }
+                        } catch (e: any) {
+                          alert(`Error: ${e?.message || 'Failed to update .env.local'}`);
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded flex items-center gap-2 font-medium text-white"
+                    >
+                      <span>✨</span> Fix .env.local automatically
+                    </button>
+                    <p className="text-xs text-neutral-400 mt-2">This will add missing KYC variables to your .env.local file</p>
+                  </div>
                 </div>
                 <div className="bg-neutral-900 rounded p-4 space-y-2">
                   <p className="font-semibold text-white">Step 3: Restart your dev server</p>
