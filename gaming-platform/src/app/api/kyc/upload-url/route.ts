@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { isKycEnabled, getKycSettings } from '@/lib/kycConfig';
 import { getPresignedPutUrl } from '@/lib/s3';
 import { prisma } from '@/lib/prisma';
+import { v2 as cloudinary } from 'cloudinary';
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,19 +67,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const settings = getKycSettings();
-    console.log('[UPLOAD URL] Settings:', { storage: settings.storage, enabled: settings.enabled });
-    
-    if (settings.storage !== 's3') {
-      console.error('[UPLOAD URL] S3 storage not configured, storage is:', settings.storage);
-      return NextResponse.json({ 
-        error: 'S3 storage not configured',
-        message: 'Document storage is not properly configured. Please contact support.',
-        details: process.env.NODE_ENV === 'development' ? `Storage is set to: ${settings.storage}` : undefined
-      }, { status: 500 });
-    }
-
-    // Verify the verification belongs to the user
+    // Verify the verification belongs to the user (before checking storage)
     console.log('[UPLOAD URL] Checking verification:', kycId);
     const verification = await (prisma as any).kycVerification.findUnique({ where: { id: kycId } });
     if (!verification) {
@@ -97,26 +86,62 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    const uuid = (global as any).crypto?.randomUUID ? (global as any).crypto.randomUUID() : Math.random().toString(36).slice(2);
-    const key = `kyc/${session.user.id}/${kycId}/${kind}-${uuid}`;
-    console.log('[UPLOAD URL] Generating presigned URL for key:', key);
+    const settings = getKycSettings();
+    console.log('[UPLOAD URL] Settings:', { storage: settings.storage, enabled: settings.enabled });
     
-    try {
-      const url = await getPresignedPutUrl(key, contentType, 300);
-      console.log('[UPLOAD URL] Presigned URL generated successfully');
-      return NextResponse.json({ key, url, storageProvider: 's3' });
-    } catch (e: any) {
-      console.error('[UPLOAD URL] Presign error:', e);
-      console.error('[UPLOAD URL] Error stack:', e?.stack);
+    // Support both S3 and Cloudinary (Cloudinary for testing only)
+    if (settings.storage === 'cloudinary') {
+      // Configure Cloudinary if not already configured
+      if (!cloudinary.config().cloud_name) {
+        cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+          api_key: process.env.CLOUDINARY_API_KEY,
+          api_secret: process.env.CLOUDINARY_API_SECRET,
+        });
+      }
+
+      if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        console.error('[UPLOAD URL] Cloudinary not configured');
+        return NextResponse.json({ 
+          error: 'Cloudinary not configured',
+          message: 'Cloudinary credentials are missing. Please check your environment variables.',
+        }, { status: 500 });
+      }
+
+      // For Cloudinary, we'll use direct upload via server
+      const uuid = (global as any).crypto?.randomUUID ? (global as any).crypto.randomUUID() : Math.random().toString(36).slice(2);
+      const storageKey = `kyc/${session.user.id}/${kycId}/${kind}-${uuid}`;
+      
+      console.log('[UPLOAD URL] Using Cloudinary storage (testing mode):', { storageKey });
+      
       return NextResponse.json({ 
-        error: 'Failed to create upload URL',
-        message: 'Failed to prepare document upload. Please check your S3 configuration or contact support.',
-        details: process.env.NODE_ENV === 'development' ? {
-          message: e?.message,
-          stack: e?.stack,
-          hint: 'Check S3 credentials in .env.local'
-        } : undefined
-      }, { status: 500 });
+        key: storageKey, 
+        url: '/api/kyc/upload', // Client will POST here instead of direct to storage
+        storageProvider: 'cloudinary',
+        directUpload: false, // Indicates we need to upload via server
+      });
+    } else if (settings.storage === 's3') {
+      const uuid = (global as any).crypto?.randomUUID ? (global as any).crypto.randomUUID() : Math.random().toString(36).slice(2);
+      const key = `kyc/${session.user.id}/${kycId}/${kind}-${uuid}`;
+      console.log('[UPLOAD URL] Generating presigned URL for key:', key);
+      
+      try {
+        const url = await getPresignedPutUrl(key, contentType, 300);
+        console.log('[UPLOAD URL] Presigned URL generated successfully');
+        return NextResponse.json({ key, url, storageProvider: 's3', directUpload: true });
+      } catch (e: any) {
+        console.error('[UPLOAD URL] Presign error:', e);
+        console.error('[UPLOAD URL] Error stack:', e?.stack);
+        return NextResponse.json({ 
+          error: 'Failed to create upload URL',
+          message: 'Failed to prepare document upload. Please check your S3 configuration or contact support.',
+          details: process.env.NODE_ENV === 'development' ? {
+            message: e?.message,
+            stack: e?.stack,
+            hint: 'Check S3 credentials in .env.local'
+          } : undefined
+        }, { status: 500 });
+      }
     }
   } catch (error: any) {
     console.error('[UPLOAD URL] Outer catch error:', error);

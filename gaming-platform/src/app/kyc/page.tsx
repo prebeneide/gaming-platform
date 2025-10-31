@@ -291,79 +291,124 @@ export default function KycWizardPage() {
       throw new Error(e?.message || 'Failed to prepare document upload. Please try again or contact support.');
     }
     
-    // PUT to S3
+    // Upload file (either to S3 directly or via server for Cloudinary)
     try {
-      console.log('[KYC Upload] Uploading file to S3:', { 
-        urlPreview: pdata.url?.substring(0, 100) + '...', 
-        urlLength: pdata.url?.length,
+      const directUpload = pdata.directUpload !== false; // Default to true if not specified
+      const storageProvider = pdata.storageProvider || 's3';
+      
+      console.log('[KYC Upload] Starting upload:', { 
+        storageProvider,
+        directUpload,
         fileSize: file.size,
         fileType: file.type,
         fileName: file.name
       });
-      
-      // Validate URL before attempting upload
-      if (!pdata.url || typeof pdata.url !== 'string' || !pdata.url.startsWith('http')) {
-        console.error('[KYC Upload] Invalid S3 URL:', pdata.url);
-        throw new Error('Invalid upload URL received from server. Please try again or contact support.');
-      }
 
-      const put = await fetch(pdata.url, { 
-        method: 'PUT', 
-        headers: { 
-          'Content-Type': file.type || 'application/octet-stream',
-        }, 
-        body: file,
-        mode: 'cors', // Explicitly allow CORS
-      }).catch((fetchError) => {
-        console.error('[KYC Upload] Network error uploading to S3:', fetchError);
-        console.error('[KYC Upload] Error details:', {
-          name: fetchError?.name,
-          message: fetchError?.message,
-          stack: fetchError?.stack
+      if (directUpload && storageProvider === 's3') {
+        // Direct upload to S3
+        console.log('[KYC Upload] Uploading file directly to S3:', { 
+          urlPreview: pdata.url?.substring(0, 100) + '...', 
+          urlLength: pdata.url?.length
         });
         
-        // More specific error messages based on error type
-        if (fetchError?.message?.includes('CORS')) {
-          throw new Error('CORS error: S3 bucket CORS policy may not be configured correctly. Please contact support.');
-        } else if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('NetworkError')) {
-          throw new Error('Network error: Could not connect to storage server. Please check your internet connection and try again.');
-        } else {
-          throw new Error(`Upload failed: ${fetchError?.message || 'Unknown network error'}. Please try again.`);
+        // Validate URL before attempting upload
+        if (!pdata.url || typeof pdata.url !== 'string' || !pdata.url.startsWith('http')) {
+          console.error('[KYC Upload] Invalid S3 URL:', pdata.url);
+          throw new Error('Invalid upload URL received from server. Please try again or contact support.');
         }
-      });
-      
-      console.log('[KYC Upload] S3 upload response:', { 
-        status: put.status, 
-        ok: put.ok,
-        statusText: put.statusText,
-        headers: Object.fromEntries(put.headers.entries())
-      });
-      
-      if (!put.ok) {
-        let responseText = '';
-        try {
-          responseText = await put.text();
-          console.error('[KYC Upload] S3 error response body:', responseText);
-        } catch (e) {
-          // Ignore if we can't read response
+
+        const put = await fetch(pdata.url, { 
+          method: 'PUT', 
+          headers: { 
+            'Content-Type': file.type || 'application/octet-stream',
+          }, 
+          body: file,
+          mode: 'cors', // Explicitly allow CORS
+        }).catch((fetchError) => {
+          console.error('[KYC Upload] Network error uploading to S3:', fetchError);
+          console.error('[KYC Upload] Error details:', {
+            name: fetchError?.name,
+            message: fetchError?.message,
+            stack: fetchError?.stack
+          });
+          
+          // More specific error messages based on error type
+          if (fetchError?.message?.includes('CORS')) {
+            throw new Error('CORS error: S3 bucket CORS policy may not be configured correctly. Please contact support.');
+          } else if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('NetworkError')) {
+            throw new Error('Network error: Could not connect to storage server. Please check your internet connection and try again.');
+          } else {
+            throw new Error(`Upload failed: ${fetchError?.message || 'Unknown network error'}. Please try again.`);
+          }
+        });
+        
+        console.log('[KYC Upload] S3 upload response:', { 
+          status: put.status, 
+          ok: put.ok,
+          statusText: put.statusText
+        });
+        
+        if (!put.ok) {
+          let responseText = '';
+          try {
+            responseText = await put.text();
+            console.error('[KYC Upload] S3 error response body:', responseText);
+          } catch (e) {
+            // Ignore if we can't read response
+          }
+          
+          const statusText = put.status === 403 
+            ? 'Upload permission denied. The upload link may have expired or S3 permissions are incorrect. Please try uploading again.'
+            : put.status === 413
+            ? 'File is too large. Please compress the image and try again.'
+            : put.status === 400
+            ? 'Invalid upload request. Please try selecting the file again.'
+            : put.status === 404
+            ? 'Upload endpoint not found. Please contact support.'
+            : `Upload failed with status ${put.status}. ${responseText || 'Please try again or contact support.'}`;
+          console.error('[KYC Upload] S3 upload failed:', { status: put.status, statusText, responseText });
+          throw new Error(statusText);
         }
         
-        const statusText = put.status === 403 
-          ? 'Upload permission denied. The upload link may have expired or S3 permissions are incorrect. Please try uploading again.'
-          : put.status === 413
-          ? 'File is too large. Please compress the image and try again.'
-          : put.status === 400
-          ? 'Invalid upload request. Please try selecting the file again.'
-          : put.status === 404
-          ? 'Upload endpoint not found. Please contact support.'
-          : `Upload failed with status ${put.status}. ${responseText || 'Please try again or contact support.'}`;
-        console.error('[KYC Upload] S3 upload failed:', { status: put.status, statusText, responseText });
-        throw new Error(statusText);
+        console.log('[KYC Upload] File uploaded to S3 successfully');
+      } else {
+        // Upload via server (Cloudinary or other)
+        console.log('[KYC Upload] Uploading file via server to Cloudinary');
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('kycId', kycId);
+        formData.append('kind', kind);
+        formData.append('storageKey', pdata.key);
+
+        const uploadRes = await fetch(pdata.url, {
+          method: 'POST',
+          body: formData,
+        }).catch((fetchError) => {
+          console.error('[KYC Upload] Network error uploading via server:', fetchError);
+          throw new Error('Network error: Could not upload file. Please check your internet connection and try again.');
+        });
+
+        if (!uploadRes.ok) {
+          let errorMsg = 'Upload failed';
+          try {
+            const errorData = await uploadRes.json();
+            errorMsg = errorData.message || errorData.error || errorMsg;
+          } catch {
+            errorMsg = `Upload failed (${uploadRes.status}). Please try again.`;
+          }
+          console.error('[KYC Upload] Server upload failed:', errorMsg);
+          throw new Error(errorMsg);
+        }
+
+        const uploadData = await uploadRes.json();
+        console.log('[KYC Upload] File uploaded via server successfully:', { storageKey: uploadData.key });
+        
+        // Update pdata with the actual storage key from server response
+        pdata.key = uploadData.key || pdata.key;
       }
-      
-      console.log('[KYC Upload] File uploaded to S3 successfully');
     } catch (e: any) {
-      console.error('[KYC Upload] Error uploading to S3:', e);
+      console.error('[KYC Upload] Error uploading file:', e);
       if (e?.message) throw e;
       throw new Error('Failed to upload file. Please check your internet connection and try again.');
     }
