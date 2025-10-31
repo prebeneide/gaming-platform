@@ -20,11 +20,21 @@ export async function GET() {
     await import('@aws-sdk/s3-request-presigner');
     awsInstalled = true;
   } catch {}
-  return NextResponse.json({
+  const body = {
     enabled: isKycEnabled(),
     settings,
     env,
     awsInstalled,
+    serverTime: new Date().toISOString(),
+    pid: process.pid,
+    uptimeSec: Math.floor(process.uptime()),
+  };
+
+  return new NextResponse(JSON.stringify(body), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    },
   });
 }
 
